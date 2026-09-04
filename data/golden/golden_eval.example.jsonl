@@ -1,0 +1,2 @@
+{"id": "spec_qa_001", "type": "spec_qa", "question": "What is E2SM-KPM used for?", "expected_spec_id": "O-RAN.WG3.E2SM-KPM", "expected_section": "placeholder", "is_answerable": true}
+{"id": "rca_001", "type": "rca", "scenario_id": "example_001", "spec_refs_golden": ["O-RAN.WG3.E2AP §placeholder"], "is_answerable": true}

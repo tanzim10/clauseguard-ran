@@ -1,0 +1,54 @@
+# project-local context (never commit)
+.context/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# data & artifacts (large / reproducible); keep directory placeholders
+data/corpus/raw/*
+!data/corpus/raw/.gitkeep
+data/corpus/parsed/*
+!data/corpus/parsed/.gitkeep
+data/corpus/chunks/*
+!data/corpus/chunks/.gitkeep
+data/telecomts/*
+!data/telecomts/.gitkeep
+data/scenarios/scenarios.jsonl
+data/golden/golden_eval.jsonl
+artifacts/*
+!artifacts/**/
+!artifacts/**/.gitkeep
+models/*
+!models/.gitkeep
+
+# qdrant local override if not using named volume
+qdrant_storage/
+
+# notebooks / IDE
+.ipynb_checkpoints/
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# logs
+*.log
+logs/
+
+# UI (later)
+src/ui/node_modules/
+src/ui/dist/

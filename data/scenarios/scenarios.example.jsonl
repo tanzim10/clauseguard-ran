@@ -1,0 +1,2 @@
+{"scenario_id": "example_001", "kpi_window": [], "nl_context": "Placeholder NL context", "fault_label": "placeholder_fault", "rca_label": "placeholder_rca", "alarms": [], "spec_refs_golden": []}
+{"scenario_id": "example_002", "kpi_window": [], "nl_context": "Another placeholder incident", "fault_label": "placeholder_fault", "rca_label": "placeholder_rca", "alarms": [], "spec_refs_golden": []}

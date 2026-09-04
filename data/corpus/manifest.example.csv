@@ -1,0 +1,3 @@
+filename,source_url,spec_id,doc_type,working_group,version,sha256,acquired_at,license_note
+O-RAN.WG2.A1AP.pdf,https://example.com/placeholder,O-RAN.WG2.A1AP,oran,WG2,v03.00,pending,2026-09-03T00:00:00Z,placeholder-row
+TS_28.552.pdf,https://example.com/placeholder,3GPP.TS.28.552,3gpp,SA5,18.x,pending,2026-09-03T00:00:00Z,placeholder-row

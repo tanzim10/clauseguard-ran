@@ -1,6 +1,12 @@
 # project-local context (never commit)
 .context/
 
+# local Claude Code settings/hooks (never commit)
+.claude/
+
+# local Codex workflows/settings (never commit)
+.codex/
+
 # secrets
 .env
 .env.*
@@ -34,6 +40,8 @@ artifacts/*
 !artifacts/**/.gitkeep
 models/*
 !models/.gitkeep
+docs/*
+!docs/IMPLEMENTATION_SUMMARY.md
 
 # qdrant local override if not using named volume
 qdrant_storage/

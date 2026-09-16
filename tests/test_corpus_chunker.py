@@ -76,13 +76,32 @@ The measurement report contains the counters required for analysis.
     first = chunk_document(text, **kwargs)
     second = chunk_document(text, **kwargs)
 
+    expected_id = "3GPP TS 28.552::3.1 Measurements::0"
+    assert first[0]["id"] == expected_id
     assert first[0]["id"] == second[0]["id"]
     assert first[0]["metadata"] == {
         "spec_id": "3GPP TS 28.552",
         "source_file": "ts-28-552.txt",
         "section": "3.1 Measurements",
+        "chunk_id": expected_id,
     }
-    assert first[0]["id"]
+
+
+def test_chunk_document_keeps_numeric_content_on_paragraph_fallback():
+    text = """12345
+
+The paragraph contains the actual specification content and should not inherit
+the numeric line as a section heading.
+"""
+
+    chunks = chunk_document(
+        text,
+        spec_id="3GPP TS 28.552",
+        source_file="ts-28-552.txt",
+    )
+
+    assert len(chunks) == 2
+    assert all(chunk["metadata"]["section"] == "" for chunk in chunks)
 
 
 def test_chunk_document_respects_the_configured_token_budget():

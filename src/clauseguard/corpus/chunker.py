@@ -8,7 +8,7 @@ from typing import Any
 
 from clauseguard.config import Settings
 
-_HEADING_RE = re.compile(r"^\s*\d+(?:\.\d+)*(?:\.)?(?:[ \t]+\S.*)?\s*$")
+_HEADING_RE = re.compile(r"^\s*\d+(?:\.\d+)*(?:\.)?[ \t]+\S.*\s*$")
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 
 
@@ -44,14 +44,16 @@ def chunk_document(text: str, *, spec_id: str, source_file: str) -> list[dict[st
 
     chunks: list[dict[str, Any]] = []
     for index, (section, chunk_text) in enumerate(section_chunks):
+        chunk_id = f"{spec_id}::{section}::{index}"
         chunks.append(
             {
-                "id": f"{spec_id}::{section}::{index}",
+                "id": chunk_id,
                 "text": chunk_text,
                 "metadata": {
                     "spec_id": spec_id,
                     "source_file": source_file,
                     "section": section,
+                    "chunk_id": chunk_id,
                 },
             }
         )

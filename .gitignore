@@ -7,6 +7,11 @@
 # local Codex workflows/settings (never commit)
 .codex/
 
+# local agent workflow state (never commit)
+.swarm/
+.claude-flow/
+.superpowers/
+
 # secrets
 .env
 .env.*

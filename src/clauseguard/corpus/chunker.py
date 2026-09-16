@@ -10,6 +10,8 @@ from clauseguard.config import Settings
 
 _HEADING_RE = re.compile(r"^\s*\d+(?:\.\d+)*(?:\.)?[ \t]+\S.*\s*$")
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
+_PREAMBLE_SECTION = "preamble"
+_UNSECTIONED_SECTION = "unsectioned"
 
 
 def chunk_document(text: str, *, spec_id: str, source_file: str) -> list[dict[str, Any]]:
@@ -28,7 +30,7 @@ def chunk_document(text: str, *, spec_id: str, source_file: str) -> list[dict[st
     if heading_indexes:
         first_heading = heading_indexes[0]
         preamble = _paragraphs(lines[:first_heading])
-        section_chunks.extend(_chunk_content("", preamble, budget))
+        section_chunks.extend(_chunk_content(_PREAMBLE_SECTION, preamble, budget))
 
         for position, heading_index in enumerate(heading_indexes):
             next_heading = (
@@ -40,7 +42,9 @@ def chunk_document(text: str, *, spec_id: str, source_file: str) -> list[dict[st
             body = _paragraphs(lines[heading_index + 1 : next_heading])
             section_chunks.extend(_chunk_content(section, body, budget, heading=section))
     else:
-        section_chunks.extend(_chunk_paragraphs(_paragraphs(lines), budget))
+        section_chunks.extend(
+            _chunk_paragraphs(_paragraphs(lines), budget, section=_UNSECTIONED_SECTION)
+        )
 
     chunks: list[dict[str, Any]] = []
     for index, (section, chunk_text) in enumerate(section_chunks):
@@ -115,15 +119,21 @@ def _chunk_content(
                 and current_tokens < budget
                 and current_tokens + paragraph_tokens > budget
             ):
-                for piece in _split_oversized_paragraph(paragraph, budget - current_tokens):
-                    piece_tokens = _token_count(piece)
-                    if current_parts and current_tokens + piece_tokens > budget:
-                        chunks.append((section, _join_parts(current_parts)))
-                        current_parts = []
-                        current_tokens = 0
-                    current_parts.append(piece)
-                    current_tokens += piece_tokens
-                continue
+                sentences = _sentences(paragraph)
+                remaining_capacity = budget - current_tokens
+                leading_sentences: list[str] = []
+                while sentences and _token_count(sentences[0]) <= remaining_capacity:
+                    leading_sentence = sentences.pop(0)
+                    leading_sentences.append(leading_sentence)
+                    remaining_capacity -= _token_count(leading_sentence)
+
+                if leading_sentences:
+                    current_parts.extend(leading_sentences)
+                    current_tokens += sum(_token_count(part) for part in leading_sentences)
+                    if not sentences:
+                        continue
+                    paragraph = " ".join(sentences)
+                    paragraph_tokens = _token_count(paragraph)
 
             chunks.append((section, _join_parts(current_parts)))
             current_parts = []
@@ -147,17 +157,19 @@ def _chunk_content(
     return chunks
 
 
-def _chunk_paragraphs(paragraphs: list[str], budget: int) -> list[tuple[str, str]]:
+def _chunk_paragraphs(
+    paragraphs: list[str], budget: int, *, section: str
+) -> list[tuple[str, str]]:
     """Keep each fallback paragraph independent while enforcing the token budget."""
     chunks: list[tuple[str, str]] = []
     for paragraph in paragraphs:
-        chunks.extend(_chunk_content("", [paragraph], budget))
+        chunks.extend(_chunk_content(section, [paragraph], budget))
     return chunks
 
 
 def _split_oversized_paragraph(paragraph: str, budget: int) -> list[str]:
     """Split a paragraph on sentences, using words only for oversized sentences."""
-    sentences = [part.strip() for part in _SENTENCE_RE.split(paragraph) if part.strip()]
+    sentences = _sentences(paragraph)
     pieces: list[str] = []
     current: list[str] = []
     current_tokens = 0
@@ -181,6 +193,10 @@ def _split_oversized_paragraph(paragraph: str, budget: int) -> list[str]:
     if current:
         pieces.append(" ".join(current))
     return pieces
+
+
+def _sentences(paragraph: str) -> list[str]:
+    return [part.strip() for part in _SENTENCE_RE.split(paragraph) if part.strip()]
 
 
 def _split_words(text: str, budget: int) -> list[str]:

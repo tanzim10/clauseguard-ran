@@ -61,7 +61,7 @@ It is intentionally separated from the first paragraph.
     assert len(chunks) == 2
     assert "control-plane context" in chunks[0]["text"]
     assert "reported behavior" in chunks[1]["text"]
-    assert all(chunk["metadata"]["section"] == "" for chunk in chunks)
+    assert all(chunk["metadata"]["section"] == "unsectioned" for chunk in chunks)
 
 
 def test_chunk_document_populates_metadata_and_deterministic_ids():
@@ -101,7 +101,25 @@ the numeric line as a section heading.
     )
 
     assert len(chunks) == 2
-    assert all(chunk["metadata"]["section"] == "" for chunk in chunks)
+    assert all(chunk["metadata"]["section"] == "unsectioned" for chunk in chunks)
+
+
+def test_chunk_document_labels_text_before_the_first_heading_as_preamble():
+    text = """Scope and terminology for the specification.
+
+1. Introduction
+The controller coordinates policy guidance.
+"""
+
+    chunks = chunk_document(
+        text,
+        spec_id="O-RAN.WG2.A1AP",
+        source_file="oran-wg2-a1ap.txt",
+    )
+
+    assert chunks[0]["metadata"]["section"] == "preamble"
+    assert chunks[0]["id"] == "O-RAN.WG2.A1AP::preamble::0"
+
 
 
 def test_chunk_document_respects_the_configured_token_budget():
@@ -132,3 +150,19 @@ def test_chunk_document_packs_sentence_with_heading_before_overflowing():
     assert len(chunks) == 2
     assert chunks[0]["text"] == f"1. Measurements\n\n{first_sentence}"
     assert chunks[1]["text"] == second_sentence
+
+
+def test_chunk_document_preserves_sentence_that_fits_without_heading():
+    sentence = " ".join(f"signal-{index}" for index in range(509)) + " terminal."
+    text = f"1. Measurements overview\n{sentence}\n"
+
+    chunks = chunk_document(
+        text,
+        spec_id="O-RAN.WG2.A1AP",
+        source_file="oran-wg2-a1ap.txt",
+    )
+
+    assert [chunk["text"] for chunk in chunks] == [
+        "1. Measurements overview",
+        sentence,
+    ]

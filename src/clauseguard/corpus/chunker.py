@@ -109,6 +109,22 @@ def _chunk_content(
             continue
 
         if current_parts:
+            if (
+                heading
+                and len(current_parts) == 1
+                and current_tokens < budget
+                and current_tokens + paragraph_tokens > budget
+            ):
+                for piece in _split_oversized_paragraph(paragraph, budget - current_tokens):
+                    piece_tokens = _token_count(piece)
+                    if current_parts and current_tokens + piece_tokens > budget:
+                        chunks.append((section, _join_parts(current_parts)))
+                        current_parts = []
+                        current_tokens = 0
+                    current_parts.append(piece)
+                    current_tokens += piece_tokens
+                continue
+
             chunks.append((section, _join_parts(current_parts)))
             current_parts = []
             current_tokens = 0

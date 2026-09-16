@@ -116,3 +116,19 @@ def test_chunk_document_respects_the_configured_token_budget():
     token_budget = Settings().chunk_size_tokens
     assert len(chunks) > 1
     assert all(len(chunk["text"].split()) <= token_budget for chunk in chunks)
+
+
+def test_chunk_document_packs_sentence_with_heading_before_overflowing():
+    first_sentence = " ".join(f"signal-{index}" for index in range(500)) + "."
+    second_sentence = " ".join(f"metric-{index}" for index in range(11)) + "."
+    text = f"1. Measurements\n{first_sentence} {second_sentence}\n"
+
+    chunks = chunk_document(
+        text,
+        spec_id="O-RAN.WG2.A1AP",
+        source_file="oran-wg2-a1ap.txt",
+    )
+
+    assert len(chunks) == 2
+    assert chunks[0]["text"] == f"1. Measurements\n\n{first_sentence}"
+    assert chunks[1]["text"] == second_sentence

@@ -79,6 +79,8 @@ PDF parsing, embeddings, Qdrant indexing, retrieval endpoints, and end-to-end RC
 
 **Status:** Complete — 2026-09-20
 
+**PR:** [#10 — Implement RAG embeddings and Qdrant indexing](https://github.com/tanzim10/clauseguard-ran/pull/10)
+
 **Commits:** `a461b3a`, `14a3a3f`, `396718b`, `667b2a8`, `79597ed`, `7b85af6`
 
 ### Delivered
@@ -117,6 +119,18 @@ stores the original passage plus provenance metadata for later citation-grounded
   remain future work.
 - Full-repository Ruff still reports two pre-existing findings in
   `src/clauseguard/api/routes/health.py`.
+
+### PR #10 record
+
+#### In simple words
+
+Issue #6 is now proposed for review as the RAG embedding and Qdrant indexing feature.
+
+#### Technical details
+
+- Pull request: [#10](https://github.com/tanzim10/clauseguard-ran/pull/10).
+- The PR closes Issue #6 and preserves the parsed-text prerequisite and retrieval follow-ups
+  described above.
 
 ## Adding a New Phase
 

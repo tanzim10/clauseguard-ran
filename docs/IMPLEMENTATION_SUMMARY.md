@@ -17,6 +17,29 @@ What changed and why, in a sentence or two anyone can follow.
 
 -->
 
+## PR #TBD: Implement Qdrant corpus indexing (2026-09-20)
+**Link:** TBD
+
+### In simple words
+The project can now turn existing parsed O-RAN/3GPP text into batched OpenAI embeddings and
+citation-ready Qdrant points through `make index`, with deterministic IDs and clear failures for
+missing parsed inputs or incompatible vector collections.
+
+### Technical details
+- Added explicit OpenAI/Qdrant dependencies and retrieval settings for model, dimensions, batch
+  sizes, distance, collection, and parsed corpus location.
+- Implemented injectable, batched embedding requests with response ordering and dimension
+  validation in `retrieval/embeddings.py`.
+- Implemented idempotent Qdrant collection validation, deterministic UUID point IDs, batched
+  upserts, citation text/provenance payloads, and the low-level `query_points` search wrapper.
+- Implemented the parsed-text indexer and `index_corpus` CLI. Parsed files use the manifest
+  filename with a `.txt` suffix; PDF parsing remains a separate prerequisite.
+- Added fixture-only tests for settings, embedding batches, Qdrant schemas/upserts/search, the
+  indexer, and CLI success/failure paths.
+- Verified with `make test`: 37 passed, 1 existing deprecation warning.
+- Deferred `/search`, PDF parsing, BM25/hybrid retrieval, stale-point deletion, and dual-index
+  work to later issues.
+
 ## PR #TBD: Implement corpus manifest validation (2026-09-10)
 **Link:** TBD
 

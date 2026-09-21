@@ -9,6 +9,7 @@ remains outside its scope.
 - [Phase 1 — Corpus Manifest Validation](#phase-1--corpus-manifest-validation)
 - [Phase 2 — Clause-Aware Corpus Chunking](#phase-2--clause-aware-corpus-chunking)
 - [Phase 3 — Qdrant Corpus Indexing](#phase-3--qdrant-corpus-indexing)
+- [Phase 4 — POST /search Retrieval API](#phase-4--post-search-retrieval-api)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -131,6 +132,47 @@ Issue #6 is now proposed for review as the RAG embedding and Qdrant indexing fea
 - Pull request: [#10](https://github.com/tanzim10/clauseguard-ran/pull/10).
 - The PR closes Issue #6 and preserves the parsed-text prerequisite and retrieval follow-ups
   described above.
+
+## Phase 4 — POST /search Retrieval API
+
+**Focus:** Issue #7 — expose indexed specification retrieval through a typed API contract.
+
+**Status:** Complete — 2026-09-20
+
+### Delivered
+
+Users can now submit a natural-language specification query to `POST /search` and receive
+ranked, citation-ready passages from the indexed Qdrant collection. Valid searches with no
+matches return an explicit empty result list, while invalid blank queries are rejected.
+
+### Technical implementation
+
+- Added bounded and normalized search request validation with a default `top_k` of 8 and a
+  maximum of 50.
+- Added typed search-hit and search-response models containing passage text, score, and all
+  required provenance fields.
+- Added a shared search service that composes the existing embedding adapter and Qdrant search
+  helper without duplicating retrieval logic.
+- Added strict projection of Qdrant payloads so internal fields and incomplete metadata are not
+  returned.
+- Added safe `500` configuration/data errors and `503` retrieval-dependency errors.
+- Added FastAPI dependency overrides for fixture-only API tests.
+- Kept answer generation, `/query`, and generated citations out of scope.
+
+### Verification
+
+- Focused search/API tests pass with fake embedding and Qdrant dependencies.
+- OpenAPI response and request models are generated from the typed route contract.
+- Ruff and `git diff --check` pass for changed files.
+
+### Out of scope and follow-ups
+
+- The endpoint requires an indexed parsed corpus and running Qdrant for a real demo.
+- PDF parsing remains a separate prerequisite.
+- `/query` answer generation, hybrid retrieval, reranking, and full citation-grounded RAG remain
+  future work.
+- Docker readiness improvements such as pinning Qdrant and adding readiness-based startup are
+  tracked in `docs/todo.md`.
 
 ## Adding a New Phase
 

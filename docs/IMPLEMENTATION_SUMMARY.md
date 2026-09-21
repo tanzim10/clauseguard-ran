@@ -10,6 +10,7 @@ remains outside its scope.
 - [Phase 2 — Clause-Aware Corpus Chunking](#phase-2--clause-aware-corpus-chunking)
 - [Phase 3 — Qdrant Corpus Indexing](#phase-3--qdrant-corpus-indexing)
 - [Phase 4 — POST /search Retrieval API](#phase-4--post-search-retrieval-api)
+- [Phase 5 — Manifest-Validated Corpus Parsing](#phase-5--manifest-validated-corpus-parsing)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -173,6 +174,40 @@ matches return an explicit empty result list, while invalid blank queries are re
   future work.
 - Docker readiness improvements such as pinning Qdrant and adding readiness-based startup are
   tracked in `docs/todo.md`.
+
+## Phase 5 — Manifest-Validated Corpus Parsing
+
+**Focus:** Parser enhancement — complete the raw corpus to retrieval pipeline for live demos.
+
+**Status:** Complete — 2026-09-21
+
+### Delivered
+
+The acquired 12-document O-RAN/3GPP corpus can now be parsed directly into the text files used by
+indexing. The operational flow is now raw source -> manifest validation -> parsed text ->
+embeddings -> Qdrant retrieval.
+
+### Technical implementation
+
+- Added PDF extraction with `pypdf` and DOCX paragraph extraction using the Python standard
+  library.
+- Added batch parsing that validates every acquired source against its manifest hash before any
+  document is parsed.
+- Added the `make parse` CLI, with manifest, raw-directory, and output-directory overrides.
+- Added explicit failure behavior for missing, mismatched, unsupported, and text-empty sources.
+- Added fixture-only unit and CLI tests for PDF, DOCX, batch validation, and command status.
+
+### Verification
+
+- Parsed all 12 local manifest sources into non-empty, manifest-aligned text files.
+- Indexed the parsed corpus into the dedicated `oran_specs_demo` Qdrant collection.
+- Verified the collection contains 10,715 points and that live `POST /search` returns
+  provenance-bearing E2SM-KPM and throughput results.
+
+### Out of scope and follow-ups
+
+- `/query`, generated answers, reranking, and RCA remain unimplemented.
+- Parsed corpus text remains ignored local data and is not committed.
 
 ## Adding a New Phase
 

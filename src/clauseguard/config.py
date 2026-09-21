@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     chunk_size_tokens: int = 512
     retrieval_top_k: int = 8
+    raw_corpus_dir: str = "./data/corpus/raw"
     parsed_corpus_dir: str = "./data/corpus/parsed"
 
     local_llm_base_model: str = "meta-llama/Llama-3.1-8B-Instruct"

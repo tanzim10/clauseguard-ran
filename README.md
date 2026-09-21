@@ -63,7 +63,8 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | Area | Status |
 |------|--------|
 | `GET /health` | Implemented (optional Qdrant ping) |
-| `POST /search`, `/query`, `/rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
+| `POST /search` | Implemented — typed vector search over indexed specification chunks |
+| `POST /query`, `/rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
 | CLI (`parse_corpus`, `index_corpus`, …) | `index_corpus` implemented for existing parsed text; other commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
 | UI | Deferred (`src/ui/` placeholder only) |
@@ -173,7 +174,7 @@ Volumes mount `./data`, `./artifacts`, and `./models` (read-only for models). Op
 | Endpoint | Week | Behavior now |
 |----------|------|----------------|
 | `GET /health` | 0 | Real liveness (+ optional Qdrant reachability) |
-| `POST /search` | 2 | Stub — top-k spec chunks |
+| `POST /search` | 2 | Vector search — embeddings, Qdrant hits, and provenance metadata |
 | `POST /query` | 3 | Stub — grounded answer + citations / abstain |
 | `POST /rca` | 7 | Stub — fault + KPI / text / spec evidence |
 | `POST /evaluate` | 5 | Stub — golden eval → artifacts |
@@ -198,6 +199,18 @@ All non-health routes will eventually call the shared `RcaPipeline` / eval runne
 corresponding manifest filename with a `.txt` suffix (for example, `spec.pdf` maps to
 `spec.txt`). It batches OpenAI embeddings and writes citation-ready points to Qdrant. PDF
 parsing is a separate prerequisite and is not performed by this command.
+
+After indexing, search the retrieved specification passages through the API:
+
+```bash
+curl -X POST http://localhost:8000/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"E2SM-KPM downlink UE throughput counter","top_k":3}'
+```
+
+The response contains a `results` list with passage text, relevance score, and the
+`spec_id`, `section`, `source_file`, and `chunk_id` provenance fields. A valid query with no
+matches returns `{"results":[]}`; blank or whitespace-only queries return `422`.
 
 ---
 

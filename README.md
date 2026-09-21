@@ -64,7 +64,7 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 |------|--------|
 | `GET /health` | Implemented (optional Qdrant ping) |
 | `POST /search`, `/query`, `/rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
-| CLI (`parse_corpus`, `index_corpus`, …) | Stubs (print TODO and exit) |
+| CLI (`parse_corpus`, `index_corpus`, …) | `index_corpus` implemented for existing parsed text; other commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
 | UI | Deferred (`src/ui/` placeholder only) |
 | QLoRA training | Host GPU later — not in Docker |
@@ -108,7 +108,7 @@ Local planning notes under `.context/` are **gitignored** and not part of the pu
 - Python **≥ 3.11**
 - **[uv](https://docs.astral.sh/uv/)** (recommended local package manager)
 - **Docker Desktop** (or Docker Engine + Compose) for Qdrant + API
-- Optional later: `OPENAI_API_KEY` for embeddings / chat (unused in scaffold)
+- `OPENAI_API_KEY` for corpus embeddings; parsed corpus text is required for indexing
 
 ---
 
@@ -190,8 +190,14 @@ All non-health routes will eventually call the shared `RcaPipeline` / eval runne
 | `make api` | Working — local uvicorn via uv |
 | `make test` | Working — `uv run pytest` |
 | `make up` / `down` / `logs` | Working — Docker Compose |
-| `make parse` / `index` / `ingest-telecomts` / `eval` / `e2e` | Stubs |
+| `make index` | Working for an existing parsed corpus; requires Qdrant and `OPENAI_API_KEY` |
+| `make parse` / `ingest-telecomts` / `eval` / `e2e` | Stubs |
 | `make mcp` | Stub MCP profile |
+
+`make index` reads parsed text from `data/corpus/parsed/`, where each file uses the
+corresponding manifest filename with a `.txt` suffix (for example, `spec.pdf` maps to
+`spec.txt`). It batches OpenAI embeddings and writes citation-ready points to Qdrant. PDF
+parsing is a separate prerequisite and is not performed by this command.
 
 ---
 

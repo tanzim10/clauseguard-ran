@@ -21,13 +21,18 @@ class Settings(BaseSettings):
 
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection: str = "oran_specs"
+    qdrant_distance: str = "Cosine"
+    qdrant_upsert_batch_size: int = 128
 
     openai_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-large"
+    openai_embedding_dimensions: int = 3072
+    openai_embedding_batch_size: int = 128
     openai_chat_model: str = "gpt-4o-mini"
 
     chunk_size_tokens: int = 512
     retrieval_top_k: int = 8
+    parsed_corpus_dir: str = "./data/corpus/parsed"
 
     local_llm_base_model: str = "meta-llama/Llama-3.1-8B-Instruct"
     lora_adapter_path: str = "./models/lora-rca-v1"

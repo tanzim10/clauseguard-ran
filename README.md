@@ -65,7 +65,7 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | `GET /health` | Implemented (optional Qdrant ping) |
 | `POST /search` | Implemented — typed vector search over indexed specification chunks |
 | `POST /query`, `/rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
-| CLI (`parse_corpus`, `index_corpus`, …) | `index_corpus` implemented for existing parsed text; other commands remain stubs |
+| CLI (`parse_corpus`, `index_corpus`, …) | `parse_corpus` and `index_corpus` implemented; other commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
 | UI | Deferred (`src/ui/` placeholder only) |
 | QLoRA training | Host GPU later — not in Docker |
@@ -191,14 +191,16 @@ All non-health routes will eventually call the shared `RcaPipeline` / eval runne
 | `make api` | Working — local uvicorn via uv |
 | `make test` | Working — `uv run pytest` |
 | `make up` / `down` / `logs` | Working — Docker Compose |
-| `make index` | Working for an existing parsed corpus; requires Qdrant and `OPENAI_API_KEY` |
-| `make parse` / `ingest-telecomts` / `eval` / `e2e` | Stubs |
+| `make parse` | Working — validates and parses acquired PDF/DOCX corpus sources |
+| `make index` | Working for parsed text; requires Qdrant and `OPENAI_API_KEY` |
+| `make ingest-telecomts` / `eval` / `e2e` | Stubs |
 | `make mcp` | Stub MCP profile |
 
-`make index` reads parsed text from `data/corpus/parsed/`, where each file uses the
-corresponding manifest filename with a `.txt` suffix (for example, `spec.pdf` maps to
-`spec.txt`). It batches OpenAI embeddings and writes citation-ready points to Qdrant. PDF
-parsing is a separate prerequisite and is not performed by this command.
+`make parse` validates every acquired manifest row against the source file under
+`data/corpus/raw/`, then extracts PDF and DOCX text to `data/corpus/parsed/`. Each parsed file
+uses the corresponding manifest filename stem with a `.txt` suffix (for example, `spec.pdf` maps
+to `spec.txt`). `make index` consumes those parsed files, batches OpenAI embeddings, and writes
+citation-ready points to Qdrant.
 
 After indexing, search the retrieved specification passages through the API:
 

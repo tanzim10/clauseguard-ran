@@ -47,6 +47,7 @@ models/*
 !models/.gitkeep
 docs/*
 !docs/IMPLEMENTATION_SUMMARY.md
+tasks/
 
 # qdrant local override if not using named volume
 qdrant_storage/

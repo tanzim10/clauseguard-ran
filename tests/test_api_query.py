@@ -1,8 +1,15 @@
 import pytest
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from clauseguard.api.main import create_app
 from clauseguard.api.query_service import QueryOutputError, QueryService
+from clauseguard.api.routes.query import get_llm_router
+from clauseguard.api.routes.search import get_search_service
 from clauseguard.api.schemas import QueryRequest, QueryResponse, SearchHit
+from clauseguard.api.search_service import SearchDependencyError, SearchService
+from clauseguard.config import Settings
+from clauseguard.llm.clients import GenerationUnavailable, MalformedGenerationOutput
 
 
 def test_query_request_normalizes_question_and_defaults_top_k() -> None:
@@ -153,3 +160,128 @@ def test_query_service_rejects_malformed_or_ungrounded_output(output: str) -> No
 
     with pytest.raises(QueryOutputError):
         service.query("question", 1)
+
+
+def _api_client(search_service, router) -> TestClient:
+    app = create_app()
+    app.dependency_overrides[get_search_service] = lambda: search_service
+    app.dependency_overrides[get_llm_router] = lambda: router
+    return TestClient(app)
+
+
+def test_query_route_returns_grounded_response_without_internal_fields() -> None:
+    search = FakeSearchService([_hit("chunk-a", "1.1")])
+    router = FakeRouter('{"answer":"Grounded answer","evidence_ids":["E1"]}')
+
+    response = _api_client(search, router).post(
+        "/query",
+        json={"question": "  What does the clause say?  ", "top_k": 3},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "answer": "Grounded answer",
+        "citations": [
+            {
+                "spec_id": "spec-1",
+                "section": "1.1",
+                "source_file": "spec.pdf",
+                "chunk_id": "chunk-a",
+            }
+        ],
+    }
+    assert search.calls == [("What does the clause say?", 3)]
+
+
+def test_query_route_abstains_with_http_200_without_model_call() -> None:
+    search = FakeSearchService([])
+    router = FakeRouter('{"answer":"unused","evidence_ids":[]}')
+
+    response = _api_client(search, router).post("/query", json={"question": "Unknown"})
+
+    assert response.status_code == 200
+    assert response.json() == {"answer": "not found", "citations": []}
+    assert router.calls == []
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [{}, {"question": ""}, {"question": "  "}, {"question": "q", "top_k": 0}, {"question": "q", "top_k": 51}],
+)
+def test_query_route_rejects_invalid_input_without_service_calls(payload: dict) -> None:
+    search = FakeSearchService([_hit("chunk-a", "1.1")])
+    router = FakeRouter('{"answer":"answer","evidence_ids":["E1"]}')
+
+    response = _api_client(search, router).post("/query", json=payload)
+
+    assert response.status_code == 422
+    assert search.calls == []
+    assert router.calls == []
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (GenerationUnavailable("provider secret"), {"error": "generation_unavailable"}),
+        (MalformedGenerationOutput("raw output"), {"error": "generation_unavailable"}),
+        (QueryOutputError("model detail"), {"error": "generation_unavailable"}),
+    ],
+)
+def test_query_route_hides_generation_details(error, expected: dict) -> None:
+    search = FakeSearchService([_hit("chunk-a", "1.1")])
+
+    class FailingRouter:
+        def generate(self, prompt, *, task):
+            raise error
+
+    response = _api_client(search, FailingRouter()).post("/query", json={"question": "q"})
+
+    assert response.status_code == 503
+    assert response.json() == expected
+    assert "secret" not in response.text
+    assert "raw output" not in response.text
+
+
+def test_query_route_maps_retrieval_failures() -> None:
+    def unavailable_embedder(texts, *, settings):
+        raise SearchDependencyError("provider secret")
+
+    service = SearchService(
+        settings=Settings(),
+        embedder=unavailable_embedder,
+    )
+    response = _api_client(service, FakeRouter("unused")).post(
+        "/query", json={"question": "q"}
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "retrieval_unavailable"}
+    assert "provider secret" not in response.text
+
+
+def test_query_route_maps_retrieval_configuration_failures() -> None:
+    def invalid_embedder(texts, *, settings):
+        raise ValueError("configuration secret")
+
+    service = SearchService(settings=Settings(), embedder=invalid_embedder)
+    response = _api_client(service, FakeRouter("unused")).post(
+        "/query", json={"question": "q"}
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "retrieval_configuration_error"}
+    assert "configuration secret" not in response.text
+
+
+def test_query_openapi_documents_request_and_response_contract() -> None:
+    schema = _api_client(FakeSearchService([]), FakeRouter("unused")).get("/openapi.json").json()
+    operation = schema["paths"]["/query"]["post"]
+    request_schema = schema["components"]["schemas"]["QueryRequest"]
+
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == (
+        "#/components/schemas/QueryResponse"
+    )
+    assert request_schema["required"] == ["question"]
+    assert request_schema["properties"]["top_k"]["default"] == 8
+    assert request_schema["properties"]["top_k"]["minimum"] == 1
+    assert request_schema["properties"]["top_k"]["maximum"] == 50

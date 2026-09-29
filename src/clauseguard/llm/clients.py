@@ -19,6 +19,7 @@ GROUNDED_QUERY_MODELS = (
     "meta/muse-glimmer-30b",
     "google/diffusiongemma-26b-a4b-it",
 )
+MODELS_WITHOUT_JSON_MODE = frozenset({"google/diffusiongemma-26b-a4b-it"})
 
 
 class GenerationUnavailable(RuntimeError):
@@ -104,11 +105,13 @@ class LLMRouter:
             if self._is_cooling_down(model):
                 continue
             try:
-                completion = self._client.chat.completions.create(
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"},
-                )
+                request = {
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+                if model not in MODELS_WITHOUT_JSON_MODE:
+                    request["response_format"] = {"type": "json_object"}
+                completion = self._client.chat.completions.create(**request)
             except (APITimeoutError, APIConnectionError):
                 self._cool_down(model, settings.nvidia_cooldown_seconds)
                 continue

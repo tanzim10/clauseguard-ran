@@ -63,6 +63,28 @@ def test_grounded_query_model_order_is_explicit() -> None:
     )
 
 
+def test_diffusiongemma_uses_prompt_constrained_json_instead_of_json_mode() -> None:
+    completions = FakeCompletions([_response()])
+    router = _router(
+        completions,
+        models=("google/diffusiongemma-26b-a4b-it",),
+    )
+
+    router.generate("Return the required JSON object")
+
+    assert "response_format" not in completions.calls[0]
+    assert completions.calls[0]["model"] == "google/diffusiongemma-26b-a4b-it"
+
+
+def test_other_models_keep_provider_json_mode() -> None:
+    completions = FakeCompletions([_response()])
+    router = _router(completions, models=("meta/muse-glimmer-30b",))
+
+    router.generate("Return the required JSON object")
+
+    assert completions.calls[0]["response_format"] == {"type": "json_object"}
+
+
 def test_router_fails_over_on_rate_limit_and_honors_retry_after() -> None:
     now = [100.0]
     completions = FakeCompletions([_status_error(429, "12"), _response()])

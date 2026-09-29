@@ -11,6 +11,7 @@ remains outside its scope.
 - [Phase 3 — Qdrant Corpus Indexing](#phase-3--qdrant-corpus-indexing)
 - [Phase 4 — POST /search Retrieval API](#phase-4--post-search-retrieval-api)
 - [Phase 5 — Manifest-Validated Corpus Parsing](#phase-5--manifest-validated-corpus-parsing)
+- [Phase 6 — Golden Specification Q&A Dataset](#phase-6--golden-specification-qa-dataset)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -208,6 +209,37 @@ embeddings -> Qdrant retrieval.
 
 - `/query`, generated answers, reranking, and RCA remain unimplemented.
 - Parsed corpus text remains ignored local data and is not committed.
+
+## Phase 6 — Golden Specification Q&A Dataset
+
+**Focus:** Issue #16 — curate an initial, manually verified golden dataset for specification Q&A.
+
+**Status:** Dataset artifact prepared — 2026-09-28
+
+### Delivered
+
+Added a tracked JSONL seed dataset with ten answerable O-RAN/3GPP questions and two unanswerable
+questions represented by the required `not found` response and no citations.
+
+### Technical implementation
+
+- Added `data/golden/spec_qa.jsonl` with stable record IDs and the agreed question, expected answer,
+  expected citation, and answerability fields.
+- Citations use specification and section identifiers, not unstable Qdrant point or chunk IDs.
+- Kept this change data-only; it does not connect the seed dataset to `/query` or an evaluation
+  runner.
+
+### Verification
+
+- Validated all 12 JSONL records, required fields, unique IDs, answerability counts, and citation
+  specification IDs against the corpus manifest.
+- The expected answers and references were manually checked against the available parsed corpus.
+
+### Out of scope and follow-ups
+
+- Typed dataset loading and schema validation, evaluation execution, and runtime integration remain
+  separate work.
+- This initial seed is not a comprehensive evaluation of all standards or all valid answer wording.
 
 ## Adding a New Phase
 

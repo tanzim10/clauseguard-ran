@@ -244,7 +244,8 @@ insufficient. Corpus indexing and query embedding now use NVIDIA's Nemotron VL e
 - Live `POST /search` and `POST /query` both returned HTTP 200; the query returned an answer
   with a citation to the retrieved O-RAN A1 passage.
 - Live Muse Glimmer and DiffusionGemma checks passed against the production prompt and output
-  parser.
+  parser. The opt-in failover smoke simulated a primary-model 429 and verified a live Muse
+  Glimmer fallback response against the structured evidence-ID contract.
 
 ### Out of scope and follow-ups
 

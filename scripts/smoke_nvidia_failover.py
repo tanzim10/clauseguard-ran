@@ -45,19 +45,27 @@ def main() -> None:
             http_client=http_client,
         )
 
-    router = LLMRouter(settings=settings, client_factory=client_factory)
+    fallback_model = "meta/muse-glimmer-30b"
+    router = LLMRouter(
+        settings=settings,
+        client_factory=client_factory,
+        models=(GROUNDED_QUERY_MODELS[0], fallback_model),
+    )
     prompt = (
-        "Use only this provided evidence. Return JSON with exactly answer and evidence_ids. "
-        'Question: What connects the near-real-time RIC to an E2 node? '
-        'Evidence E1: "The E2 interface connects the near-real-time RIC and an E2 node."'
+        "Answer using only the retrieved specification passage below. Return a JSON object "
+        'with exactly two keys: "answer" (string) and "evidence_ids" (array of strings). '
+        'Question: What connects the near-real-time RIC to an E2 node? Evidence E1: '
+        '"The E2 interface connects the near-real-time RIC and an E2 node."'
     )
     try:
         raw_output = router.generate(prompt)
         result = json.loads(raw_output)
         if set(result) != {"answer", "evidence_ids"}:
             raise RuntimeError("fallback model returned an unexpected JSON shape")
-        if len(requests) < 2:
-            raise RuntimeError("the fallback model was not called")
+        if requests != [GROUNDED_QUERY_MODELS[0], fallback_model]:
+            raise RuntimeError("the expected primary-to-Muse failover did not occur")
+        if not isinstance(result.get("answer"), str) or result.get("evidence_ids") != ["E1"]:
+            raise RuntimeError("fallback model returned an invalid grounded response")
         print(f"Simulated 429 for: {requests[0]}")
         print(f"Live NVIDIA fallback model: {requests[1]}")
         print(json.dumps(result, indent=2))

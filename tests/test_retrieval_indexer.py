@@ -76,8 +76,8 @@ def test_index_corpus_chunks_embeds_and_upserts_fixture_corpus(tmp_path: Path) -
     )
     settings = Settings(
         _env_file=None,
-        openai_embedding_dimensions=2,
-        openai_embedding_batch_size=8,
+        embedding_dimensions=2,
+        embedding_batch_size=8,
     )
     embedding_client = FakeEmbeddingClient(dimensions=2)
     qdrant_client = FakeQdrantClient()
@@ -94,6 +94,7 @@ def test_index_corpus_chunks_embeds_and_upserts_fixture_corpus(tmp_path: Path) -
     assert summary.documents == 2
     assert summary.chunks == 2
     assert len(embedding_client.calls) == 1
+    assert embedding_client.calls[0]["extra_body"] == {"input_type": "passage"}
     assert len(qdrant_client.upserts) == 1
     points = qdrant_client.upserts[0]["points"]
     assert [point.payload["spec_id"] for point in points] == [

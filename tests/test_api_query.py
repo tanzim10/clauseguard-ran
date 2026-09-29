@@ -243,7 +243,7 @@ def test_query_route_hides_generation_details(error, expected: dict) -> None:
 
 
 def test_query_route_maps_retrieval_failures() -> None:
-    def unavailable_embedder(texts, *, settings):
+    def unavailable_embedder(texts, *, settings, input_type):
         raise SearchDependencyError("provider secret")
 
     service = SearchService(
@@ -260,7 +260,7 @@ def test_query_route_maps_retrieval_failures() -> None:
 
 
 def test_query_route_maps_retrieval_configuration_failures() -> None:
-    def invalid_embedder(texts, *, settings):
+    def invalid_embedder(texts, *, settings, input_type):
         raise ValueError("configuration secret")
 
     service = SearchService(settings=Settings(), embedder=invalid_embedder)

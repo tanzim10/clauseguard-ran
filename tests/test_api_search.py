@@ -63,11 +63,12 @@ def test_search_response_has_public_result_shape() -> None:
 
 
 def test_search_service_embeds_and_projects_qdrant_results() -> None:
-    settings = Settings(openai_embedding_dimensions=3, qdrant_collection="specs")
+    settings = Settings(embedding_dimensions=3, qdrant_collection="specs")
     calls: dict[str, object] = {}
 
-    def fake_embedder(texts: list[str], *, settings: Settings) -> list[list[float]]:
+    def fake_embedder(texts: list[str], *, settings: Settings, input_type: str) -> list[list[float]]:
         calls["texts"] = texts
+        calls["input_type"] = input_type
         return [[0.1, 0.2, 0.3]]
 
     def fake_qdrant_search(
@@ -110,13 +111,13 @@ def test_search_service_embeds_and_projects_qdrant_results() -> None:
         "source_file": "spec.pdf",
         "chunk_id": "chunk-1",
     }
-    assert calls == {"texts": ["A1 policy"], "search": ("specs", [0.1, 0.2, 0.3], 3)}
+    assert calls == {"texts": ["A1 policy"], "input_type": "query", "search": ("specs", [0.1, 0.2, 0.3], 3)}
 
 
 def test_search_service_preserves_empty_results() -> None:
     service = SearchService(
-        settings=Settings(openai_embedding_dimensions=1),
-        embedder=lambda texts, *, settings: [[1.0]],
+        settings=Settings(embedding_dimensions=1),
+        embedder=lambda texts, *, settings, input_type: [[1.0]],
         qdrant_search=lambda collection, vector, top_k, *, settings: [],
     )
 
@@ -125,8 +126,8 @@ def test_search_service_preserves_empty_results() -> None:
 
 def test_search_service_rejects_incomplete_payload() -> None:
     service = SearchService(
-        settings=Settings(openai_embedding_dimensions=1),
-        embedder=lambda texts, *, settings: [[1.0]],
+        settings=Settings(embedding_dimensions=1),
+        embedder=lambda texts, *, settings, input_type: [[1.0]],
         qdrant_search=lambda collection, vector, top_k, *, settings: [
             {"id": "point-1", "score": 0.9, "payload": {"text": "missing metadata"}}
         ],
@@ -137,7 +138,7 @@ def test_search_service_rejects_incomplete_payload() -> None:
 
 
 def test_search_service_classifies_dependency_failures() -> None:
-    def failing_embedder(texts, *, settings):
+    def failing_embedder(texts, *, settings, input_type):
         raise TimeoutError("provider unavailable")
 
     service = SearchService(settings=Settings(), embedder=failing_embedder)
@@ -154,8 +155,8 @@ def _client_for_service(service: SearchService) -> TestClient:
 
 def test_search_route_returns_projected_hits() -> None:
     service = SearchService(
-        settings=Settings(openai_embedding_dimensions=1),
-        embedder=lambda texts, *, settings: [[1.0]],
+        settings=Settings(embedding_dimensions=1),
+        embedder=lambda texts, *, settings, input_type: [[1.0]],
         qdrant_search=lambda collection, vector, top_k, *, settings: [
             {
                 "id": "point-1",
@@ -195,8 +196,8 @@ def test_search_route_returns_projected_hits() -> None:
 
 def test_search_route_returns_empty_results_for_no_match() -> None:
     service = SearchService(
-        settings=Settings(openai_embedding_dimensions=1),
-        embedder=lambda texts, *, settings: [[1.0]],
+        settings=Settings(embedding_dimensions=1),
+        embedder=lambda texts, *, settings, input_type: [[1.0]],
         qdrant_search=lambda collection, vector, top_k, *, settings: [],
     )
 
@@ -235,7 +236,7 @@ def test_search_route_rejects_invalid_requests_without_retrieval(payload: dict) 
 
 
 def test_search_route_maps_dependency_failure_to_503() -> None:
-    def failing_embedder(texts, *, settings):
+    def failing_embedder(texts, *, settings, input_type):
         raise SearchDependencyError
 
     service = SearchService(embedder=failing_embedder)
@@ -246,7 +247,7 @@ def test_search_route_maps_dependency_failure_to_503() -> None:
 
 
 def test_search_route_maps_configuration_failure_to_500() -> None:
-    def failing_embedder(texts, *, settings):
+    def failing_embedder(texts, *, settings, input_type):
         raise ValueError("configuration details")
 
     service = SearchService(embedder=failing_embedder)

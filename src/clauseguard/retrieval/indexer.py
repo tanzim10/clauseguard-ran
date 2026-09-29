@@ -74,6 +74,7 @@ def index_corpus(
         [chunk["text"] for chunk in chunks],
         client=embedding_client,
         settings=resolved_settings,
+        input_type="passage",
     )
     target_collection = collection or resolved_settings.qdrant_collection
     ensure_collection(target_collection, client=qdrant_client, settings=resolved_settings)

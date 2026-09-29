@@ -58,8 +58,8 @@ def test_grounded_query_model_order_is_explicit() -> None:
     assert GROUNDED_QUERY_MODELS == (
         "nvidia/nemotron-3.5-lightning-30b-a3b",
         "openai/gpt-oss-20b",
-        "deepseek-ai/deepseek-v4-flash-0731",
-        "nvidia/nemotron-3-super-120b-a12b",
+        "meta/muse-glimmer-30b",
+        "google/diffusiongemma-26b-a4b-it",
     )
 
 

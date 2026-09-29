@@ -42,10 +42,10 @@ def _validate_collection(collection: str, info: Any, settings: Settings) -> None
     vectors = _vector_params(info.config.params.vectors)
     actual_size = getattr(vectors, "size", None)
     actual_distance = getattr(vectors, "distance", None)
-    if actual_size != settings.openai_embedding_dimensions:
+    if actual_size != settings.embedding_dimensions:
         raise CollectionCompatibilityError(
             f"collection {collection!r} has dimension {actual_size}; "
-            f"expected {settings.openai_embedding_dimensions}"
+            f"expected {settings.embedding_dimensions}"
         )
     if actual_distance != configured_distance:
         raise CollectionCompatibilityError(
@@ -68,7 +68,7 @@ def ensure_collection(
         resolved_client.create_collection(
             collection_name=name,
             vectors_config=models.VectorParams(
-                size=resolved_settings.openai_embedding_dimensions,
+                size=resolved_settings.embedding_dimensions,
                 distance=_distance(resolved_settings),
             ),
         )
@@ -117,10 +117,10 @@ def upsert_chunks(
         if metadata["chunk_id"] != chunk_id:
             raise ValueError(f"chunk {chunk_id!r} has inconsistent chunk_id metadata")
         vector = list(embedding)
-        if len(vector) != resolved_settings.openai_embedding_dimensions:
+        if len(vector) != resolved_settings.embedding_dimensions:
             raise ValueError(
                 f"chunk {chunk_id!r} has vector dimension {len(vector)}; "
-                f"expected {resolved_settings.openai_embedding_dimensions}"
+                f"expected {resolved_settings.embedding_dimensions}"
             )
         point_ids.add(chunk_id)
         points.append(
@@ -161,10 +161,10 @@ def search(
     resolved_settings = settings or get_settings()
     if top_k < 1:
         raise ValueError("top_k must be positive")
-    if len(query_vector) != resolved_settings.openai_embedding_dimensions:
+    if len(query_vector) != resolved_settings.embedding_dimensions:
         raise ValueError(
             f"query vector has dimension {len(query_vector)}; "
-            f"expected {resolved_settings.openai_embedding_dimensions}"
+            f"expected {resolved_settings.embedding_dimensions}"
         )
     resolved_client = _resolve_client(client, resolved_settings)
     response = resolved_client.query_points(

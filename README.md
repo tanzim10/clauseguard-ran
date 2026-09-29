@@ -110,8 +110,11 @@ Local planning notes under `.context/` are **gitignored** and not part of the pu
 - Python **≥ 3.11**
 - **[uv](https://docs.astral.sh/uv/)** (recommended local package manager)
 - **Docker Desktop** (or Docker Engine + Compose) for Qdrant + API
-- `OPENAI_API_KEY` for corpus embeddings; parsed corpus text is required for indexing
-- `NVIDIA_API_KEY` for grounded `/query` generation through NVIDIA NIM
+- `NVIDIA_API_KEY` for corpus embeddings and grounded `/query` generation through NVIDIA NIM
+- Parsed corpus text is required for indexing. The `llama-nemotron-embed-vl-1b-v2` model
+  uses 2048-dimensional vectors with `passage` mode for indexing and `query` mode for search.
+  Switching embedding models requires a new Qdrant collection and a complete reindex; do not
+  mix vectors from different embedding spaces in one collection.
 
 ---
 
@@ -194,14 +197,14 @@ All non-health routes will eventually call the shared `RcaPipeline` / eval runne
 | `make test` | Working — `uv run pytest` |
 | `make up` / `down` / `logs` | Working — Docker Compose |
 | `make parse` | Working — validates and parses acquired PDF/DOCX corpus sources |
-| `make index` | Working for parsed text; requires Qdrant and `OPENAI_API_KEY` |
+| `make index` | Working for parsed text; requires Qdrant and `NVIDIA_API_KEY` |
 | `make ingest-telecomts` / `eval` / `e2e` | Stubs |
 | `make mcp` | Stub MCP profile |
 
 `make parse` validates every acquired manifest row against the source file under
 `data/corpus/raw/`, then extracts PDF and DOCX text to `data/corpus/parsed/`. Each parsed file
 uses the corresponding manifest filename stem with a `.txt` suffix (for example, `spec.pdf` maps
-to `spec.txt`). `make index` consumes those parsed files, batches OpenAI embeddings, and writes
+to `spec.txt`). `make index` consumes those parsed files, batches NVIDIA embeddings, and writes
 citation-ready points to Qdrant.
 
 After indexing, search the retrieved specification passages through the API:

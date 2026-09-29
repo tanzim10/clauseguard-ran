@@ -25,10 +25,9 @@ class Settings(BaseSettings):
     qdrant_distance: str = "Cosine"
     qdrant_upsert_batch_size: int = 128
 
-    openai_api_key: str = ""
-    openai_embedding_model: str = "text-embedding-3-large"
-    openai_embedding_dimensions: int = 3072
-    openai_embedding_batch_size: int = 128
+    nvidia_embedding_model: str = "nvidia/llama-nemotron-embed-vl-1b-v2"
+    embedding_dimensions: int = 2048
+    embedding_batch_size: int = 128
     openai_chat_model: str = "gpt-4o-mini"
 
     nvidia_api_key: str = ""

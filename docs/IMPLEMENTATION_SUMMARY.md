@@ -11,6 +11,7 @@ remains outside its scope.
 - [Phase 3 — Qdrant Corpus Indexing](#phase-3--qdrant-corpus-indexing)
 - [Phase 4 — POST /search Retrieval API](#phase-4--post-search-retrieval-api)
 - [Phase 5 — Manifest-Validated Corpus Parsing](#phase-5--manifest-validated-corpus-parsing)
+- [Phase 6 — Grounded POST /query and NVIDIA Models](#phase-6--grounded-post-query-and-nvidia-models)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -208,6 +209,53 @@ embeddings -> Qdrant retrieval.
 
 - `/query`, generated answers, reranking, and RCA remain unimplemented.
 - Parsed corpus text remains ignored local data and is not committed.
+
+## Phase 6 — Grounded POST /query and NVIDIA Models
+
+**Focus:** Issue #15 — answer specification questions from retrieved evidence with citations
+and bounded NVIDIA model failover.
+
+**Status:** Complete — 2026-09-28
+
+**PR:** [#17](https://github.com/tanzim10/clauseguard-ran/pull/17)
+
+### Delivered
+
+`POST /query` now retrieves specification passages, answers only from those passages, maps
+citations to retrieved metadata, and returns `not found` when retrieval is empty or evidence is
+insufficient. Corpus indexing and query embedding now use NVIDIA's Nemotron VL embedding model.
+
+### Technical implementation
+
+- Added a typed query request/response contract and a shared query service over `SearchService`.
+- Added evidence IDs, structured answer parsing, citation allow-listing, and abstention behavior.
+- Added bounded NVIDIA failover across Nemotron Lightning, GPT-OSS, Muse Glimmer, and
+  DiffusionGemma, with transient-error cooldown and `Retry-After` handling.
+- Added model-specific prompt behavior for DiffusionGemma, which does not accept the provider's
+  JSON-mode option; its output remains checked by the same strict parser.
+- Replaced OpenAI corpus embeddings with `nvidia/llama-nemotron-embed-vl-1b-v2`, using
+  `passage` for indexing and `query` for retrieval, with a 2048-dimension Qdrant contract and a
+  dedicated collection name.
+- Documented setup, migration/reindex requirements, and an opt-in NVIDIA failover smoke script.
+
+### Verification
+
+- `uv run pytest` — 111 passed; Ruff and `git diff --check` passed.
+- Rebuilt and ran the Docker API and Qdrant services; both were healthy.
+- Indexed all 12 parsed documents into the new collection (10,715 chunks).
+- Live `POST /search` and `POST /query` both returned HTTP 200; the query returned an answer
+  with a citation to the retrieved O-RAN A1 passage.
+- Live Muse Glimmer and DiffusionGemma checks passed against the production prompt and output
+  parser. The opt-in failover smoke simulated a primary-model 429 and verified a live Muse
+  Glimmer fallback response against the structured evidence-ID contract.
+
+### Out of scope and follow-ups
+
+- The prompt and citation allow-list do not independently verify semantic entailment.
+- NVIDIA-only routing cannot recover from account-wide quota exhaustion; cooldown state is
+  process-local, and answer wording can vary between models.
+- `/rca`, KPI analysis, UI, LoRA, MCP, hybrid retrieval, and golden Q&A evaluation remain out
+  of scope.
 
 ## Adding a New Phase
 

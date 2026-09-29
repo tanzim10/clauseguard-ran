@@ -36,7 +36,7 @@ class SearchService:
     def search(self, query: str, top_k: int) -> list[SearchHit]:
         settings = self.settings or get_settings()
         try:
-            embeddings = self.embedder([query], settings=settings)
+            embeddings = self.embedder([query], settings=settings, input_type="query")
         except ValueError as exc:
             raise SearchConfigurationError(str(exc)) from exc
         except Exception as exc:

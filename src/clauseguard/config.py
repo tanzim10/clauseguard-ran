@@ -1,5 +1,6 @@
 """Application settings (scaffold). Values load from env / .env; no side effects."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,8 +33,8 @@ class Settings(BaseSettings):
 
     nvidia_api_key: str = ""
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
-    nvidia_cooldown_seconds: int = 30
-    nvidia_timeout_seconds: float = 30.0
+    nvidia_cooldown_seconds: int = Field(default=30, ge=0)
+    nvidia_timeout_seconds: float = Field(default=30.0, gt=0)
 
     chunk_size_tokens: int = 512
     retrieval_top_k: int = 8

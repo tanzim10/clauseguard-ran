@@ -140,6 +140,23 @@ def test_retry_after_parser_uses_default_for_invalid_header() -> None:
     assert _retry_after_seconds(error) is None
 
 
+def test_invalid_retry_after_uses_configured_cooldown() -> None:
+    now = [50.0]
+    completions = FakeCompletions([_status_error(429, "invalid"), _response()])
+    router = _router(completions, clock=lambda: now[0])
+
+    router.generate("prompt")
+    now[0] += 1
+    completions.outcomes.append(_response())
+    router.generate("next prompt")
+
+    assert [call["model"] for call in completions.calls] == [
+        "model-a",
+        "model-b",
+        "model-b",
+    ]
+
+
 def test_router_supports_only_grounded_query_profile() -> None:
     completions = FakeCompletions([_response()])
 

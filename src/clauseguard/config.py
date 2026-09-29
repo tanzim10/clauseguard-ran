@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     models_dir: str = "./models"
 
     qdrant_url: str = "http://qdrant:6333"
-    qdrant_collection: str = "oran_specs"
+    qdrant_collection: str = "oran_specs_nemotron_vl_2048"
     qdrant_distance: str = "Cosine"
     qdrant_upsert_batch_size: int = 128
 

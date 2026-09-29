@@ -7,6 +7,7 @@ def test_retrieval_defaults_define_one_vector_contract() -> None:
     assert settings.nvidia_embedding_model == "nvidia/llama-nemotron-embed-vl-1b-v2"
     assert settings.embedding_dimensions == 2048
     assert settings.embedding_batch_size == 128
+    assert settings.qdrant_collection == "oran_specs_nemotron_vl_2048"
     assert settings.qdrant_distance == "Cosine"
     assert settings.qdrant_upsert_batch_size == 128
     assert settings.parsed_corpus_dir == "./data/corpus/parsed"

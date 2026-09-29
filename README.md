@@ -113,8 +113,9 @@ Local planning notes under `.context/` are **gitignored** and not part of the pu
 - `NVIDIA_API_KEY` for corpus embeddings and grounded `/query` generation through NVIDIA NIM
 - Parsed corpus text is required for indexing. The `llama-nemotron-embed-vl-1b-v2` model
   uses 2048-dimensional vectors with `passage` mode for indexing and `query` mode for search.
-  Switching embedding models requires a new Qdrant collection and a complete reindex; do not
-  mix vectors from different embedding spaces in one collection.
+  The default collection is `oran_specs_nemotron_vl_2048`. Switching embedding models requires
+  a new Qdrant collection and a complete reindex; do not mix vectors from different embedding
+  spaces in one collection.
 
 ---
 

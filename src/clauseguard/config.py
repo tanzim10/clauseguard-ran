@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     openai_embedding_batch_size: int = 128
     openai_chat_model: str = "gpt-4o-mini"
 
+    nvidia_api_key: str = ""
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
+    nvidia_cooldown_seconds: int = 30
+    nvidia_timeout_seconds: float = 30.0
+
     chunk_size_tokens: int = 512
     retrieval_top_k: int = 8
     raw_corpus_dir: str = "./data/corpus/raw"

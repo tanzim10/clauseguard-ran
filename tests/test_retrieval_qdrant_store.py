@@ -50,7 +50,7 @@ class FakeQdrantClient:
 
 def test_ensure_collection_creates_missing_collection() -> None:
     client = FakeQdrantClient(exists=False)
-    settings = Settings(_env_file=None, openai_embedding_dimensions=4)
+    settings = Settings(_env_file=None, embedding_dimensions=4)
 
     ensure_collection("specs", client=client, settings=settings)
 
@@ -67,7 +67,7 @@ def test_ensure_collection_reuses_compatible_collection() -> None:
         exists=True,
         vectors=models.VectorParams(size=4, distance=models.Distance.COSINE),
     )
-    settings = Settings(_env_file=None, openai_embedding_dimensions=4)
+    settings = Settings(_env_file=None, embedding_dimensions=4)
 
     ensure_collection("specs", client=client, settings=settings)
 
@@ -79,7 +79,7 @@ def test_ensure_collection_rejects_incompatible_collection() -> None:
         exists=True,
         vectors=models.VectorParams(size=3, distance=models.Distance.COSINE),
     )
-    settings = Settings(_env_file=None, openai_embedding_dimensions=4)
+    settings = Settings(_env_file=None, embedding_dimensions=4)
 
     with pytest.raises(CollectionCompatibilityError, match="dimension 3"):
         ensure_collection("specs", client=client, settings=settings)
@@ -92,7 +92,7 @@ def test_ensure_collection_rejects_incompatible_distance() -> None:
         exists=True,
         vectors=models.VectorParams(size=4, distance=models.Distance.DOT),
     )
-    settings = Settings(_env_file=None, openai_embedding_dimensions=4)
+    settings = Settings(_env_file=None, embedding_dimensions=4)
 
     with pytest.raises(CollectionCompatibilityError, match="distance"):
         ensure_collection("specs", client=client, settings=settings)
@@ -100,7 +100,7 @@ def test_ensure_collection_rejects_incompatible_distance() -> None:
 
 def test_upsert_chunks_preserves_text_metadata_and_uses_deterministic_uuid() -> None:
     client = FakeQdrantClient(exists=True)
-    settings = Settings(_env_file=None, openai_embedding_dimensions=2)
+    settings = Settings(_env_file=None, embedding_dimensions=2)
     chunks = [
         {
             "id": "spec::1.1::0",
@@ -140,7 +140,7 @@ def test_upsert_chunks_batches_and_validates_before_writing() -> None:
     client = FakeQdrantClient(exists=True)
     settings = Settings(
         _env_file=None,
-        openai_embedding_dimensions=1,
+        embedding_dimensions=1,
         qdrant_upsert_batch_size=1,
     )
     chunks = [
@@ -179,7 +179,7 @@ def test_upsert_chunks_batches_and_validates_before_writing() -> None:
 
 def test_search_maps_query_points_response() -> None:
     client = FakeQdrantClient(exists=True)
-    settings = Settings(_env_file=None, openai_embedding_dimensions=2)
+    settings = Settings(_env_file=None, embedding_dimensions=2)
 
     results = search("specs", [0.1, 0.2], client=client, settings=settings)
 

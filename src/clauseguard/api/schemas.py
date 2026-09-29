@@ -35,8 +35,32 @@ class SearchErrorResponse(BaseModel):
 
 
 class QueryRequest(BaseModel):
-    question: str
-    top_k: int = 8
+    question: str = Field(min_length=1)
+    top_k: int = Field(default=8, ge=1, le=50)
+
+    @field_validator("question")
+    @classmethod
+    def normalize_question(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("question must not be blank")
+        return normalized
+
+
+class QueryCitation(BaseModel):
+    spec_id: str
+    section: str
+    source_file: str
+    chunk_id: str
+
+
+class QueryResponse(BaseModel):
+    answer: str
+    citations: list[QueryCitation]
+
+
+class QueryErrorResponse(BaseModel):
+    error: str
 
 
 class RcaRequest(BaseModel):

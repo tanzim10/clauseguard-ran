@@ -64,7 +64,8 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 |------|--------|
 | `GET /health` | Implemented (optional Qdrant ping) |
 | `POST /search` | Implemented — typed vector search over indexed specification chunks |
-| `POST /query`, `/rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
+| `POST /query` | Grounded answer with retrieved citations; abstains when evidence is empty or insufficient |
+| `POST /rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
 | CLI (`parse_corpus`, `index_corpus`, …) | `parse_corpus` and `index_corpus` implemented; other commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
 | UI | Deferred (`src/ui/` placeholder only) |
@@ -109,7 +110,12 @@ Local planning notes under `.context/` are **gitignored** and not part of the pu
 - Python **≥ 3.11**
 - **[uv](https://docs.astral.sh/uv/)** (recommended local package manager)
 - **Docker Desktop** (or Docker Engine + Compose) for Qdrant + API
-- `OPENAI_API_KEY` for corpus embeddings; parsed corpus text is required for indexing
+- `NVIDIA_API_KEY` for corpus embeddings and grounded `/query` generation through NVIDIA NIM
+- Parsed corpus text is required for indexing. The `llama-nemotron-embed-vl-1b-v2` model
+  uses 2048-dimensional vectors with `passage` mode for indexing and `query` mode for search.
+  The default collection is `oran_specs_nemotron_vl_2048`. Switching embedding models requires
+  a new Qdrant collection and a complete reindex; do not mix vectors from different embedding
+  spaces in one collection.
 
 ---
 
@@ -175,7 +181,7 @@ Volumes mount `./data`, `./artifacts`, and `./models` (read-only for models). Op
 |----------|------|----------------|
 | `GET /health` | 0 | Real liveness (+ optional Qdrant reachability) |
 | `POST /search` | 2 | Vector search — embeddings, Qdrant hits, and provenance metadata |
-| `POST /query` | 3 | Stub — grounded answer + citations / abstain |
+| `POST /query` | 3 | Grounded answer + retrieved citations; returns `not found` when evidence is insufficient |
 | `POST /rca` | 7 | Stub — fault + KPI / text / spec evidence |
 | `POST /evaluate` | 5 | Stub — golden eval → artifacts |
 
@@ -192,14 +198,14 @@ All non-health routes will eventually call the shared `RcaPipeline` / eval runne
 | `make test` | Working — `uv run pytest` |
 | `make up` / `down` / `logs` | Working — Docker Compose |
 | `make parse` | Working — validates and parses acquired PDF/DOCX corpus sources |
-| `make index` | Working for parsed text; requires Qdrant and `OPENAI_API_KEY` |
+| `make index` | Working for parsed text; requires Qdrant and `NVIDIA_API_KEY` |
 | `make ingest-telecomts` / `eval` / `e2e` | Stubs |
 | `make mcp` | Stub MCP profile |
 
 `make parse` validates every acquired manifest row against the source file under
 `data/corpus/raw/`, then extracts PDF and DOCX text to `data/corpus/parsed/`. Each parsed file
 uses the corresponding manifest filename stem with a `.txt` suffix (for example, `spec.pdf` maps
-to `spec.txt`). `make index` consumes those parsed files, batches OpenAI embeddings, and writes
+to `spec.txt`). `make index` consumes those parsed files, batches NVIDIA embeddings, and writes
 citation-ready points to Qdrant.
 
 After indexing, search the retrieved specification passages through the API:
@@ -213,6 +219,43 @@ curl -X POST http://localhost:8000/search \
 The response contains a `results` list with passage text, relevance score, and the
 `spec_id`, `section`, `source_file`, and `chunk_id` provenance fields. A valid query with no
 matches returns `{"results":[]}`; blank or whitespace-only queries return `422`.
+
+Ask a question grounded in the retrieved passages with `/query`:
+
+```bash
+curl -X POST http://localhost:8000/query \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"What does the E2 interface connect?","top_k":3}'
+```
+
+A successful answer includes citations projected from the retrieved chunks:
+
+```json
+{
+  "answer": "The E2 interface connects the near-real-time RIC and an E2 node.",
+  "citations": [
+    {
+      "spec_id": "O-RAN.WG3.E2AP-R003-v04.00",
+      "section": "5.2.2",
+      "source_file": "e2ap.pdf",
+      "chunk_id": "e2ap-5-2-2-001"
+    }
+  ]
+}
+```
+
+If retrieval is empty, or the selected model judges the retrieved evidence insufficient, the
+endpoint returns HTTP 200 with `{"answer":"not found","citations":[]}`. Empty retrieval does
+not invoke a model. The model sees only retrieved passages, but semantic entailment is not
+independently verified. `/query` uses NVIDIA NIM models in priority order; transient rate limits,
+timeouts, and gateway errors can fail over to another configured model. Set `NVIDIA_API_KEY` in
+`.env` before starting Docker. Model cooldown state is process-local.
+
+To verify the fallback path without intentionally rate-limiting your NVIDIA account, run
+`uv run python scripts/smoke_nvidia_failover.py` with `NVIDIA_API_KEY` configured. The script
+simulates a 429 response only for the first model request, then sends the fallback request to
+NVIDIA and prints the model used and structured response. This is an opt-in live provider check;
+the automated failover tests remain fully mocked.
 
 ---
 

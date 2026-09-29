@@ -216,6 +216,8 @@ embeddings -> Qdrant retrieval.
 
 **Status:** Dataset artifact prepared — 2026-09-28
 
+**PR:** [#18 — Add the initial verified specification Q&A dataset](https://github.com/tanzim10/clauseguard-ran/pull/18)
+
 ### Delivered
 
 Added a tracked JSONL seed dataset with ten answerable O-RAN/3GPP questions and two unanswerable

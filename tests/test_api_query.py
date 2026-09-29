@@ -1,7 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from clauseguard.api.schemas import QueryRequest, QueryResponse
+from clauseguard.api.query_service import QueryOutputError, QueryService
+from clauseguard.api.schemas import QueryRequest, QueryResponse, SearchHit
 
 
 def test_query_request_normalizes_question_and_defaults_top_k() -> None:
@@ -52,3 +53,103 @@ def test_query_response_has_stable_public_shape() -> None:
             }
         ],
     }
+
+
+def _hit(chunk_id: str, section: str) -> SearchHit:
+    return SearchHit(
+        id=f"point-{chunk_id}",
+        score=0.9,
+        text=f"Passage for {section}",
+        spec_id="spec-1",
+        section=section,
+        source_file="spec.pdf",
+        chunk_id=chunk_id,
+    )
+
+
+class FakeSearchService:
+    def __init__(self, hits):
+        self.hits = hits
+        self.calls = []
+
+    def search(self, question, top_k):
+        self.calls.append((question, top_k))
+        return self.hits
+
+
+class FakeRouter:
+    def __init__(self, output):
+        self.output = output
+        self.calls = []
+
+    def generate(self, prompt, *, task):
+        self.calls.append((prompt, task))
+        return self.output
+
+
+def test_query_service_abstains_without_calling_model_when_retrieval_empty() -> None:
+    search = FakeSearchService([])
+    router = FakeRouter('{"answer":"unexpected","evidence_ids":[]}')
+
+    result = QueryService(search, router).query("question", 8)
+
+    assert result.model_dump() == {"answer": "not found", "citations": []}
+    assert search.calls == [("question", 8)]
+    assert router.calls == []
+
+
+def test_query_service_projects_only_citations_from_retrieved_evidence() -> None:
+    search = FakeSearchService([_hit("chunk-a", "1.1"), _hit("chunk-b", "1.2")])
+    router = FakeRouter('{"answer":"Grounded answer","evidence_ids":["E2","E1"]}')
+
+    result = QueryService(search, router).query("question", 2)
+
+    assert result.model_dump() == {
+        "answer": "Grounded answer",
+        "citations": [
+            {
+                "spec_id": "spec-1",
+                "section": "1.2",
+                "source_file": "spec.pdf",
+                "chunk_id": "chunk-b",
+            },
+            {
+                "spec_id": "spec-1",
+                "section": "1.1",
+                "source_file": "spec.pdf",
+                "chunk_id": "chunk-a",
+            },
+        ],
+    }
+    prompt, task = router.calls[0]
+    assert "Passage for 1.1" in prompt
+    assert "Passage for 1.2" in prompt
+    assert task == "grounded_query"
+
+
+def test_query_service_accepts_model_abstention_with_no_citations() -> None:
+    search = FakeSearchService([_hit("chunk-a", "1.1")])
+    router = FakeRouter('{"answer":"not found","evidence_ids":[]}')
+
+    result = QueryService(search, router).query("question", 1)
+
+    assert result.model_dump() == {"answer": "not found", "citations": []}
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "not json",
+        '{"answer":"answer","evidence_ids":["E9"]}',
+        '{"answer":"answer","evidence_ids":[]}',
+        '{"answer":"not found","evidence_ids":["E1"]}',
+        '{"answer":"answer","evidence_ids":["E1","E1"]}',
+        '{"answer":"answer","evidence_ids":[1]}',
+        '{"answer":"answer","evidence_ids":[],"extra":true}',
+    ],
+)
+def test_query_service_rejects_malformed_or_ungrounded_output(output: str) -> None:
+    service = QueryService(FakeSearchService([_hit("chunk-a", "1.1")]), FakeRouter(output))
+
+    with pytest.raises(QueryOutputError):
+        service.query("question", 1)

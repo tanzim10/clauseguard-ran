@@ -217,6 +217,8 @@ and bounded NVIDIA model failover.
 
 **Status:** Complete — 2026-09-28
 
+**PR:** [#17](https://github.com/tanzim10/clauseguard-ran/pull/17)
+
 ### Delivered
 
 `POST /query` now retrieves specification passages, answers only from those passages, maps

@@ -297,7 +297,7 @@ questions represented by the required `not found` response and no citations.
 
 **Status:** Complete — 2026-10-01
 
-**PR:** TBD
+**PR:** [#19 — Add project plan PDF with dated weekly timeline](https://github.com/tanzim10/clauseguard-ran/pull/19)
 
 ### Delivered
 

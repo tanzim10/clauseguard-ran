@@ -54,6 +54,8 @@ flowchart LR
 
 **Primary telemetry:** [TelecomTS](https://huggingface.co/datasets/AliMaatouk/TelecomTS). **Spec grounding:** curated O-RAN / 3GPP PDFs with manifest, version tags, and clause-level chunking.
 
+**Project plan:** [docs/progress/ClauseGuardRAN_Project_Plan.pdf](docs/progress/ClauseGuardRAN_Project_Plan.pdf) — overview, Tasks 1–5, backup tasks, and the dated weekly timeline (Sep 1 – Dec 11, 2026). In that plan, the KPI–text fusion model is Task 5 and FastAPI + MCP + demo packaging is Backup Task 1.
+
 ---
 
 ## Current status (scaffold)

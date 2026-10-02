@@ -47,6 +47,9 @@ models/*
 !models/.gitkeep
 docs/*
 !docs/IMPLEMENTATION_SUMMARY.md
+!docs/progress/
+docs/progress/*
+!docs/progress/ClauseGuardRAN_Project_Plan.pdf
 tasks/
 
 # qdrant local override if not using named volume

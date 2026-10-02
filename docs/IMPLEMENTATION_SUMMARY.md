@@ -12,6 +12,7 @@ remains outside its scope.
 - [Phase 4 — POST /search Retrieval API](#phase-4--post-search-retrieval-api)
 - [Phase 5 — Manifest-Validated Corpus Parsing](#phase-5--manifest-validated-corpus-parsing)
 - [Phase 6 — Grounded POST /query and NVIDIA Models](#phase-6--grounded-post-query-and-nvidia-models)
+- [Phase 8 — Project Plan and Weekly Timeline](#phase-8--project-plan-and-weekly-timeline)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -289,6 +290,40 @@ questions represented by the required `not found` response and no citations.
 - Typed dataset loading and schema validation, evaluation execution, and runtime integration remain
   separate work.
 - This initial seed is not a comprehensive evaluation of all standards or all valid answer wording.
+
+## Phase 8 — Project Plan and Weekly Timeline
+
+**Focus:** Documentation — publish the agreed project plan and dated weekly timeline.
+
+**Status:** Complete — 2026-10-01
+
+**PR:** [#19 — Add project plan PDF with dated weekly timeline](https://github.com/tanzim10/clauseguard-ran/pull/19)
+
+### Delivered
+
+In simple words: the team now has one short PDF that explains what the project does, lists every
+task, and shows week by week what happens between September 1 and the December 11 submission.
+
+### Technical implementation
+
+- Added `docs/progress/ClauseGuardRAN_Project_Plan.pdf` and un-ignored only that file in
+  `.gitignore`; the rest of `docs/progress/` stays local.
+- The plan swaps two tasks: the KPI–text fusion model is now Task 5, and FastAPI + MCP + demo
+  packaging is now Backup Task 1.
+- Task 4 lists four RAG-based ablation configurations; no-RAG unimodal baselines stay in Task 3.
+- The timeline uses Tuesday–Monday weeks from Sep 1, 2026, marks Weeks 1–3 delivered and Week 4
+  slipped, skips Thanksgiving week, and ends on Friday, Dec 11, 2026.
+- Linked the PDF from `README.md`.
+
+### Verification
+
+- Rendered the PDF with headless Chrome (4 pages) and checked the Task 4 pipeline line prints in
+  full.
+
+### Out of scope and follow-ups
+
+- No code, API, or test changes.
+- `.context/merge.md` and the README deliverables table still describe the original task order.
 
 ## Adding a New Phase
 

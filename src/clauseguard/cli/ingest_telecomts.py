@@ -8,6 +8,7 @@ from pathlib import Path
 import httpx
 
 from clauseguard.datasets.acquisition import source_path, write_manifest
+from clauseguard.datasets.csv_export import export_analysis_csv
 from clauseguard.datasets.telecomts import build_scenarios, download_telecomts, file_sha256
 
 
@@ -32,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reviews", type=Path, help="Human review JSON keyed by scenario ID")
     parser.add_argument("--lineage", type=Path, help="Recording evidence JSON keyed by scenario ID")
     parser.add_argument("--units", type=Path, help="Verified channel-unit JSON object")
+    parser.add_argument("--no-csv", action="store_true", help="Skip the analysis CSV exports")
     args = parser.parse_args(argv)
     try:
         # Avoid downloading again when the requested conversion outputs already exist.
@@ -56,6 +58,9 @@ def main(argv: list[str] | None = None) -> int:
             checksums={item["source_file"]: item["sha256"] for item in files},
             output_dir=args.output_dir, reviews=reviews, lineage=lineage, units=units,
         )
+        if not args.no_csv:
+            report["analysis_csv"] = export_analysis_csv(args.output_dir / "scenarios.jsonl")
+            write_manifest(args.output_dir / "conversion.json", report)
         print(json.dumps(report, sort_keys=True))
         return 0 if report["counts"]["accepted"] and not report["counts"]["rejected"] else 2
     except (OSError, ValueError, TypeError, KeyError, httpx.HTTPError) as exc:

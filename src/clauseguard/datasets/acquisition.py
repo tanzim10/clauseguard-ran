@@ -26,7 +26,8 @@ def check_revision(revision: str) -> None:
 def source_path(root: Path, name: str) -> Path:
     """Source names must remain relative and cannot escape through existing symlinks."""
     parts = PurePosixPath(name).parts
-    if (not name or "\\" in name or PurePosixPath(name).is_absolute()
+    if (not name or str(PurePosixPath(name)) != name
+            or "\\" in name or PurePosixPath(name).is_absolute()
             or ".." in parts or not name.endswith(".jsonl")):
         raise ValueError(f"invalid JSONL source path: {name}")
     result = root / name

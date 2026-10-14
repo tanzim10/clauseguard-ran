@@ -105,3 +105,13 @@ def test_refuses_overwriting_outputs(tmp_path, source_record):
     build_scenarios({"source.jsonl": source}, **args)
     with pytest.raises(FileExistsError):
         build_scenarios({"source.jsonl": source}, **args)
+
+
+def test_unused_review_ids_fail_with_diagnostics(tmp_path, source_record):
+    source = tmp_path / "source.jsonl"
+    source.write_text(json.dumps(source_record) + "\n")
+    with pytest.raises(ValueError, match="outside"):
+        build_scenarios({"source.jsonl": source}, revision="a" * 40,
+                        checksums={"source.jsonl": file_sha256(source)},
+                        reviews={"not-a-selected-row": {}}, output_dir=tmp_path / "out")
+    assert "outside" in json.loads((tmp_path / "out/conversion.json").read_text())["error"]

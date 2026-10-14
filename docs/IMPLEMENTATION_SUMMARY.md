@@ -337,6 +337,8 @@ task, and shows week by week what happens between September 1 and the December 1
   every input line becomes a validated scenario or a rejection with its source location.
 - Pinned acquisition verifies LFS SHA256 or Git blob identity and records SHA256 for every file.
   The ingestion CLI also supports checksum-verified offline source trees.
+- The CLI exports a scenario overview and sample-level KPI CSV by default, with a schema/hash
+  sidecar and explicit missing-value masks; these are analysis tables, not model inputs.
 
 ### Technical implementation
 
@@ -357,6 +359,8 @@ task, and shows week by week what happens between September 1 and the December 1
   jamming row also passed conversion with all 18 channels preserved.
 - Mocked acquisition and offline CLI tests cover failed checksums, wrong revisions, path escape,
   cache reuse, rejected rows and nonzero exit status.
+- CSV fixtures verify deterministic output, source value preservation, scenario joins and null
+  versus literal categorical strings. A pinned three-file run accepted all 468 source rows.
 
 ### Out of scope and follow-ups
 

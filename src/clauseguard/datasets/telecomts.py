@@ -127,6 +127,7 @@ def build_scenarios(
     causes: Counter[str] = Counter()
     observed: dict[str, str] = {}
     duplicates: list[dict[str, str]] = []
+    seen_ids: set[str] = set()
     report: dict[str, Any] = {"schema_version": SCHEMA_VERSION, "adapter_version": ADAPTER_VERSION,
                             "revision": revision, "splits_ready": False}
     try:
@@ -142,6 +143,7 @@ def build_scenarios(
                     for row_index, line in enumerate(stream, 1):
                         counts["selected_rows"] += 1
                         sid = scenario_id(revision, name, row_index)
+                        seen_ids.add(sid)
                         try:
                             record = json.loads(line, parse_constant=_reject_constant)
                             if not isinstance(record, dict):
@@ -169,6 +171,8 @@ def build_scenarios(
                                 "scenario_id": sid, "reason": str(exc), "raw_line": line.rstrip("\n")},
                                 ensure_ascii=False) + "\n")
                             counts["rejected"] += 1
+        if (set(reviews or {}) | set(lineage or {})) - seen_ids:
+            raise ValueError("review or lineage sidecar contains IDs outside the selected source rows")
     except (OSError, ValueError, KeyError) as exc:
         report["error"] = str(exc)
         raise

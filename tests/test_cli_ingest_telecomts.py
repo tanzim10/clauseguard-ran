@@ -23,6 +23,9 @@ def test_offline_command_outputs(tmp_path, capsys):
     assert json.loads(capsys.readouterr().out)["counts"]["accepted"] == 1
     record = json.loads((tmp_path / "output/scenarios.jsonl").read_text())
     assert record["nl_context"] == ""
+    assert (tmp_path / "output/scenarios_overview.csv").exists()
+    assert (tmp_path / "output/kpi_samples.csv").exists()
+    assert json.loads((tmp_path / "output/csv_schema.json").read_text())["samples"] == 2
     assert json.loads((tmp_path / "acquired/acquisition.json").read_text())["status"] == "complete"
 
 
@@ -43,3 +46,8 @@ def test_rejections_exit_nonzero(tmp_path):
     ))
     assert main(args) == 2
     assert json.loads((tmp_path / "output/rejected.jsonl").read_text())["source_row"] == 1
+
+
+def test_csv_can_be_explicitly_skipped(tmp_path):
+    assert main([*offline_args(tmp_path), "--no-csv"]) == 0
+    assert not (tmp_path / "output/kpi_samples.csv").exists()

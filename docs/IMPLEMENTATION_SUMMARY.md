@@ -325,6 +325,31 @@ task, and shows week by week what happens between September 1 and the December 1
 - No code, API, or test changes.
 - `.context/merge.md` and the README deliverables table still describe the original task order.
 
+## TelecomTS scenario preparation — issue #21
+
+**Status:** In progress — 2026-10-14
+
+### Delivered
+
+- Named KPI windows preserve numeric and categorical values, missing samples and unknown units.
+- Scenario records separate observations, labels, source provenance and human text approval.
+
+### Technical implementation
+
+- Validate matching channel lengths, first/last sample timestamps and cadence.
+- Use inclusive anomaly indices, explicit unresolved recording lineage, and reviewed symptom text.
+- Keep the existing golden-evaluation contract unchanged; examples are illustrative local fixtures.
+
+### Verification
+
+- Local schema fixtures cover fractional values, missing/category values, invalid channels/times,
+  annotation bounds, provenance evidence and text approval.
+
+### Out of scope and follow-ups
+
+- Splits, safe inference exports and release readiness remain in #22; baseline training remains in
+  Task 3. Acquisition, conversion, CSV exports and the analysis notebook follow in this branch.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

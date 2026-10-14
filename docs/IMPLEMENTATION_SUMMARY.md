@@ -333,17 +333,24 @@ task, and shows week by week what happens between September 1 and the December 1
 
 - Named KPI windows preserve numeric and categorical values, missing samples and unknown units.
 - Scenario records separate observations, labels, source provenance and human text approval.
+- Streaming conversion preserves source references, stable identities and native annotations;
+  every input line becomes a validated scenario or a rejection with its source location.
 
 ### Technical implementation
 
 - Validate matching channel lengths, first/last sample timestamps and cadence.
 - Use inclusive anomaly indices, explicit unresolved recording lineage, and reviewed symptom text.
+- Record conversion counts and exact observation duplicates without claiming recording identity;
+  checksum failures preserve diagnostics and existing outputs are never silently overwritten.
 - Keep the existing golden-evaluation contract unchanged; examples are illustrative local fixtures.
 
 ### Verification
 
 - Local schema fixtures cover fractional values, missing/category values, invalid channels/times,
   annotation bounds, provenance evidence and text approval.
+- Conversion fixtures cover source aliases, contextual versus injected labels, unknown causes,
+  duplicate observations, invalid JSON, deterministic output and failed checksums. An actual pinned
+  jamming row also passed conversion with all 18 channels preserved.
 
 ### Out of scope and follow-ups
 

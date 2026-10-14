@@ -327,7 +327,7 @@ task, and shows week by week what happens between September 1 and the December 1
 
 ## TelecomTS scenario preparation — issue #21
 
-**Status:** In progress — 2026-10-14
+**Status:** Complete for acquisition/conversion and analysis — 2026-10-14
 
 ### Delivered
 
@@ -339,6 +339,8 @@ task, and shows week by week what happens between September 1 and the December 1
   The ingestion CLI also supports checksum-verified offline source trees.
 - The CLI exports a scenario overview and sample-level KPI CSV by default, with a schema/hash
   sidecar and explicit missing-value masks; these are analysis tables, not model inputs.
+- One offline notebook analyzes coverage, missingness, sampled distributions/correlations,
+  representative traces and text/lineage status, rendering and saving seven figures.
 
 ### Technical implementation
 
@@ -348,6 +350,10 @@ task, and shows week by week what happens between September 1 and the December 1
   checksum failures preserve diagnostics and existing outputs are never silently overwritten.
 - `datasets/acquisition.py` performs immutable-revision downloads, cache verification, safe source
   path handling and retained failure manifests. The CLI records review/lineage/unit sidecar hashes.
+- Optional analysis dependencies and a locked environment support the notebook. CSV scanning is
+  chunked and distribution/correlation plots use a deterministic illustrative selection.
+- The README documents preparation and notebook setup. The analysis notebook explains CSV
+  masks, sampled plots and the boundary with #22.
 - Keep the existing golden-evaluation contract unchanged; examples are illustrative local fixtures.
 
 ### Verification
@@ -361,11 +367,16 @@ task, and shows week by week what happens between September 1 and the December 1
   cache reuse, rejected rows and nonzero exit status.
 - CSV fixtures verify deterministic output, source value preservation, scenario joins and null
   versus literal categorical strings. A pinned three-file run accepted all 468 source rows.
+- Full acquisition at revision `1b3a88a440f4922edfcd1e230e42c003c0e13bdf` verified all 33 processed
+  files and accepted all 32,000 rows with no rejections: 30,765 normal, 279 jamming and 956
+  synthetic. The sample CSV contains 4,096,000 rows. All generated data remains ignored.
+- Notebook execution is checked with an isolated local-fixture kernel and the full local release.
 
 ### Out of scope and follow-ups
 
 - Splits, safe inference exports and release readiness remain in #22; baseline training remains in
-  Task 3. Acquisition, conversion, CSV exports and the analysis notebook follow in this branch.
+  Task 3. Recording lineage and source text require review; all acquired records initially retain
+  unresolved relationships and pending text review. No release-readiness claim is made.
 
 ## Adding a New Phase
 

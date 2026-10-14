@@ -38,7 +38,9 @@ data/corpus/chunks/*
 !data/corpus/chunks/.gitkeep
 data/telecomts/*
 !data/telecomts/.gitkeep
-data/scenarios/scenarios.jsonl
+data/scenarios/*
+!data/scenarios/.gitkeep
+!data/scenarios/scenarios.example.jsonl
 data/golden/golden_eval.jsonl
 artifacts/*
 !artifacts/**/

@@ -95,9 +95,11 @@ def convert_record(
     )
 
 
-def download_telecomts() -> None:
-    """Download TelecomTS. Not implemented in scaffold."""
-    raise NotImplementedError("Week 4 — download TelecomTS")
+def download_telecomts(**kwargs: Any) -> dict[str, Any]:
+    """Acquire pinned remote or local sources, with retained integrity diagnostics."""
+    from clauseguard.datasets.acquisition import acquire_telecomts
+
+    return acquire_telecomts(**kwargs)
 
 
 def file_sha256(path: Path) -> str:

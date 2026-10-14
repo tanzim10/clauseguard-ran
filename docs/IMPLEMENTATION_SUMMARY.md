@@ -335,6 +335,8 @@ task, and shows week by week what happens between September 1 and the December 1
 - Scenario records separate observations, labels, source provenance and human text approval.
 - Streaming conversion preserves source references, stable identities and native annotations;
   every input line becomes a validated scenario or a rejection with its source location.
+- Pinned acquisition verifies LFS SHA256 or Git blob identity and records SHA256 for every file.
+  The ingestion CLI also supports checksum-verified offline source trees.
 
 ### Technical implementation
 
@@ -342,6 +344,8 @@ task, and shows week by week what happens between September 1 and the December 1
 - Use inclusive anomaly indices, explicit unresolved recording lineage, and reviewed symptom text.
 - Record conversion counts and exact observation duplicates without claiming recording identity;
   checksum failures preserve diagnostics and existing outputs are never silently overwritten.
+- `datasets/acquisition.py` performs immutable-revision downloads, cache verification, safe source
+  path handling and retained failure manifests. The CLI records review/lineage/unit sidecar hashes.
 - Keep the existing golden-evaluation contract unchanged; examples are illustrative local fixtures.
 
 ### Verification
@@ -351,6 +355,8 @@ task, and shows week by week what happens between September 1 and the December 1
 - Conversion fixtures cover source aliases, contextual versus injected labels, unknown causes,
   duplicate observations, invalid JSON, deterministic output and failed checksums. An actual pinned
   jamming row also passed conversion with all 18 channels preserved.
+- Mocked acquisition and offline CLI tests cover failed checksums, wrong revisions, path escape,
+  cache reuse, rejected rows and nonzero exit status.
 
 ### Out of scope and follow-ups
 

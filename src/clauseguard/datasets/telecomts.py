@@ -111,6 +111,27 @@ def _reject_constant(value: str) -> None:
     raise ValueError(f"nonstandard JSON constant: {value}")
 
 
+def _parse_and_convert_row(
+    line: str, *, revision: str, source_file: str, source_row: int, source_sha256: str,
+    review: dict[str, Any] | None, lineage: dict[str, Any] | None,
+    units: dict[str, str] | None,
+) -> tuple[ScenarioRecord, str]:
+    """Parse a source line and return its scenario and KPI-window signature."""
+    record = json.loads(line, parse_constant=_reject_constant)
+    if not isinstance(record, dict):
+        raise TypeError("source row must be a JSON object")
+
+    scenario = convert_record(
+        record, revision=revision, source_file=source_file, source_row=source_row,
+        source_sha256=source_sha256, review=review, lineage=lineage, units=units,
+    )
+    signature = hashlib.sha256(json.dumps(
+        [record["KPIs"], scenario.kpi_window.start_time, scenario.kpi_window.end_time,
+         scenario.kpi_window.sampling_rate_hz], sort_keys=True,
+    ).encode()).hexdigest()
+    return scenario, signature
+
+
 def build_scenarios(
     sources: dict[str, Path], *, revision: str, checksums: dict[str, str], output_dir: Path,
     reviews: dict[str, dict[str, Any]] | None = None,
@@ -118,9 +139,10 @@ def build_scenarios(
 ) -> dict[str, Any]:
     """Stream every selected physical line to a scenario or a rejection with diagnostics."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    outputs = [output_dir / name for name in
-               ("scenarios.jsonl", "rejected.jsonl", "conversion.json")]
-    if any(path.exists() for path in outputs):
+    accepted_path = output_dir / "scenarios.jsonl"
+    rejected_path = output_dir / "rejected.jsonl"
+    report_path = output_dir / "conversion.json"
+    if any(path.exists() for path in (accepted_path, rejected_path, report_path)):
         raise FileExistsError("conversion outputs already exist; choose a new output directory")
     counts: Counter[str] = Counter()
     origins: Counter[str] = Counter()
@@ -136,8 +158,8 @@ def build_scenarios(
         for name, path in sources.items():
             if file_sha256(path) != checksums[name]:
                 raise ValueError(f"source checksum mismatch: {name}")
-        with outputs[0].open("w", encoding="utf-8") as accepted, \
-                outputs[1].open("w", encoding="utf-8") as rejected:
+        with accepted_path.open("w", encoding="utf-8") as accepted, \
+                rejected_path.open("w", encoding="utf-8") as rejected:
             for name, path in sorted(sources.items()):
                 with path.open(encoding="utf-8") as stream:
                     for row_index, line in enumerate(stream, 1):
@@ -145,18 +167,11 @@ def build_scenarios(
                         sid = scenario_id(revision, name, row_index)
                         seen_ids.add(sid)
                         try:
-                            record = json.loads(line, parse_constant=_reject_constant)
-                            if not isinstance(record, dict):
-                                raise TypeError("source row must be a JSON object")
-                            row = convert_record(
-                                record, revision=revision, source_file=name, source_row=row_index,
+                            row, signature = _parse_and_convert_row(
+                                line, revision=revision, source_file=name, source_row=row_index,
                                 source_sha256=checksums[name], review=(reviews or {}).get(sid),
                                 lineage=(lineage or {}).get(sid), units=units,
                             )
-                            signature = hashlib.sha256(json.dumps(
-                                [record["KPIs"], row.kpi_window.start_time, row.kpi_window.end_time,
-                                 row.kpi_window.sampling_rate_hz], sort_keys=True,
-                            ).encode()).hexdigest()
                             if signature in observed:
                                 duplicates.append({"scenario_id": sid,
                                                    "matches": observed[signature]})
@@ -179,5 +194,5 @@ def build_scenarios(
     finally:
         report.update(counts={key: counts[key] for key in ("selected_rows", "accepted", "rejected")},
                       origins=dict(origins), causes=dict(causes), duplicates=duplicates)
-        outputs[2].write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return report

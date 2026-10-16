@@ -10,7 +10,9 @@ import pytest
 from clauseguard.datasets.csv_export import export_analysis_csv
 
 
-def test_analysis_notebook_runs_offline(tmp_path, monkeypatch):
+@pytest.mark.parametrize("with_release", [False, True])
+def test_analysis_notebook_runs_offline(tmp_path, monkeypatch, with_release, release_sources,
+                                      recording_evidence):
     nbformat = pytest.importorskip("nbformat", reason="Install the optional analysis extra")
     nbclient = pytest.importorskip("nbclient", reason="Install the optional analysis extra")
     pytest.importorskip("ipykernel", reason="Install the optional analysis extra")
@@ -21,6 +23,15 @@ def test_analysis_notebook_runs_offline(tmp_path, monkeypatch):
     data = tmp_path / "data"
     data.mkdir()
     shutil.copyfile(root / "data/scenarios/scenarios.example.jsonl", data / "scenarios.jsonl")
+    if with_release:
+        from clauseguard.datasets.release import prepare_release
+
+        shutil.copyfile(release_sources["scenarios"], data / "scenarios.jsonl")
+        prepare_release(release_sources["scenarios"], release_sources["output"],
+                        release_sources["output"], trials=128)
+        monkeypatch.setenv("TELECOMTS_RELEASE_DIR", str(release_sources["output"]))
+    else:
+        monkeypatch.setenv("TELECOMTS_RELEASE_DIR", str(data / "absent-release"))
     export_analysis_csv(data / "scenarios.jsonl")
     kernel = tmp_path / "kernels/test-python"
     kernel.mkdir(parents=True)
@@ -38,10 +49,14 @@ def test_analysis_notebook_runs_offline(tmp_path, monkeypatch):
     notebook = nbformat.read(root / "notebooks/telecomts_analysis.ipynb", as_version=4)
     nbclient.NotebookClient(notebook, km=manager, timeout=120,
                            resources={"metadata": {"path": str(root)}}).execute()
-    assert {path.stem for path in (tmp_path / "figures").glob("*.png")} == {
+    expected = {
         "origin_and_categories", "lengths_and_cadence", "missing_values",
         "annotated_window", "illustrative_distributions", "illustrative_correlations",
         "representative_traces", "text_and_lineage_coverage",
     }
+    if with_release:
+        expected |= {"split_overlap", "detection_split_counts", "category_group_coverage",
+                     "release_exclusions_and_text"}
+    assert {path.stem for path in (tmp_path / "figures").glob("*.png")} == expected
     assert all(cell.get("execution_count") is not None for cell in notebook.cells
                if cell.cell_type == "code")

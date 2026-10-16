@@ -1,4 +1,4 @@
-"""Prepare acquisition and validated scenarios; split assignment belongs to issue #22."""
+"""Acquire and convert TelecomTS, optionally preparing the shared experiment release."""
 
 import argparse
 import json
@@ -34,6 +34,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--lineage", type=Path, help="Recording evidence JSON keyed by scenario ID")
     parser.add_argument("--units", type=Path, help="Verified channel-unit JSON object")
     parser.add_argument("--no-csv", action="store_true", help="Skip the analysis CSV exports")
+    parser.add_argument("--prepare-release", action="store_true", help="Run Task 2.1b after ingestion")
+    parser.add_argument("--release-mode", choices=("scored", "exploratory"), default="scored")
+    parser.add_argument("--recording-reviews", type=Path, help="Human source-level recording reviews")
     args = parser.parse_args(argv)
     try:
         # Avoid downloading again when the requested conversion outputs already exist.
@@ -61,6 +64,18 @@ def main(argv: list[str] | None = None) -> int:
         if not args.no_csv:
             report["analysis_csv"] = export_analysis_csv(args.output_dir / "scenarios.jsonl")
             write_manifest(args.output_dir / "conversion.json", report)
+        if args.prepare_release and report["counts"]["accepted"] and not report["counts"]["rejected"]:
+            from clauseguard.cli.prepare_scenarios import main as prepare_main
+
+            command = ["--scenarios", str(args.output_dir / "scenarios.jsonl"),
+                       "--acquisition-dir", str(args.acquisition_dir),
+                       "--output-dir", str(args.output_dir / "release"),
+                       "--mode", args.release_mode]
+            for flag, value in (("--recording-reviews", args.recording_reviews),
+                                ("--input-dir", args.input_dir), ("--checksums", args.checksums)):
+                if value is not None:
+                    command.extend((flag, str(value)))
+            return prepare_main(command)
         print(json.dumps(report, sort_keys=True))
         return 0 if report["counts"]["accepted"] and not report["counts"]["rejected"] else 2
     except (OSError, ValueError, TypeError, KeyError, httpx.HTTPError) as exc:

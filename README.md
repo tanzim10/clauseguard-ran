@@ -296,8 +296,125 @@ source provenance and a CSV schema alongside these tables; existing outputs are 
 from overwrite. Sample CSV missing-value masks distinguish missing values from literal strings.
 
 Implementation progress is recorded in [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md).
-Ingestion preserves observations and reference labels, but safe splits and scored-experiment readiness
-still require Task 2.1b (#22).
+Ingestion preserves observations and reference labels. Task 2.1b now supplies shared splits and
+loaders; scored readiness still requires reviewed recording evidence and sufficient class coverage.
+See the preparation commands below.
+
+## Shared data for detection and fault categories (Task 2.1b)
+
+The release has **one saved family split** and two task views:
+
+| Task | Examples | Target |
+|---|---|---|
+| Detection | Eligible normal, synthetic-fault and jammer windows | Normal / abnormal |
+| Category | Eligible windows from the ten synthetic categories | Fault category |
+
+Category selection never reshuffles records or removes normal/jammer examples from detection.
+The source totals are 30,765 normal, 956 synthetic-fault and 279 jammer windows, before eligibility
+checks. The earlier 576-window example described only a synthetic training subset.
+
+Prepare recording evidence separately from splitting:
+
+```bash
+uv run python -m clauseguard.cli.prepare_scenarios \
+  --stage evidence --output-dir data/scenarios/evidence
+
+uv run python -m clauseguard.cli.prepare_scenarios \
+  --stage release --evidence-dir data/scenarios/evidence \
+  --output-dir data/scenarios/release --mode exploratory
+```
+
+The evidence command acquires missing `metrics.csv` and `description.txt` assets at the existing
+acquisition's pinned revision, checks their digests, and matches each window against the raw
+measurements and timestamps. Offline acquisition uses `--input-dir` and `--checksums`, just like
+JSONL ingestion. `--stage all` (the default) runs both steps. For a new acquisition, append
+`--prepare-release` to `ingest_telecomts`; its default release mode is `scored`, with an explicit
+`--release-mode exploratory` option for source-trace inspection.
+
+**A raw match is not approval of recording independence.** Evidence starts unresolved. Supply
+`--recording-reviews path/to/reviews.json` to the evidence stage after reviewing actual source
+records. This file is keyed by processed source path. An unresolved entry looks like:
+
+```json
+{
+  "normal/mobile/File/processed/chunked.jsonl": {
+    "status": "unresolved",
+    "recording_id": null,
+    "parent_recording_ids": [],
+    "candidate_parent_sources": [],
+    "evidence": "Recording-session evidence still needs review.",
+    "reviewer": "",
+    "reviewed_at": null
+  }
+}
+```
+
+A verified review requires a real recording ID, evidence reference, reviewer and ISO review date.
+Synthetic traces also require parent recording IDs. Shared recording IDs, parent IDs, candidate
+parent-source links, existing provenance links and observed duplicate windows connect whole traces
+into families. Every family stays in one split, including overlapping windows. Unresolved candidate
+parents cannot remain in a verified review. Do not fill review fields with guessed evidence.
+The ingestion `--lineage` sidecar supplies relationships; it does not replace this human review.
+
+`assign_splits` targets 60/20/20 using a deterministic, bounded search over whole families. It
+prioritizes normal/abnormal coverage, ten-category coverage and jammer coverage before proportional
+sizes. It does not balance labels or fit transformations. A search that cannot supply coverage
+reports the missing labels; it does not split a family to satisfy percentages or claim that all
+possible assignments were exhausted.
+
+Outputs include:
+
+- `recording_evidence.csv` and `window_sources.csv`: raw matching and separate recording review.
+- `evidence.json`: source hashes, relationships and auditable window summaries.
+- `splits.json`: authoritative membership; `membership.csv` is its readable inspection view.
+- `labels.json`: versioned binary/category targets; `targets.jsonl` keeps answers separate.
+- `inputs.kpi.jsonl` and `inputs.text.jsonl`: permitted inputs, with IDs outside predictor payloads.
+- `quality.json`: task/modality readiness, class/group/origin counts, exclusions and unknown units.
+- `release.json`: release identity, source location and artifact checksums.
+
+Exploratory releases require opt-in for model iteration and never claim scored readiness. A scored
+release excludes unresolved families. Run `--mode scored` in a **new output directory** when the
+reviewed evidence is available. Exit 0 means the requested tasks pass the selected mode's gates;
+exploratory mode checks coverage only. Exit 3 means missing task readiness/coverage with diagnostic
+artifacts retained; exit 1 means invalid input or preparation failure. Both KPI tasks are required
+by default; `--require-task detection` checks only detection. Existing outputs are not overwritten.
+A blocked scored release is a valid diagnostic output, not a dataset ready for training.
+
+```python
+from pathlib import Path
+from clauseguard.datasets.scenarios import ScenarioDataset
+
+# Default model loading requires a ready scored release.
+release = ScenarioDataset(Path("data/scenarios/release"))
+for example in release.iter_examples(split="train", task="detection"):
+    inputs, target = example.inputs, example.target
+
+# Same membership, filtered to supported fault categories:
+category_examples = release.iter_examples(split="train", task="category")
+```
+
+For exploratory inspection, construct `ScenarioDataset(..., allow_exploratory=True)`. This does not
+make its recording relationships verified. `load_scenario(id)` returns the full source record for
+inspection, including excluded records; pass `example.inputs` to predictors, never the raw record.
+The loader verifies release hashes, complete membership, family separation, targets and coverage.
+It keeps file offsets rather than all KPI arrays in memory. Keep the scenario JSONL at the relative
+location recorded in `release.json` (or move the data and release together).
+
+Default KPI inputs are 128 steps by 16 named numeric channels, preserving native values and nulls.
+The two categorical protocol channels remain in the source/analysis data. Task 3 owns features,
+batching, class weights, sampling and fitted preprocessing, using training data only.
+
+Text inputs need an approved review with `approved_tasks` (`detection` and/or `category`) and
+`text_origin` (`independent_observation` or `kpi_derived`). Legacy approval alone does not qualify
+text for these experiments. Diagnosis-derived text and direct diagnosis disclosures are withheld;
+a lexical check is only a secondary guard, not a substitute for human provenance review. Missing
+approved text does not exclude eligible KPI windows. Use `modality="text"` or `"paired"` for those
+cohorts, which inherit membership and have their own readiness gates. Golden answer/citation
+approval stays in Task 2.2; this release reports eligible incident support, not approved gold.
+
+The notebook optionally inspects the release and adds overlap, binary counts, category/group
+coverage and exclusion/text figures. Set `TELECOMTS_RELEASE_DIR` if its path differs from
+`data/scenarios/release`; `TELECOMTS_SCENARIO_DIR` selects the matching analysis CSV directory.
 
 ---
 

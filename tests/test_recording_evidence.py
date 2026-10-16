@@ -28,11 +28,22 @@ def test_checksum_failure_is_not_a_recording_match(release_sources):
         build_recording_evidence(s["scenarios"], s["acquired"], s["output"])
 
 
-def test_bad_raw_measurement_is_reported_and_not_verified(release_sources):
+@pytest.mark.parametrize("mutation, expected", [
+    ("numeric", "raw numeric mismatch"), ("categorical", "raw categorical mismatch"),
+    ("timestamp", "duplicate raw CSV timestamp"), ("rounding", None),
+])
+def test_raw_differences_are_reported_with_numeric_tolerance(release_sources, mutation, expected):
     s = release_sources
     path = next((s["acquired"] / "raw").rglob("metrics.csv"))
     rows = list(csv.DictReader(path.open()))
-    rows[0]["DL_BLER"] = "999999"
+    if mutation == "numeric":
+        rows[0]["DL_BLER"] = "999999"
+    elif mutation == "categorical":
+        rows[0]["UL_Protocol"] = "UDP"
+    elif mutation == "timestamp":
+        rows[0]["timestamp"] = rows[1]["timestamp"]
+    else:
+        rows[0]["DL_BLER"] = str(float(rows[0]["DL_BLER"]) + 1e-10)
     with path.open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
         writer.writeheader()
@@ -45,9 +56,11 @@ def test_bad_raw_measurement_is_reported_and_not_verified(release_sources):
             entry["sha256"] = file_sha256(path)
     manifest_path.write_text(json.dumps(manifest))
     evidence = build_recording_evidence(s["scenarios"], s["acquired"], s["output"])
-    assert any(not r["raw_match"] for r in evidence["records"])
-    assert "raw numeric mismatch" in next(r["raw_reason"] for r in evidence["records"]
-                                          if not r["raw_match"])
+    if expected is None:
+        assert all(r["raw_match"] for r in evidence["records"])
+    else:
+        assert any(expected in r["raw_reason"] for r in evidence["records"])
+    assert all(t["review"]["status"] == "unresolved" for t in evidence["traces"].values())
 
 
 def test_synthetic_verification_requires_parent_evidence(release_sources):
@@ -56,3 +69,16 @@ def test_synthetic_verification_requires_parent_evidence(release_sources):
     s["reviews"][name]["parent_recording_ids"] = []
     with pytest.raises(ValueError, match="parent evidence"):
         build_recording_evidence(s["scenarios"], s["acquired"], s["output"], reviews=s["reviews"])
+
+
+@pytest.mark.parametrize("malformed", [False, True])
+def test_duplicate_or_malformed_scenarios_fail_with_context(release_sources, malformed):
+    s = release_sources
+    if malformed:
+        s["scenarios"].write_text("not json\n")
+    else:
+        first = s["scenarios"].open().readline()
+        with s["scenarios"].open("a") as stream:
+            stream.write(first)
+    with pytest.raises(ValueError, match="scenarios.jsonl:1" if malformed else "duplicate scenario ID"):
+        build_recording_evidence(s["scenarios"], s["acquired"], s["output"])

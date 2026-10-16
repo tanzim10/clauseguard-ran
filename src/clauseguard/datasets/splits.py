@@ -126,10 +126,7 @@ def assign_splits(evidence: dict, *, ratios=(0.6, 0.2, 0.2), seed: int = 42,
         vectors[gid] = v
     gids = sorted(eligible)
     totals = [sum(v[i] for v in vectors.values()) for i in range(13)]
-    rng = random.Random(seed)
-    best, assignment = None, {}
-    for _ in range(trials if gids else 1):
-        chosen = rng.choices(range(3), weights=ratios, k=len(gids))
+    def score_assignment(chosen):
         counts = [[0] * 13 for _ in SPLITS]
         for gid, index in zip(gids, chosen):
             for j, value in enumerate(vectors[gid]):
@@ -138,10 +135,39 @@ def assign_splits(evidence: dict, *, ratios=(0.6, 0.2, 0.2), seed: int = 42,
                    for indices in (range(2), range(2, 12), (12,))]
         loss = sum((counts[s][j] / total - ratios[s]) ** 2
                    for s in range(3) for j, total in enumerate(totals) if total)
-        score = (*missing, loss)
+        row_total = sum(totals[:2])
+        row_loss = sum(((sum(counts[s][:2]) / row_total) - ratios[s]) ** 2
+                       for s in range(3)) if row_total else 0.0
+        return (*missing, 8 * row_loss + loss / 13)
+
+    rng = random.Random(seed)
+    best, chosen_best = None, []
+    for _ in range(trials if gids else 1):
+        chosen = rng.choices(range(3), weights=ratios, k=len(gids))
+        score = score_assignment(chosen)
         if best is None or score < best:
-            best = score
-            assignment = dict(zip(gids, (SPLITS[i] for i in chosen)))
+            best, chosen_best = score, chosen
+    # Refine sizes by moving/swapping whole groups, never individual windows.
+    # Bounded and deterministic; does not promise a globally optimal assignment.
+    for _ in range(10):
+        improved, next_choice = best, chosen_best
+        for i in range(len(gids)):
+            for index in range(3):
+                candidate = chosen_best.copy()
+                candidate[i] = index
+                score = score_assignment(candidate)
+                if score < improved:
+                    improved, next_choice = score, candidate
+            for j in range(i):
+                candidate = chosen_best.copy()
+                candidate[i], candidate[j] = candidate[j], candidate[i]
+                score = score_assignment(candidate)
+                if score < improved:
+                    improved, next_choice = score, candidate
+        if improved == best:
+            break
+        best, chosen_best = improved, next_choice
+    assignment = dict(zip(gids, (SPLITS[i] for i in chosen_best)))
     membership = {}
     for record in sorted(records, key=lambda r: r["scenario_id"]):
         group = groups[record["source_file"]]
@@ -153,7 +179,7 @@ def assign_splits(evidence: dict, *, ratios=(0.6, 0.2, 0.2), seed: int = 42,
             "category_target": LABEL_MAPPINGS["category"].get(record["rca_label"])
                 if not record["category_reason"] else None,
         }
-    return {"version": "1", "mode": mode, "algorithm": "family_random_search_v1",
+    return {"version": "1", "mode": mode, "algorithm": "family_search_v1",
             "seed": seed, "ratios": list(ratios), "trials": trials,
             "scenarios_sha256": evidence["scenarios_sha256"], "membership": membership}
 

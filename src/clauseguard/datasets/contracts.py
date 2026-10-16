@@ -40,6 +40,10 @@ class RecordingReview(BaseModel):
     def check_approval(self):
         if any(not item.strip() for item in self.parent_recording_ids):
             raise ValueError("parent recording IDs cannot be blank")
+        if self.recording_id is not None and not self.recording_id.strip():
+            raise ValueError("recording ID cannot be blank")
+        if self.status == "verified" and self.candidate_parent_sources:
+            raise ValueError("verified review cannot retain unresolved candidate parents")
         if self.status == "verified":
             if not all((self.recording_id, self.evidence.strip(), self.reviewer.strip(),
                         self.reviewed_at)):

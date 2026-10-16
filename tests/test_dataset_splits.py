@@ -59,3 +59,12 @@ def test_invalid_settings_and_task_fail_clearly(recording_evidence):
         assign_splits(recording_evidence, ratios=(0.8, 0.2, 0))
     with pytest.raises(ValueError, match="split, task"):
         select_task_cohort({}, split="train", task="guess")
+
+
+def test_unrelated_source_clocks_do_not_merge_families(recording_evidence):
+    for record in recording_evidence["records"]:
+        record["start_time"] = "2025-01-01 00:00:00"
+        record["end_time"] = "2025-01-01 00:00:12.700"
+    splits = assign_splits(recording_evidence, trials=128)
+    assert len({m["group_id"] for m in splits["membership"].values()}) == 3
+    assert build_quality(splits)["tasks"]["detection"]["kpi"]["ready"]

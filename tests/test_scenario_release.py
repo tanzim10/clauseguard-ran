@@ -101,3 +101,48 @@ def test_malformed_record_has_file_and_line_even_if_manifest_resealed(release_so
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(ValueError, match="identities differ"):
         ScenarioDataset(s["output"])
+
+
+def test_approved_text_and_paired_views_inherit_membership(release_sources):
+    s = release_sources
+    records = [json.loads(line) for line in s["scenarios"].read_text().splitlines()]
+    for record in records:
+        record["nl_context"] = "Uplink error measurements rose while receive bytes fell."
+        record["text_review"] = {
+            "status": "approved", "source": "reviewed measurements", "reviewer": "fixture human",
+            "reviewed_at": "2026-10-15", "approved_tasks": ["detection", "category"],
+            "text_origin": "kpi_derived",
+        }
+    s["scenarios"].write_text("".join(json.dumps(r) + "\n" for r in records))
+    build_recording_evidence(s["scenarios"], s["acquired"], s["output"], reviews=s["reviews"])
+    prepare_release(s["scenarios"], s["output"], s["output"], trials=128)
+    dataset = ScenarioDataset(s["output"])
+    kpi = list(dataset.iter_examples(split="train", task="detection"))
+    text = list(dataset.iter_examples(split="train", task="detection", modality="text"))
+    paired = list(dataset.iter_examples(split="train", task="category", modality="paired"))
+    assert {r.scenario_id for r in text} == {r.scenario_id for r in kpi}
+    assert all(r.inputs.kpi is None and r.inputs.text for r in text)
+    assert len(paired) == 10
+    assert all(r.inputs.kpi and r.inputs.text for r in paired)
+    assert all(r.split == "train" for r in paired)
+
+
+@pytest.mark.parametrize("origin, text, tasks", [
+    ("diagnosis_derived", "Error rates rose.", ["detection"]),
+    ("independent_observation", "There is a jammer.", ["detection"]),
+    ("kpi_derived", "Error rates rose.", ["category"]),
+])
+def test_text_approval_is_target_and_provenance_specific(release_sources, origin, text, tasks):
+    from clauseguard.datasets.evidence import text_eligibility
+    from clauseguard.datasets.schema import ScenarioRecord
+
+    row = json.loads(release_sources["scenarios"].open().readline())
+    row["nl_context"] = text
+    row["text_review"] = {
+        "status": "approved", "source": "review", "reviewer": "human", "reviewed_at": "2026-10-15",
+        "text_origin": origin, "approved_tasks": tasks,
+    }
+    record = ScenarioRecord.model_validate(row)
+    assert text_eligibility(record, "detection")
+    with pytest.raises(ValueError, match="not approved"):
+        project_inputs(record, modality="text", task="detection")

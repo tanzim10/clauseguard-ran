@@ -23,12 +23,13 @@ def check_revision(revision: str) -> None:
         raise ValueError("revision must be a full 40-character lowercase commit hash")
 
 
-def source_path(root: Path, name: str) -> Path:
+def source_path(root: Path, name: str, *, supplemental: bool = False) -> Path:
     """Source names must remain relative and cannot escape through existing symlinks."""
     parts = PurePosixPath(name).parts
     if (not name or str(PurePosixPath(name)) != name
             or "\\" in name or PurePosixPath(name).is_absolute()
-            or ".." in parts or not name.endswith(".jsonl")):
+            or ".." in parts or not (name.endswith(".jsonl") or supplemental and
+                name.endswith(("/raw/metrics.csv", "/raw/description.txt")))):
         raise ValueError(f"invalid JSONL source path: {name}")
     result = root / name
     if not result.resolve().is_relative_to(root.resolve()):
@@ -77,10 +78,11 @@ def acquire_telecomts(
     *, revision: str, output_dir: Path, files: list[str] | None = None,
     local_dir: Path | None = None, checksums: dict[str, str] | None = None,
     declared_license: str = "unknown", client: httpx.Client | None = None,
+    supplemental: bool = False,
 ) -> dict:
     """Acquire explicit local files or all/selected processed files from an immutable revision."""
     check_revision(revision)
-    manifest_path = output_dir / "acquisition.json"
+    manifest_path = output_dir / ("supplements.json" if supplemental else "acquisition.json")
     if manifest_path.exists():
         previous = json.loads(manifest_path.read_text())
         if previous["revision"] != revision:
@@ -98,7 +100,9 @@ def acquire_telecomts(
         if local_dir is not None:
             if not checksums:
                 raise ValueError("offline acquisition requires supplied SHA256 checksums")
-            selected = sorted(files if files is not None else checksums)
+            selected = sorted(files if files is not None else (
+                name for name in checksums if name.endswith(".jsonl")
+            ))
             metadata = {name: {"sha256": checksums[name]} for name in selected}
         else:
             client = client or httpx.Client(follow_redirects=True, timeout=30)
@@ -119,18 +123,18 @@ def acquire_telecomts(
             raise ValueError("select at least one file without duplicate source paths")
         manifest["settings"]["selected_files"] = selected
         for name in selected:
-            target = source_path(output_dir / "raw", name)
+            target = source_path(output_dir / "raw", name, supplemental=supplemental)
             target.parent.mkdir(parents=True, exist_ok=True)
             expected = metadata[name]
             if local_dir is not None:
-                source = source_path(local_dir, name)
+                source = source_path(local_dir, name, supplemental=supplemental)
                 verified = verify_source(source, expected)
                 if source.resolve() != target.resolve():
                     shutil.copyfile(source, target)
             elif target.exists():
                 verified = verify_source(target, expected)
             else:
-                temporary = target.with_suffix(".jsonl.part")
+                temporary = target.with_suffix(target.suffix + ".part")
                 url = f"https://huggingface.co/datasets/{REPOSITORY}/resolve/{revision}/{quote(name)}"
                 with client.stream("GET", url) as download:
                     download.raise_for_status()
@@ -151,3 +155,14 @@ def acquire_telecomts(
         if owned_client and client is not None:
             client.close()
     return manifest
+
+
+def acquire_supplements(*, sources: list[str], **kwargs) -> dict:
+    """Acquire the two pinned raw assets per processed trace in a separate manifest."""
+    names = []
+    for name in sources:
+        if not name.endswith("/processed/chunked.jsonl"):
+            raise ValueError(f"supplemental mapping requires a processed trace: {name}")
+        family = name.removesuffix("/processed/chunked.jsonl")
+        names.extend(f"{family}/raw/{asset}" for asset in ("metrics.csv", "description.txt"))
+    return acquire_telecomts(files=names, supplemental=True, **kwargs)

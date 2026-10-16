@@ -406,6 +406,8 @@ task, and shows week by week what happens between September 1 and the December 1
 
 ## Shared detection and category dataset release — issue #22
 
+**Pull request:** [#42](https://github.com/tanzim10/clauseguard-ran/pull/42)
+
 **Date:** 2026-10-15
 
 **Status:** Implementation delivered; real-data scored readiness remains blocked by unresolved

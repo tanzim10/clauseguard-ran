@@ -71,5 +71,5 @@ it out. Run `gh issue list --state all` to see current status before starting re
 
 ## Pull requests
 
-Every PR should update `docs/IMPLEMENTATION_SUMMARY.md` with a new dated section covering what
+Every PR should update `IMPLEMENTATION_SUMMARY.md` with a new dated section covering what
 shipped, in both plain language and technical detail (template is in that file).

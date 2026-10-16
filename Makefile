@@ -1,5 +1,7 @@
 .PHONY: up down logs parse index ingest-telecomts eval e2e mcp install test api
 
+TELECOMTS_REVISION ?= 1b3a88a440f4922edfcd1e230e42c003c0e13bdf
+
 up:
 	docker compose up -d qdrant api
 
@@ -16,7 +18,7 @@ index:
 	docker compose run --rm api python -m clauseguard.cli.index_corpus
 
 ingest-telecomts:
-	docker compose run --rm api python -m clauseguard.cli.ingest_telecomts
+	docker compose run --rm api python -m clauseguard.cli.ingest_telecomts --revision $(TELECOMTS_REVISION)
 
 eval:
 	docker compose run --rm api python -m clauseguard.cli.run_eval

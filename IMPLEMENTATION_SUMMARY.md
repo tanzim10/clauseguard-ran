@@ -325,6 +325,84 @@ task, and shows week by week what happens between September 1 and the December 1
 - No code, API, or test changes.
 - `.context/merge.md` and the README deliverables table still describe the original task order.
 
+## TelecomTS scenario preparation — issue #21
+
+**Status:** Complete for acquisition/conversion and analysis — 2026-10-14
+
+### Delivered
+
+- Named KPI windows preserve numeric and categorical values, missing samples and unknown units.
+- Scenario records separate observations, labels, source provenance and human text approval.
+- Streaming conversion preserves source references, stable identities and native annotations;
+  every input line becomes a validated scenario or a rejection with its source location.
+- Pinned acquisition verifies LFS SHA256 or Git blob identity and records SHA256 for every file.
+  The ingestion CLI also supports checksum-verified offline source trees.
+- The CLI exports a scenario overview and sample-level KPI CSV by default, with a schema/hash
+  sidecar and explicit missing-value masks; these are analysis tables, not model inputs.
+- One offline notebook analyzes coverage, missingness, sampled distributions/correlations,
+  representative traces and text/lineage status, rendering and saving seven figures.
+
+### Technical implementation
+
+- Validate matching channel lengths, first/last sample timestamps and cadence.
+- Use inclusive anomaly indices, explicit unresolved recording lineage, and reviewed symptom text.
+- Record conversion counts and exact observation duplicates without claiming recording identity;
+  checksum failures preserve diagnostics and existing outputs are never silently overwritten.
+- `datasets/acquisition.py` performs immutable-revision downloads, cache verification, safe source
+  path handling and retained failure manifests. The CLI records review/lineage/unit sidecar hashes.
+- Optional analysis dependencies and a locked environment support the notebook. CSV scanning is
+  chunked and distribution/correlation plots use a deterministic illustrative selection.
+- The README documents preparation and notebook setup. The analysis notebook explains CSV
+  masks, sampled plots and the boundary with #22.
+- Keep the existing golden-evaluation contract unchanged; examples are illustrative local fixtures.
+
+### Verification
+
+- Local schema fixtures cover fractional values, missing/category values, invalid channels/times,
+  annotation bounds, provenance evidence and text approval.
+- Conversion fixtures cover source aliases, contextual versus injected labels, unknown causes,
+  duplicate observations, invalid JSON, deterministic output and failed checksums. An actual pinned
+  jamming row also passed conversion with all 18 channels preserved.
+- Mocked acquisition and offline CLI tests cover failed checksums, wrong revisions, path escape,
+  cache reuse, rejected rows and nonzero exit status.
+- CSV fixtures verify deterministic output, source value preservation, scenario joins and null
+  versus literal categorical strings. A pinned three-file run accepted all 468 source rows.
+- Full acquisition at revision `1b3a88a440f4922edfcd1e230e42c003c0e13bdf` verified all 33 processed
+  files and accepted all 32,000 rows with no rejections: 30,765 normal, 279 jamming and 956
+  synthetic. The sample CSV contains 4,096,000 rows. All generated data remains ignored.
+- Notebook execution is checked with an isolated local-fixture kernel and the full local release.
+
+### Out of scope and follow-ups
+
+- Splits, safe inference exports and release readiness remain in #22; baseline training remains in
+  Task 3. Recording lineage and source text require review; all acquired records initially retain
+  unresolved relationships and pending text review. No release-readiness claim is made.
+
+## TelecomTS notebook readability — 2026-10-15
+
+**Pull request:** [#41](https://github.com/tanzim10/clauseguard-ran/pull/41)
+
+### Delivered
+
+- Explain origin, fault presence and root-cause labels in plain language, with a meaning and
+  window count for each supported root-cause label.
+- Preview both CSV files and show a window's KPI names, types, sample values and time steps.
+- Replace the coverage chart with labelled horizontal bars and show abnormal categories separately
+  from normal windows. Explain length, cadence, channel types and units with bullets and a diagram.
+- Add an example KPI figure with the source-labelled fault interval shaded when bounds are known.
+
+### Technical implementation
+
+- Keep CSV previews bounded to five rows and reuse the existing deterministic window selection.
+- Read the selected scenario's native annotation from JSONL and display inclusive sample bounds
+  in relative seconds. Preserve the notebook's local kernel choice and offline execution.
+- The notebook now saves eight figures; the fixture check verifies their expected names.
+
+### Verification
+
+- The notebook executes on the offline fixture and the full local 32,000-window export.
+- Checked the coverage, sampling and annotated-window figures visually; test lint and diff checks pass.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

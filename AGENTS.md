@@ -66,7 +66,7 @@ those as the spec. Run `gh issue list --state all` before starting related work.
 - Run the narrowest meaningful verification for the change. Prefer `make test` when behavior is
   touched.
 - Do not revert unrelated uncommitted changes. Work with the current tree.
-- Before opening a PR, update `docs/IMPLEMENTATION_SUMMARY.md` with a dated section explaining
+- Before opening a PR, update `IMPLEMENTATION_SUMMARY.md` with a dated section explaining
   what shipped in plain language and technical detail.
 
 ## Local-only files
@@ -77,5 +77,5 @@ those as the spec. Run `gh issue list --state all` before starting related work.
 
 ## Pull requests
 
-Every PR should update `docs/IMPLEMENTATION_SUMMARY.md` with a new dated section covering what
+Every PR should update `IMPLEMENTATION_SUMMARY.md` with a new dated section covering what
 shipped, in both plain language and technical detail. The template is in that file.

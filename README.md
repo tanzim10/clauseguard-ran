@@ -68,7 +68,7 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | `POST /search` | Implemented — typed vector search over indexed specification chunks |
 | `POST /query` | Grounded answer with retrieved citations; abstains when evidence is empty or insufficient |
 | `POST /rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
-| CLI (`parse_corpus`, `index_corpus`, …) | `parse_corpus` and `index_corpus` implemented; other commands remain stubs |
+| CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing and TelecomTS ingestion implemented; golden/pipeline commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
 | UI | Deferred (`src/ui/` placeholder only) |
 | QLoRA training | Host GPU later — not in Docker |
@@ -201,7 +201,8 @@ All non-health routes will eventually call the shared `RcaPipeline` / eval runne
 | `make up` / `down` / `logs` | Working — Docker Compose |
 | `make parse` | Working — validates and parses acquired PDF/DOCX corpus sources |
 | `make index` | Working for parsed text; requires Qdrant and `NVIDIA_API_KEY` |
-| `make ingest-telecomts` / `eval` / `e2e` | Stubs |
+| `make ingest-telecomts` | Pinned TelecomTS acquisition, validated scenarios and analysis CSVs |
+| `make eval` / `e2e` | Stubs |
 | `make mcp` | Stub MCP profile |
 
 `make parse` validates every acquired manifest row against the source file under
@@ -279,7 +280,24 @@ Exactly three tools, same pipeline as FastAPI:
 | Spec grounding | Curated O-RAN / 3GPP PDFs listed in corpus manifest |
 | Shape examples | `data/corpus/manifest.example.csv`, `data/scenarios/scenarios.example.jsonl`, `data/golden/golden_eval.example.jsonl` |
 
-Raw PDFs, parsed text, downloaded TelecomTS, real `scenarios.jsonl` / `golden_eval.jsonl`, and model weights are gitignored; rebuild from scripts and manifests when those exist.
+Raw PDFs, parsed text, downloaded TelecomTS, scenario/CSV outputs, and model weights are gitignored.
+Prepare the pinned TelecomTS release and its analysis environment:
+
+```bash
+uv sync --extra dev --extra analysis
+uv run python -m clauseguard.cli.ingest_telecomts --revision 1b3a88a440f4922edfcd1e230e42c003c0e13bdf
+uv run --extra analysis python -m ipykernel install --prefix .venv --name clauseguard --display-name ClauseGuardRAN
+```
+
+Open [the TelecomTS analysis notebook](notebooks/telecomts_analysis.ipynb) using the ClauseGuardRAN
+kernel. It reads `data/scenarios/scenarios_overview.csv` and `kpi_samples.csv`, verifies their
+hashes, and saves figures in `artifacts/telecomts_eda/`. The CLI writes conversion diagnostics,
+source provenance and a CSV schema alongside these tables; existing outputs are protected
+from overwrite. Sample CSV missing-value masks distinguish missing values from literal strings.
+
+Implementation progress is recorded in [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md).
+Ingestion preserves observations and reference labels, but safe splits and scored-experiment readiness
+still require Task 2.1b (#22).
 
 ---
 

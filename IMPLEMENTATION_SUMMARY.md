@@ -378,6 +378,29 @@ task, and shows week by week what happens between September 1 and the December 1
   Task 3. Recording lineage and source text require review; all acquired records initially retain
   unresolved relationships and pending text review. No release-readiness claim is made.
 
+## TelecomTS notebook readability — 2026-10-15
+
+### Delivered
+
+- Explain origin, fault presence and root-cause labels in plain language, with a meaning and
+  window count for each supported root-cause label.
+- Preview both CSV files and show a window's KPI names, types, sample values and time steps.
+- Replace the coverage chart with labelled horizontal bars and show abnormal categories separately
+  from normal windows. Explain length, cadence, channel types and units with bullets and a diagram.
+- Add an example KPI figure with the source-labelled fault interval shaded when bounds are known.
+
+### Technical implementation
+
+- Keep CSV previews bounded to five rows and reuse the existing deterministic window selection.
+- Read the selected scenario's native annotation from JSONL and display inclusive sample bounds
+  in relative seconds. Preserve the notebook's local kernel choice and offline execution.
+- The notebook now saves eight figures; the fixture check verifies their expected names.
+
+### Verification
+
+- The notebook executes on the offline fixture and the full local 32,000-window export.
+- Checked the coverage, sampling and annotated-window figures visually; test lint and diff checks pass.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

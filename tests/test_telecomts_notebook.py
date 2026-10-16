@@ -38,6 +38,10 @@ def test_analysis_notebook_runs_offline(tmp_path, monkeypatch):
     notebook = nbformat.read(root / "notebooks/telecomts_analysis.ipynb", as_version=4)
     nbclient.NotebookClient(notebook, km=manager, timeout=120,
                            resources={"metadata": {"path": str(root)}}).execute()
-    assert len(list((tmp_path / "figures").glob("*.png"))) == 7
+    assert {path.stem for path in (tmp_path / "figures").glob("*.png")} == {
+        "origin_and_categories", "lengths_and_cadence", "missing_values",
+        "annotated_window", "illustrative_distributions", "illustrative_correlations",
+        "representative_traces", "text_and_lineage_coverage",
+    }
     assert all(cell.get("execution_count") is not None for cell in notebook.cells
                if cell.cell_type == "code")

@@ -380,6 +380,8 @@ task, and shows week by week what happens between September 1 and the December 1
 
 ## TelecomTS notebook readability — 2026-10-15
 
+**Pull request:** [#41](https://github.com/tanzim10/clauseguard-ran/pull/41)
+
 ### Delivered
 
 - Explain origin, fault presence and root-cause labels in plain language, with a meaning and

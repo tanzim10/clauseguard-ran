@@ -37,7 +37,8 @@ def summarize_record(record: ScenarioRecord) -> dict:
     )
     category_reason = ("not_faulty" if record.fault_label == "normal" else
                        "unsupported_category")
-    if record.origin == "synthetic" and record.rca_label in CATEGORY_LABELS:
+    if (record.fault_label == "abnormal" and record.origin == "synthetic"
+            and record.rca_label in CATEGORY_LABELS):
         category_reason = ""
     return {
         "scenario_id": record.scenario_id, "source_file": record.provenance.source_file,
@@ -162,7 +163,12 @@ def build_recording_evidence(
                     "raw_file": raw_name, "raw_sha256": supplements[raw_name]["sha256"],
                     "description_sha256": supplements[description_name]["sha256"],
                     "window_count": 0, "matched_windows": 0, "review": review.model_dump(),
+                    "provenance_recording_ids": [], "provenance_parent_ids": [],
                 }
+            for key, value in (("provenance_recording_ids", record.provenance.recording_id),
+                               ("provenance_parent_ids", record.provenance.parent_id)):
+                if value and value not in traces[source][key]:
+                    traces[source][key].append(value)
             reason, first, last, max_error = "", None, None, None
             try:
                 if current_source != source:

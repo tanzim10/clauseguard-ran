@@ -416,6 +416,31 @@ The notebook optionally inspects the release and adds overlap, binary counts, ca
 coverage and exclusion/text figures. Set `TELECOMTS_RELEASE_DIR` if its path differs from
 `data/scenarios/release`; `TELECOMTS_SCENARIO_DIR` selects the matching analysis CSV directory.
 
+### Golden specification Q&A
+
+`data/golden/spec_qa.jsonl` is the hand-verified seed. Each line has `id`, `question`,
+`expected_answer`, `expected_citations` (`[{"spec_id", "section"}]`) and `is_answerable`;
+`type` defaults to `spec_qa`. Load and validate it with:
+
+```python
+from clauseguard.eval.golden import load_golden, load_known_spec_ids
+
+rows = load_golden(
+    "data/golden/spec_qa.jsonl",
+    known_spec_ids=load_known_spec_ids("data/corpus/manifest.csv"),
+)
+```
+
+The loader fails with `path:line: reason` on invalid JSON, missing or unexpected fields,
+duplicate IDs, unknown manifest `spec_id`s, and answerability violations (answerable rows need
+citations; unanswerable rows need exactly `"not found"` and no citations). The scaffold's
+placeholder fields `expected_spec_id`, `expected_section`, `spec_refs_golden` and `scenario_id`
+are deprecated and rejected rather than converted. RCA rows are not supported yet. Loading checks
+structure and references only, not whether an answer is correct.
+
+Reviewed evidence for each row lives in `data/golden/annotations.jsonl` (source locator, claim
+groups, review status). Load with `clauseguard.eval.annotations.load_annotations`.
+
 ---
 
 ## License

@@ -2,7 +2,7 @@
 
 import math
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -11,8 +11,24 @@ from pydantic import (
     StrictFloat,
     StrictInt,
     StrictStr,
+    StringConstraints,
     model_validator,
 )
+
+NOT_FOUND_ANSWER = "not found"
+
+# Placeholder fields from the original scaffold. Their meaning was never pinned down (for
+# example "O-RAN.WG3.E2AP §placeholder" mixes spec and section), so they are rejected rather
+# than converted; use `expected_citations` instead.
+LEGACY_GOLDEN_FIELDS = (
+    "expected_spec_id",
+    "expected_section",
+    "spec_refs_golden",
+    "scenario_id",
+)
+
+# Must contain at least one non-whitespace character.
+NonEmptyStr = Annotated[str, StringConstraints(pattern=r"\S")]
 
 
 class KpiChannel(BaseModel):
@@ -159,14 +175,55 @@ class ScenarioRecord(BaseModel):
         return self
 
 
-class GoldenEvalRow(BaseModel):
-    """Golden eval row for spec Q&A or RCA (placeholder)."""
+class GoldenCitation(BaseModel):
+    """Expected citation for a golden row: manifest `spec_id` plus section identifier."""
 
-    id: str
-    type: str = "spec_qa"
-    question: str | None = None
-    scenario_id: str | None = None
-    expected_spec_id: str | None = None
-    expected_section: str | None = None
-    spec_refs_golden: list[str] = Field(default_factory=list)
+    model_config = ConfigDict(extra="forbid")
+
+    spec_id: NonEmptyStr
+    section: NonEmptyStr
+
+
+class GoldenEvalRow(BaseModel):
+    """Golden specification Q&A row, matching `data/golden/spec_qa.jsonl`.
+
+    Answerable rows need at least one citation. Unanswerable rows must have
+    `expected_answer == "not found"` and no citations. RCA rows are not supported yet.
+    The scaffold's legacy fields (`LEGACY_GOLDEN_FIELDS`) are deprecated and rejected.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: NonEmptyStr
+    type: Literal["spec_qa"] = "spec_qa"
+    question: NonEmptyStr
+    expected_answer: NonEmptyStr
+    expected_citations: list[GoldenCitation]
     is_answerable: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_legacy_fields(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        legacy = [name for name in LEGACY_GOLDEN_FIELDS if name in data]
+        if not legacy:
+            return data
+        names = ", ".join(legacy)
+        if "expected_citations" in data:
+            raise ValueError(f"legacy field(s) {names} conflict with expected_citations")
+        raise ValueError(f"legacy field(s) {names} are unsupported; use expected_citations")
+
+    @model_validator(mode="after")
+    def _check_answerability(self) -> "GoldenEvalRow":
+        if self.is_answerable:
+            if not self.expected_citations:
+                raise ValueError("answerable rows need at least one expected citation")
+        else:
+            if self.expected_answer != NOT_FOUND_ANSWER:
+                raise ValueError(
+                    f"unanswerable rows must have expected_answer {NOT_FOUND_ANSWER!r}"
+                )
+            if self.expected_citations:
+                raise ValueError("unanswerable rows must not have expected citations")
+        return self

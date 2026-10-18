@@ -506,7 +506,7 @@ validation errors.
 
 **Status:** Complete — 2026-10-18
 
-**PR:** TBD
+**PR:** https://github.com/tanzim10/clauseguard-ran/pull/43
 
 ### Delivered
 
@@ -548,7 +548,7 @@ another reader can find in the original documents.
 
 **Status:** Complete — 2026-10-18
 
-**PR:** TBD
+**PR:** https://github.com/tanzim10/clauseguard-ran/pull/43
 
 ### Delivered
 

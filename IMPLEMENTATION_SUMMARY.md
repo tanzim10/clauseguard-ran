@@ -13,6 +13,7 @@ remains outside its scope.
 - [Phase 5 — Manifest-Validated Corpus Parsing](#phase-5--manifest-validated-corpus-parsing)
 - [Phase 6 — Grounded POST /query and NVIDIA Models](#phase-6--grounded-post-query-and-nvidia-models)
 - [Phase 8 — Project Plan and Weekly Timeline](#phase-8--project-plan-and-weekly-timeline)
+- [Shared Detection and Category Dataset Release](#shared-detection-and-category-dataset-release--issue-22)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -402,6 +403,99 @@ task, and shows week by week what happens between September 1 and the December 1
 
 - The notebook executes on the offline fixture and the full local 32,000-window export.
 - Checked the coverage, sampling and annotated-window figures visually; test lint and diff checks pass.
+
+## Shared detection and category dataset release — issue #22
+
+**Pull request:** [#42](https://github.com/tanzim10/clauseguard-ran/pull/42)
+
+**Date:** 2026-10-15
+
+**Status:** Implementation delivered; real-data scored readiness remains blocked by unresolved
+recording relationships and missing task-approved text. No baseline model was trained.
+
+### Delivered
+
+One saved split now supplies both prediction tasks. Detection retains normal, synthetic-fault and
+real-jamming examples. Category prediction selects ten supported synthetic classes without changing
+membership. Recording evidence and split assignment are separate functions. Overlapping windows,
+known recording aliases and related synthetic traces travel together as whole families.
+
+The CLI writes a recording evidence table, window-to-raw mapping, membership CSV, quality report,
+versioned targets and separate inference exports. The shared loader checks release integrity and
+returns permitted observations separately from targets. The notebook previews the new tables and
+adds four figures for overlap, binary counts, category/group coverage and exclusions/text coverage.
+
+### Technical implementation
+
+- `datasets/acquisition.py`: acquire checksum-verified supplemental CSV/description files in a
+  separate `supplements.json`; preserve the processed-source manifest and existing conversion path.
+- `datasets/contracts.py`: named 16-channel order, native ten-category mapping, explicit recording
+  review, and typed predictor/example envelopes. `TextReview` now records approved tasks and whether
+  wording came from independent observations, KPIs or diagnosis material.
+- `datasets/evidence.py`: `build_recording_evidence` checks acquisition hashes, full-window values,
+  source timestamps/cadence and categorical values, with a fixed absolute numeric tolerance. It
+  records raw matching separately from human recording approval. Synthetic approval needs parent
+  IDs. Existing provenance and candidate links are retained rather than silently treated as proof.
+- `datasets/splits.py`: `assign_splits` connects whole traces and parent families, then uses seeded
+  bounded search plus whole-group moves/swaps. Required label coverage precedes a size objective
+  targeting 60/20/20 over the full release. No model scores or class resampling select membership.
+  `select_task_cohort` derives detection/category and KPI/text/paired views; `build_quality` reports
+  coverage separately from scored readiness. Missing support does not imply exhaustive proof that
+  every possible assignment is infeasible.
+- `datasets/release.py`: save authoritative `splits.json`, derived `membership.csv`, `labels.json`,
+  `quality.json`, targets and safe inputs with a hashed release identity. Keep the scenario JSONL
+  external by a recorded relative path. Existing artifacts are protected from overwrite.
+- `datasets/scenarios.py`: `ScenarioDataset`, `load_scenario` and `iter_examples` validate hashes,
+  source identity, complete membership, family separation, targets and quality before model use.
+  File offsets support ID lookup without keeping KPI arrays in memory. Source edits invalidate
+  the instance. Inspection can retrieve excluded records; model iteration cannot include them.
+- `cli/prepare_scenarios.py`: separate evidence, release or combined stages; default scored mode
+  refuses unreviewed releases. Explicit exploratory mode checks coverage but retains unverified
+  status. Exit 3 preserves readiness diagnostics; exit 1 reports preparation errors. Ingestion can
+  run this stage with `--prepare-release`.
+- Task-specific human text review is required. Labels, reference answers, source paths, origin and
+  diagnosis annotations stay outside predictor payloads. Text-only inputs contain no KPI array;
+  paired inputs require both modalities. A secondary lexical guard rejects direct disclosures,
+  but human provenance review remains necessary.
+- README documents commands, review fields, outputs and loader use. Generated release analysis
+  artifacts are ignored; golden curation and training remain downstream work.
+
+### Verification
+
+- Repository suite: `make test` — 178 passed. Fixture coverage includes raw checksums, tiny rounding
+  differences, categorical/timestamp mismatches, malformed/duplicate IDs, whole-family membership,
+  synthetic descendants, unrelated clocks, reproducibility, both targets, approved text/paired
+  views, revealing text, artifact corruption and blocked readiness.
+- Ruff checks and `git diff --check` pass for the change.
+- Pinned production acquisition verified all 66 supplemental assets at revision
+  `1b3a88a440f4922edfcd1e230e42c003c0e13bdf`. All 32,000 windows matched their raw sources.
+- Executed the notebook with and without a fixture release, and against all 32,000 real windows.
+  The full run saved 12 figures and an executed notebook under ignored
+  `artifacts/telecomts_release_eda/`; overlap and category/group figures were visually inspected.
+- Full-data loader inspection validated all 32,000 records. The held-out detection view returned
+  6,321 examples, and the category view returned its 216-example subset with all ten labels.
+  Default model loading rejected the exploratory release without explicit opt-in.
+
+The current **exploratory source-trace** release has the following counts. They are preparation
+results, not model scores or verified independent recordings:
+
+| Split | Normal | Synthetic faults | Real jamming | Detection total | Category total |
+|---|---:|---:|---:|---:|---:|
+| Train | 18,432 | 563 | 94 | 19,089 | 563 |
+| Dev | 6,321 | 177 | 92 | 6,590 | 177 |
+| Test | 6,012 | 216 | 93 | 6,321 | 216 |
+
+`data/scenarios/release/` contains this explicit exploratory release. A separate scored preparation
+under `data/scenarios/release-scored/` correctly exited 3 and retained all 32,000 records as excluded:
+no recording-family approvals were supplied. No text cohort is ready. Generated source assets,
+CSV/JSONL exports, releases and analysis output remain local and ignored.
+
+### Out of scope and follow-ups
+
+Human recording-session/parent verification is still needed before scoring unseen-recording
+performance. Task 3 owns training features, fitted preprocessing, label balancing and model
+comparisons. Task 2.2 owns reviewed golden answers/citations; this release only reports eligible
+scenario support. Do not close #22 as scored-data ready on the strength of source-window matching.
 
 ## Adding a New Phase
 

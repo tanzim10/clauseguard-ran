@@ -104,6 +104,10 @@ class TextReview(BaseModel):
     source: str = "description"
     reviewer: str | None = None
     reviewed_at: str | None = None
+    approved_tasks: list[Literal["detection", "category"]] = Field(default_factory=list)
+    text_origin: Literal[
+        "unreviewed", "independent_observation", "kpi_derived", "diagnosis_derived"
+    ] = "unreviewed"
 
 
 class AnomalyAnnotation(BaseModel):

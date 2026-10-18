@@ -14,6 +14,8 @@ remains outside its scope.
 - [Phase 6 — Grounded POST /query and NVIDIA Models](#phase-6--grounded-post-query-and-nvidia-models)
 - [Phase 8 — Project Plan and Weekly Timeline](#phase-8--project-plan-and-weekly-timeline)
 - [Shared Detection and Category Dataset Release](#shared-detection-and-category-dataset-release--issue-22)
+- [Phase 9 — Golden Q&A Schema and Loader](#phase-9--golden-qa-schema-and-loader)
+- [Phase 10 — Reviewed Golden Q&A with Source Evidence](#phase-10--reviewed-golden-qa-with-source-evidence)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -496,6 +498,108 @@ Human recording-session/parent verification is still needed before scoring unsee
 performance. Task 3 owns training features, fitted preprocessing, label balancing and model
 comparisons. Task 2.2 owns reviewed golden answers/citations; this release only reports eligible
 scenario support. Do not close #22 as scored-data ready on the strength of source-window matching.
+
+## Phase 9 — Golden Q&A Schema and Loader
+
+**Focus:** Task 2.2a — make the golden row model match the real seed data and load it with clear
+validation errors.
+
+**Status:** Complete — 2026-10-18
+
+**PR:** https://github.com/tanzim10/clauseguard-ran/pull/43
+
+### Delivered
+
+In simple words: the code can now read the golden Q&A file without dropping the expected answers
+or citations, and it stops with a precise `file:line: what's wrong` message when a row is
+malformed, so scoring work later can trust what it loads.
+
+### Technical implementation
+
+- `datasets/schema.py`: added `GoldenCitation` (non-blank `spec_id`, `section`) and rewrote
+  `GoldenEvalRow` with required `question`, `expected_answer` and `expected_citations`,
+  `type: Literal["spec_qa"]` (default kept), and `extra="forbid"`. TelecomTS scenario models are
+  unchanged.
+- Answerability rules live on the model: answerable rows need at least one citation; unanswerable
+  rows need exactly `"not found"` and an empty citation list.
+- Legacy placeholder fields (`expected_spec_id`, `expected_section`, `spec_refs_golden`,
+  `scenario_id`) are rejected with a specific message — a conflict when combined with
+  `expected_citations`, unsupported otherwise — instead of being guessed into citations.
+- `eval/golden.py`: `load_golden(path, known_spec_ids=None)` checks JSON, schema, unique IDs and
+  manifest references, raising `GoldenLoadError` with file, line and reason;
+  `load_known_spec_ids(manifest)` reads every manifest `spec_id`, including documented blockers.
+- Replaced `golden_eval.example.jsonl` with one answerable and one unanswerable row in the new
+  shape. Documented loading in `README.md`.
+
+### Verification
+
+- `uv run pytest tests/test_golden_loader.py -q`
+- `make test`
+
+### Out of scope and follow-ups
+
+- Loading validates structure and references, not answer truth.
+- RCA row schema, metrics, the eval runner, and `/query` use of gold remain for later issues.
+
+## Phase 10 — Reviewed Golden Q&A with Source Evidence
+
+**Focus:** Task 2.2b — grow the golden spec Q&A set to 24 reviewed questions, each with evidence
+another reader can find in the original documents.
+
+**Status:** Complete — 2026-10-18
+
+**PR:** https://github.com/tanzim10/clauseguard-ran/pull/43
+
+### Delivered
+
+In simple words: every golden question now has a review record saying who approved it, when,
+what kind of question it is, and exactly where the answer sits in the original spec file
+(document version, file hash, clause number and page). The set grew from 12 to 24 questions,
+including harder wording, multi-clause answers and realistic "the corpus does not cover this"
+cases.
+
+### Technical implementation
+
+- `eval/annotations.py` defines the annotation contract:
+  - `SourceLocator`: `spec_id`, `version`, `sha256`, a bare `clause` number kept separate from the
+    display `title`, and either `pdf_page` (1-based physical page in the file) or `docx_heading`
+    (plus optional `docx_paragraph`). No chunk IDs, since those change on re-chunking.
+  - `EvidenceGroup`: one required `claim` with one or more interchangeable `alternatives`.
+  - `NoAnswerRecord`: `sources_checked` and `missing_evidence`.
+  - `Annotation`: `status` (`draft` by default; `approved` needs `reviewer` and `reviewed_on`),
+    overlapping `families` (`direct`, `multi_clause`, `difficult`, `no_answer`), free-form `tags`,
+    and `corrections`. `no_answer` stands alone; `multi_clause` needs 2+ required groups.
+- `load_annotations(path, manifest=None)` reports `file:line` errors (`AnnotationLoadError`
+  subclasses `GoldenLoadError`) and, given manifest rows, checks every locator's spec, version,
+  hash, file format (PDF page vs DOCX heading) and page range, plus no-answer sources.
+- `check_against_golden(annotations, rows)` lists disagreements: unknown IDs, no-answer status
+  mismatches, and expected citations whose clause is not in any evidence group.
+- `data/golden/annotations.jsonl`: 24 approved records (reviewer `tanzim10`, 2026-10-14).
+- `data/golden/spec_qa.jsonl`: seed rows 001–012 unchanged; added 013–024 in two batches of six.
+
+### Coverage (24 unique approved IDs)
+
+| Family | Count | IDs |
+|---|---|---|
+| direct | 10 | 001, 002, 004, 006–010, 014, 023 |
+| multi_clause | 6 | 003, 005, 015, 017, 019, 021 |
+| difficult | 6 | 013, 015, 016, 020, 021, 024 |
+| no_answer | 4 | 011, 012, 018, 022 |
+
+Families overlap (015 and 021 are both multi-clause and difficult). All 12 corpus documents are
+cited by at least one answerable row.
+
+### Verification
+
+- `uv run pytest tests/test_golden_loader.py tests/test_golden_annotations.py -q`
+- `make test`
+- Real-data tests confirm annotations match the manifest and golden rows and that every golden
+  row has an approved annotation.
+
+### Out of scope and follow-ups
+
+- Schema checks cannot prove a clause says what the claim says; that remains manual review.
+- RCA cases, release membership, corpus expansion and metric calculation remain later work.
 
 ## Adding a New Phase
 

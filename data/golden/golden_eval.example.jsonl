@@ -1,2 +1,2 @@
-{"id": "spec_qa_001", "type": "spec_qa", "question": "What is E2SM-KPM used for?", "expected_spec_id": "O-RAN.WG3.E2SM-KPM", "expected_section": "placeholder", "is_answerable": true}
-{"id": "rca_001", "type": "rca", "scenario_id": "example_001", "spec_refs_golden": ["O-RAN.WG3.E2AP §placeholder"], "is_answerable": true}
+{"id":"spec_qa_example_001","type":"spec_qa","question":"What does RRU.PrbUsedDl measure?","expected_answer":"The average number of physical resource blocks used for downlink data traffic.","expected_citations":[{"spec_id":"3GPP TS 28.552","section":"5.1.1.2.5 Mean DL PRB used for data traffic"}],"is_answerable":true}
+{"id":"spec_qa_example_002","type":"spec_qa","question":"How does E2 report 6G NTN beam steering measurements?","expected_answer":"not found","expected_citations":[],"is_answerable":false}

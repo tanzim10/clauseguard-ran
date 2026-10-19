@@ -35,6 +35,8 @@ def test_finds_late_shifted_copy_and_reports_channels_and_split():
     assert link["anchors_by_channel"][NUMERIC_CHANNELS[0]]["last"] == 197
     assert link["equal_values_by_channel"][NUMERIC_CHANNELS[0]] == 40
     assert link["crosses_current_splits"]
+    assert link["status"] == "candidate_requires_review"
+    assert link["corroborated_segment_starts"] == 25
     assert all(c["eligible_segments_by_source"] == {"original": 285, "copy": 285}
                for c in coverage)
 
@@ -47,6 +49,17 @@ def test_constants_and_single_channel_copy_do_not_create_links():
     assert links == []
     assert coverage[0]["confirmed_cross_source_segment_pairs"] == 65
     assert coverage[1]["eligible_segments_by_source"] == {"a": 0, "b": 0}
+
+
+def test_separate_channel_matches_at_same_offset_are_weak():
+    rng = np.random.default_rng(99)
+    a, b = (rng.normal(size=(150, len(NUMERIC_CHANNELS))) for _ in range(2))
+    b[20:40, 0] = a[10:30, 0]
+    b[100:120, 1] = a[90:110, 1]
+    links, _ = audit.find_links([trace("a", a), trace("b", b)])
+    assert len(links) == 1
+    assert links[0]["status"] == "weak_offset_coincidence"
+    assert links[0]["corroborated_segment_starts"] == 0
 
 
 def test_repetitive_keys_are_counted_instead_of_expanding_all_pairs():

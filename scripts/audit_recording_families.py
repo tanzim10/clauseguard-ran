@@ -3,7 +3,7 @@
 import argparse
 import csv
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from itertools import combinations
 from pathlib import Path
@@ -136,8 +136,10 @@ def find_links(traces: list[Trace], *, length: int = 16, distinct: int = 8,
                     continue
                 confirmed += 1
                 channels = alignments.setdefault((a, b, y - x), {})
-                anchor = channels.setdefault(channel, {"count": 0, "first": x, "last": x})
+                anchor = channels.setdefault(channel, {"count": 0, "first": x, "last": x,
+                                                       "starts": set()})
                 anchor["count"] += 1
+                anchor["starts"].add(x)
                 anchor["first"], anchor["last"] = min(anchor["first"], x), max(anchor["last"], x)
         coverage.append({"channel": channel, "eligible_segments_by_source": counts,
                          "skipped_repetitive_keys": int(skipped.sum()),
@@ -151,10 +153,16 @@ def find_links(traces: list[Trace], *, length: int = 16, distinct: int = 8,
             continue
         first, last = max(0, -offset), min(len(traces[a].values), len(traces[b].values) - offset)
         equal = traces[a].values[first:last] == traces[b].values[first + offset:last + offset]
+        shared = Counter(x for anchor in channels.values() for x in anchor["starts"])
+        corroborated = sorted(x for x, count in shared.items() if count >= 2)
         links.append({
             "source_a": traces[a].source, "source_b": traces[b].source,
             "source_b_minus_source_a_row_offset": offset,
-            "status": "candidate_requires_review", "anchors_by_channel": channels,
+            "status": ("candidate_requires_review" if corroborated else "weak_offset_coincidence"),
+            "corroborated_segment_starts": len(corroborated),
+            "first_corroborated_start_row": corroborated[0] if corroborated else None,
+            "anchors_by_channel": {c: {k: v for k, v in anchor.items() if k != "starts"}
+                                   for c, anchor in channels.items()},
             "aligned_rows": last - first,
             "equal_values_by_channel": dict(zip(NUMERIC_CHANNELS, equal.sum(axis=0).tolist())),
             "crosses_current_splits": traces[a].metadata["splits"] != traces[b].metadata["splits"],
@@ -176,7 +184,8 @@ def audit(release_dir: Path, acquisition_dir: Path, output_dir: Path) -> dict:
     for trace in traces:
         candidates = set(trace.metadata["review"]["candidate_parent_sources"])
         for link in links:
-            if trace.source in (link["source_a"], link["source_b"]):
+            if (link["status"] == "candidate_requires_review"
+                    and trace.source in (link["source_a"], link["source_b"])):
                 candidates.update({link["source_a"], link["source_b"]} - {trace.source})
         # This is a fresh proposal, never an automatic copy/creation of human approvals.
         reviews[trace.source] = RecordingReview(
@@ -188,6 +197,7 @@ def audit(release_dir: Path, acquisition_dir: Path, output_dir: Path) -> dict:
         "revision": dataset.evidence["revision"], "scored_ready": False,
         "method": {"segment_rows": 16, "minimum_distinct_finite_values": 8,
                    "maximum_occurrences_per_key": 64, "minimum_channels_at_same_offset": 2,
+                   "corroboration": "two varied channels match the same 16-row segment",
                    "comparison": "exact float64 values; timestamps are not used as session IDs",
                    "scope": "every eligible start in every numeric channel across all trace pairs"},
         "limitations": ["No match does not prove independence or recover an unpublished parent.",
@@ -203,9 +213,11 @@ def audit(release_dir: Path, acquisition_dir: Path, output_dir: Path) -> dict:
     output_dir.mkdir(parents=True)
     for name, value in (("audit.json", report), ("recording_reviews.proposed.json", reviews)):
         (output_dir / name).write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+    supported = sum(link["status"] == "candidate_requires_review" for link in links)
     lines = ["# Recording review audit", "", f"Release: `{dataset.release_id}`", "",
              f"Scanned {len(traces)} traces and {sum(len(t.values) for t in traces):,} raw rows.",
-             f"Found {len(links)} candidate alignments supported by at least two numeric channels.",
+             f"Found {supported} candidate alignments with two channels matching the same segment.",
+             f"Found {len(links) - supported} weak offsets matching channels at separate positions.",
              f"Found {len(hints)} pairs with identical descriptions; these are metadata hints only.",
              "", "All proposed reviews remain unresolved. The source release is unchanged.", "",
              "## Candidate alignments", ""]
@@ -213,6 +225,7 @@ def audit(release_dir: Path, acquisition_dir: Path, output_dir: Path) -> dict:
         lines.append(f"- `{link['source_a']}` / `{link['source_b']}`: offset "
                      f"{link['source_b_minus_source_a_row_offset']}, "
                      f"{len(link['anchors_by_channel'])} channels; "
+                     f"{link['status']}; "
                      f"crosses current splits: {link['crosses_current_splits']}.")
     if not links:
         lines.append("No corroborated exact alignment found under the recorded search rules.")
@@ -234,7 +247,10 @@ def main():
         report = audit(args.release_dir, args.acquisition_dir, args.output_dir)
     except (ValueError, OSError, KeyError) as exc:
         parser.exit(1, f"Recording audit failed: {exc}\n")
-    print(f"Saved audit: {args.output_dir}; {len(report['candidate_links'])} candidate alignments.")
+    supported = sum(link["status"] == "candidate_requires_review"
+                    for link in report["candidate_links"])
+    print(f"Saved audit: {args.output_dir}; {supported} corroborated candidates, "
+          f"{len(report['candidate_links']) - supported} weak offsets.")
 
 
 if __name__ == "__main__":

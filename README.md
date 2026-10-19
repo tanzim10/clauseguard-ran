@@ -439,6 +439,19 @@ Exit codes: `0` ready, `3` valid data but not ready, `1` invalid input.
 and any synthetic versions made from it form a **recording family**. Keep that whole family in
 one split so train and test do not share the same underlying measurements.
 
+Audit possible links between source files with a separate script:
+
+```bash
+uv run --extra baselines python scripts/audit_recording_families.py \
+  --release-dir data/scenarios/release --acquisition-dir data/telecomts \
+  --output-dir artifacts/experiments/recording-review-001
+```
+
+It checks file hashes and searches every eligible 16-row segment across the numeric channels.
+Outputs include findings, search limits and an unresolved review JSON. Two channels must match
+the same segment to support a candidate link. The script leaves the release unchanged; a missing
+match does not establish independence.
+
 Compare ways to remove overlapping windows:
 
 ```bash

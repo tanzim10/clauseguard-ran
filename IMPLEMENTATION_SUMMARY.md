@@ -667,6 +667,21 @@ The notebook executed all 19 cells, including generated-data training and checkp
 Real scored training correctly remains blocked by the unresolved recording review. Verification:
 325 tests passed, targeted Ruff and whitespace checks passed. Real development scores remain outstanding.
 
+## Recording review audit
+
+**Date:** 2026-10-18 · [Issue #31](https://github.com/tanzim10/clauseguard-ran/issues/31)
+
+Added `scripts/audit_recording_families.py` to check acquired file hashes and scan all eligible
+16-row numeric segments across source pairs. It distinguishes two channels matching the same
+segment from weak matches at separate positions, then saves findings and unresolved review JSON.
+
+The local scan covered 33 traces, 1,139,967 raw rows and 9,919,949 eligible channel segments.
+It found no corroborated shared segments and one weak offset between normal files already in
+the same split. Nine identical-description pairs are metadata hints only. Synthetic parent IDs
+remain unknown; the release and approvals are unchanged. Six focused tests cover copied segments,
+weak matches, repetitive values, missing values, integrity checks and review output.
+Verification: 331 tests passed; targeted Ruff and whitespace checks passed.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

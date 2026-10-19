@@ -32,7 +32,7 @@ def plot_release(tmp_path):
             "detection_target": int(index != 0), "category_target": 0 if index == 1 else None,
             "rca_label": ("normal", "Antenna Failure", "Jamming")[index],
         }
-    data = {"splits.json": {"membership": members},
+    data = {"splits.json": {"mode": "exploratory", "membership": members},
             "labels.json": {"category": {"Antenna Failure": 0}},
             "evidence.json": {"traces": traces}}
     for name, payload in data.items():

@@ -650,6 +650,23 @@ Files: `datasets/window_overlap.py`, `cli/audit_window_overlap.py`.
 Verification: 301 tests passed; Ruff and whitespace checks passed. RF training comes next, with
 shared modules used by both a notebook and CLI.
 
+## Task 3.3 — Random Forest implementation
+
+**Date:** 2026-10-18 · [Issue #31](https://github.com/tanzim10/clauseguard-ran/issues/31)
+
+Added real-data plots and a notebook before training. Shared modules now provide 224 KPI features,
+train-only median imputation, and separate detection/category Random Forest models. The runner
+tries four 300-tree settings on dev, then saves the chosen settings for seeds 42/43/44.
+
+The notebook and CLI use the same feature/model/runner code. Checkpoints save feature order and
+medians; prediction reloads them without fitting. Runs record errors, settings, selected training
+IDs, timings and process memory. Optional normal-window reduction leaves all faults and dev/test
+cases intact. Tiny fixture runs cover both tasks; they are not TelecomTS performance results.
+
+The notebook executed all 19 cells, including generated-data training and checkpoint reload.
+Real scored training correctly remains blocked by the unresolved recording review. Verification:
+325 tests passed, targeted Ruff and whitespace checks passed. Real development scores remain outstanding.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

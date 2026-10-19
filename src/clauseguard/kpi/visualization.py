@@ -95,7 +95,10 @@ def visualize_release(
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {}
-    disclaimer = "Exploratory data · recording families unresolved · no model trained"
+    mode = metadata["splits.json"]["mode"]
+    unresolved = any(row.get("evidence_status") != "verified" for row in members.values())
+    review = "recording families unresolved" if unresolved else "recording groups verified"
+    disclaimer = f"{mode.capitalize()} data · {review} · before model training"
 
     def save(fig, name):
         fig.text(0.5, 0.005, disclaimer, ha="center", fontsize=9, color="#555555")

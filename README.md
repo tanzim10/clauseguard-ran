@@ -68,6 +68,7 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | `POST /search` | Implemented — typed vector search over indexed specification chunks |
 | `POST /query` | Grounded answer with retrieved citations; abstains when evidence is empty or insufficient |
 | Experiment data | Validated release cohorts, unchanged input batches and readiness inspection; scored data still needs recording review |
+| KPI Random Forest | Implemented and fixture-tested; real runs await recording review |
 | `POST /rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
 | CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing and TelecomTS ingestion implemented; golden/pipeline commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
@@ -460,7 +461,27 @@ uv run python -m clauseguard.cli.baseline_runs compare \
 
 Saved runs include predictions, errors, settings and data IDs. Failed or missing predictions count
 as incorrect. Comparisons require the same evaluation cases. Commands refuse to overwrite existing
-output directories. No baseline model has been trained yet.
+output directories. Real-data baseline scores remain blocked by recording review.
+
+### Random Forest
+
+Start with [the notebook](notebooks/random_forest_baseline.ipynb): data plots, a small generated-data
+training demo, then the same real-data runner used by the CLI.
+
+```bash
+uv sync --extra dev --extra baselines --extra analysis
+uv run python -m clauseguard.cli.random_forest train \
+  --release-dir data/scenarios/release --output-dir artifacts/experiments/rf-dev-001
+uv run python -m clauseguard.cli.random_forest predict \
+  --release-dir data/scenarios/release \
+  --model-run-dir artifacts/experiments/rf-dev-001/detection/selected-seed-43 \
+  --output-dir artifacts/experiments/rf-test-001
+```
+
+Training fits 224 window features and missing-value medians on train only. It selects among four
+300-tree settings on dev and saves seeds 42/43/44. Add `--training-selection PATH` to remove selected
+normal training windows; dev/test stay complete. Models, preprocessing, predictions, errors and
+timings are saved together. Real training requires a reviewed, ready release.
 
 ### Golden specification Q&A
 

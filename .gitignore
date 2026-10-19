@@ -47,6 +47,7 @@ artifacts/*
 !artifacts/**/.gitkeep
 artifacts/telecomts_eda/**
 artifacts/telecomts_release_eda/**
+artifacts/experiments/**
 models/*
 !models/.gitkeep
 docs/*

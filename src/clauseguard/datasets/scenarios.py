@@ -71,7 +71,8 @@ class ScenarioDataset:
                     raise ValueError(f"{self.scenarios_path.name}:{line_number}: {exc}") from exc
         if set(self.offsets) != set(self.splits["membership"]):
             raise ValueError("missing scenario IDs referenced by membership")
-        self._check_source()
+        self.check_source()
+        self.manifest = manifest
 
     def _read(self, name):
         return json.loads((self.release_dir / name).read_text(encoding="utf-8"))
@@ -80,13 +81,14 @@ class ScenarioDataset:
         stat = self.scenarios_path.stat()
         return stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
 
-    def _check_source(self):
+    def check_source(self):
+        """Reject changes to the validated source, including for empty experiment views."""
         if self._stat() != self._source_stat:
             raise ValueError("scenario source changed since release validation")
 
     def load_scenario(self, scenario_id: str) -> ScenarioRecord:
         """Full record for inspection/golden review, including explicitly excluded records."""
-        self._check_source()
+        self.check_source()
         if scenario_id not in self.offsets:
             raise KeyError(f"unknown scenario ID: {scenario_id}")
         with self.scenarios_path.open("rb") as stream:
@@ -103,7 +105,7 @@ class ScenarioDataset:
             self.splits["mode"] == "scored" and not status["ready"]
         ):
             raise ValueError(f"{task}/{modality} is not ready: {status['reasons']}")
-        self._check_source()
+        self.check_source()
         with self.scenarios_path.open("rb") as stream:
             for sid in ids:
                 stream.seek(self.offsets[sid])
@@ -114,7 +116,7 @@ class ScenarioDataset:
                     target=member[f"{task}_target"], scenario_id=sid, group_id=member["group_id"],
                     split=split, task=task,
                 )
-        self._check_source()
+        self.check_source()
 
 
 def load_scenario(scenario_id: str, *, release_dir: Path = DEFAULT_RELEASE) -> ScenarioRecord:

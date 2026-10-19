@@ -67,6 +67,7 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | `GET /health` | Implemented (optional Qdrant ping) |
 | `POST /search` | Implemented — typed vector search over indexed specification chunks |
 | `POST /query` | Grounded answer with retrieved citations; abstains when evidence is empty or insufficient |
+| Experiment data | Validated release cohorts, unchanged input batches and readiness inspection; scored data still needs recording review |
 | `POST /rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
 | CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing and TelecomTS ingestion implemented; golden/pipeline commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
@@ -415,6 +416,72 @@ approval stays in Task 2.2; this release reports eligible incident support, not 
 The notebook optionally inspects the release and adds overlap, binary counts, category/group
 coverage and exclusion/text figures. Set `TELECOMTS_RELEASE_DIR` if its path differs from
 `data/scenarios/release`; `TELECOMTS_SCENARIO_DIR` selects the matching analysis CSV directory.
+
+### Baseline experiment inputs
+
+Task 3.1 consumes the existing release. Inspect its data validity and experiment readiness without
+training a model:
+
+```bash
+uv run python -m clauseguard.cli.inspect_experiment \
+  --release-dir data/scenarios/release \
+  --output-dir artifacts/experiments/inspection-001
+```
+
+The command saves detection/category cohorts for train/dev/test and `readiness.json`. Add
+`--modality text --modality paired` to inspect those views instead of the default KPI view; include
+`--modality kpi` too for all three. Each cohort records selected IDs, exclusions, release/source/split
+identity and a hash of the exact permitted inputs. The report includes class/group coverage and
+combined-diagnosis membership (normal plus supported synthetic categories, excluding jamming).
+It creates a new output directory and refuses to overwrite an existing one.
+
+Exit `0` means the requested views are scored-ready. Exit `3` retains a validated but unready report;
+exit `1` means invalid input or an inspection failure. Exploratory IDs are source-trace candidates,
+not approval for scored experiments. Their hashes identify unchanged observations, not future
+model features.
+
+For a ready scored release, consume bounded batches:
+
+```python
+from pathlib import Path
+from clauseguard.baselines.data import experiment_cohort, iter_experiment_batches
+from clauseguard.datasets.scenarios import ScenarioDataset
+
+dataset = ScenarioDataset(Path("data/scenarios/release"))
+cohort = experiment_cohort(dataset, split="train", task="detection")
+for batch in iter_experiment_batches(dataset, cohort, batch_size=32):
+    observations, targets = batch.inputs, batch.targets
+```
+
+Predictors receive observations only; targets, scenario IDs and recording groups remain separate
+batch fields. KPI observations retain all 128 steps, 16 named channels, native values and nulls.
+The existing approved text/paired projections use the same batch interface. New observation layers
+belong in the data projection; model-specific features, shortening, imputation and scaling belong
+downstream. Batching checks cohort identity and preserves the loader's readiness gates. The current
+exploratory release therefore refuses default iteration; explicit exploratory opt-in still does
+not make it scored-ready.
+
+Task 3.2 defines per-case prediction records and run metadata, then scores only the saved cohort
+IDs. Missing predictions are recorded as missing; failed and out-of-range outputs count as
+incorrect in headline accuracy/F1 and remain visible in status counts. Detection, category and
+combined diagnosis results include class support and confusion matrices. Group-bootstrap intervals
+use 1,000 recording-group resamples when at least ten groups are present; smaller cohorts report why
+intervals are unavailable. No model is registered yet. Later baseline issues provide adapters whose
+training method receives labeled batches and whose prediction method receives observation inputs
+only. Transformations and checkpoint details belong in each saved run's metadata.
+
+Rescore or compare saved run directories offline:
+
+```bash
+uv run python -m clauseguard.cli.baseline_runs score artifacts/experiments/rf-test
+uv run python -m clauseguard.cli.baseline_runs compare \
+  artifacts/experiments/rf-test artifacts/experiments/xgb-test
+```
+
+Each run is write-once and contains its cohort, targets/groups, per-case predictions, scoring
+settings, metrics and checksums. Scoring replays predictions and verifies stored metrics. Comparison
+requires identical task, cohort, targets and recording groups. This baseline scorer is separate from
+the golden specification retrieval evaluator.
 
 ### Golden specification Q&A
 

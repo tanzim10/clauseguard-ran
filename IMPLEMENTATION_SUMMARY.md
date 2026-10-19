@@ -698,6 +698,30 @@ No model implementation or model-specific preprocessing is included. Later issue
 must record their fitted transformations and checkpoint identity. The validated real scored release
 is still blocked on recording-family review under #29.
 
+## Task 3.3 prerequisite — Recording overlap audit
+
+**Date:** 2026-10-18
+
+**Focus:** Evaluate overlap and data reduction before [#31](https://github.com/tanzim10/clauseguard-ran/issues/31).
+
+The new `datasets/window_overlap.py` module and `cli/audit_window_overlap.py` command compare
+deterministic selections of existing windows. They read validated raw-row mappings, save selected
+IDs and class/split counts in a new audit directory, and leave release membership unchanged.
+
+On the current exploratory release, thinning normal training windows retains 5,381 of 19,089
+training windows (71.81% fewer), including every one of the 657 training fault windows. Dev/test
+remain 6,590/6,321. Thinning normals across all splits would retain 9,131 of 32,000 windows, but would
+change the evaluation population. These are reduction proposals, not model performance results.
+
+The upstream paper specifies length-128 windows with stride 32; its public benchmark randomly
+splits windows and provides no synthetic-parent recording map. Parallel worktree investigations
+checked upstream code and independently reproduced reduction counts. Parent/session independence
+remains unresolved; audit manifests explicitly remain ineligible for scoring.
+
+Verification: `make test` — 301 passed; targeted Ruff and `git diff --check` passed. No model
+implementation or training was included. Task 3.3 will use shared modules from both a demonstration
+notebook and CLI after the data decision is settled.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

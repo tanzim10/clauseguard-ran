@@ -483,6 +483,20 @@ settings, metrics and checksums. Scoring replays predictions and verifies stored
 requires identical task, cohort, targets and recording groups. This baseline scorer is separate from
 the golden specification retrieval evaluator.
 
+Before training, compare overlap-reduction candidates without modifying release membership:
+
+```bash
+uv run python -m clauseguard.cli.audit_window_overlap \
+  --release-dir data/scenarios/release \
+  --output-dir artifacts/experiments/window-overlap-audit
+```
+
+This writes an audit report and selected-ID manifests for training-only normal thinning,
+normal thinning across all splits, and disjoint windows across all labels. Selection uses original
+128-step raw intervals. Keeping every fault window protects scarce categories; preserving dev/test
+keeps evaluation comparable. These manifests are audit proposals and do not establish independent
+recording sessions or make an unready release eligible for scoring.
+
 ### Golden specification Q&A
 
 `data/golden/spec_qa.jsonl` is the hand-verified seed. Each line has `id`, `question`,

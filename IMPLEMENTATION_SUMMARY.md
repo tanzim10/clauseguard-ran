@@ -602,101 +602,53 @@ cited by at least one answerable row.
 - Schema checks cannot prove a clause says what the claim says; that remains manual review.
 - RCA cases, release membership, corpus expansion and metric calculation remain later work.
 
-## Task 3.1 — Validated Experiment Data
+## Task 3.1 — Experiment Data
 
-**Focus:** [#29](https://github.com/tanzim10/clauseguard-ran/issues/29) — expose consistent experiment
-cohorts and unchanged observations before model-specific preprocessing.
+**Date:** 2026-10-18 · [Issue #29](https://github.com/tanzim10/clauseguard-ran/issues/29) · [PR #44](https://github.com/tanzim10/clauseguard-ran/pull/44)
 
-**Implementation PR:** [#44](https://github.com/tanzim10/clauseguard-ran/pull/44).
+Models now load checked batches from the saved split. Each window keeps its original 128 samples
+and 16 numeric channels. Labels, source IDs and recording groups stay separate from observations.
+The inspection CLI reports class counts, exclusions and whether the data is ready.
 
-**Date:** 2026-10-18
+The local check validated all 32,000 records. Train/dev/test contain 19,089/6,590/6,321 windows;
+category views contain 563/177/216. Text views are empty. Scored training remains blocked until
+related source recordings are identified and kept together.
 
-**Status:** Input layer implemented; real scored-data acceptance still needs recording review.
+Files: `baselines/data.py`, `datasets/scenarios.py`, `cli/inspect_experiment.py`.
+Verification: 285 tests passed at this step; Ruff and whitespace checks passed.
 
-### Delivered
+## Task 3.2 — Scoring and Saved Runs
 
-Models can share one checked data boundary: saved task membership, explicit exclusions, bounded
-observation batches and a readiness report. A valid dataset and a dataset ready for scored
-experiments are reported separately. The source release is neither resplit nor transformed.
+**Date:** 2026-10-18 · [Issue #30](https://github.com/tanzim10/clauseguard-ran/issues/30) · [PR #44](https://github.com/tanzim10/clauseguard-ran/pull/44)
 
-### Technical implementation
+Runs save predictions, errors, model settings and data identity. The scorer covers detection,
+fault category and combined diagnosis. Missing or failed predictions count as incorrect; reports
+also show class counts and confusion matrices. Confidence intervals require at least ten
+recording groups.
 
-- `baselines/data.py` reuses `ScenarioDataset`, task/modality selection and approved input
-  projection. Cohorts carry release/source/split identities and a hash of ordered IDs and exact
-  observation payloads. They can be serialized and checked against the release before iteration.
-- Batches retain the existing numeric/text/paired payloads, with targets, scenario IDs and family
-  IDs outside predictor inputs. Native values, nulls and all 128 time steps are preserved.
-- Combined-diagnosis membership includes normal and the ten supported synthetic categories,
-  excluding real jamming, without reconstructing source targets.
-- The loader exposes validated manifest metadata and a public source-change check. Its existing
-  readiness gates continue to govern batching, including explicit exploratory opt-in.
-- `cli/inspect_experiment.py` writes cohorts and class/group/exclusion diagnostics to a fresh
-  directory; unready releases retain reports with exit 3. Generated experiment reports are ignored.
+Saved runs can be checked, rescored and compared offline. Comparisons require identical evaluation
+cases. The adapter interface lets later models use these functions. No model was trained.
 
-### Verification
+Files: `baselines/contracts.py`, `scoring.py`, `artifacts.py`, `operations.py`,
+`cli/baseline_runs.py`. Verification: 296 tests passed; Ruff and whitespace checks passed.
 
-- Fixture tests cover cohort identities, invalid membership/targets, shuffled channel keys,
-  unchanged observations, metadata isolation, both tasks, approved text/paired layers, source
-  changes and unresolved recording gates. CLI fixtures check ready/unready output and overwrites.
-- `make test` — 285 passed. Targeted Ruff and `git diff --check` passed.
-- Full local inspection validated all 32,000 source records. Exploratory detection counts were
-  19,089 / 6,590 / 6,321 for train/dev/test; category counts were 563 / 177 / 216. Both tasks
-  retained all required labels, but every cohort remained unready because recording independence
-  is unresolved. Detection test has five unverified source groups; category test has two.
-- Text and paired cohorts remained empty. Inspecting the scored release retained 32,000 exclusions
-  with `recording_family_unresolved`. Both real inspections correctly exited 3 and saved reports
-  under ignored `artifacts/experiments/task-3.1-2026-10-18-{exploratory,scored}/`.
+## Task 3.3 prerequisite — Overlap Audit
 
-### Out of scope and follow-ups
+**Date:** 2026-10-18 · [Issue #31](https://github.com/tanzim10/clauseguard-ran/issues/31)
 
-Task 3.2 now owns scoring and saved model-run results. Model-specific feature extraction,
-shortening, train-fitted imputation/scaling and model implementations remain in later baseline
-issues. This work does not establish missing recording relationships or create approved text.
-The real release remains unready for scored model runs until recording-family review is complete.
+**PR:** [#45](https://github.com/tanzim10/clauseguard-ran/pull/45).
 
-## Task 3.2 — Baseline Scoring and Saved Runs
+Added an audit command that saves proposed window selections without changing the source dataset.
+Removing overlapping normal training windows reduces training from 19,089 to 5,381 while keeping
+all 657 training faults. Dev/test remain 6,590/6,321; their final size is still being discussed.
 
-**Focus:** [#30](https://github.com/tanzim10/clauseguard-ran/issues/30) — provide comparable,
-replayable scores over fixed experiment cohorts.
+A recording family means one original recording plus files derived from it, including synthetic
+fault versions. The upstream paper and code do not provide the parent map needed to confirm these
+families. Window reduction does not solve that missing information.
 
-**Implementation PR:** [#44](https://github.com/tanzim10/clauseguard-ran/pull/44).
-
-**Date:** 2026-10-18
-
-**Status:** Scoring and artifact foundation implemented; model adapters are intentionally supplied
-by later baseline issues.
-
-### Delivered
-
-Every cohort case contributes to headline metrics. Failed, invalid and missing outputs remain
-visible; saved runs can be checked, replayed and compared offline. No baseline model was trained.
-
-### Technical implementation
-
-- `baselines/contracts.py` defines per-case outputs and run metadata, including cohort identity,
-  transformations, software versions, seed, configuration, checkpoint and resource fields.
-- `baselines/scoring.py` calculates detection, category and combined diagnosis results, including
-  class support, confusion matrices, successful-only summaries and group-bootstrap intervals.
-- `baselines/artifacts.py` saves write-once run directories with per-case predictions, targets,
-  groups, scoring settings, metrics and file checksums. Replay recomputes metrics; comparison rejects
-  mismatched cohorts or case sets.
-- `baselines/operations.py` provides an injected adapter seam. Training receives labeled batches;
-  prediction receives observation payloads only and retains inference errors per case.
-- `cli/baseline_runs.py` provides offline `score` and `compare` commands. The golden retrieval
-  evaluator remains separate.
-
-### Verification
-
-- Fixture tests cover hand-calculated misses, false alarms, wrong categories, invalid and missing
-  predictions, combined diagnosis, repeatable group bootstrap, artifact replay/integrity/overwrite,
-  comparison compatibility, CLI output and the adapter input boundary.
-- `make test` — 296 passed. Targeted Ruff and `git diff --check` passed.
-
-### Out of scope and follow-ups
-
-No model implementation or model-specific preprocessing is included. Later issues add adapters and
-must record their fitted transformations and checkpoint identity. The validated real scored release
-is still blocked on recording-family review under #29.
+Files: `datasets/window_overlap.py`, `cli/audit_window_overlap.py`.
+Verification: 301 tests passed; Ruff and whitespace checks passed. RF training comes next, with
+shared modules used by both a notebook and CLI.
 
 ## Adding a New Phase
 

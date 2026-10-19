@@ -1,5 +1,6 @@
-import numpy as np
 import pytest
+
+np = pytest.importorskip("numpy")
 
 from clauseguard.datasets.contracts import NUMERIC_CHANNELS, ModelInputs, NumericInputs
 from clauseguard.kpi.features import STATISTICS, ChannelMedianFeatures

@@ -27,6 +27,7 @@ class ChannelMedianFeatures:
 
     def __init__(self):
         self.medians_: np.ndarray | None = None
+        self.feature_names_ = type(self).feature_names_
 
     @staticmethod
     def _window(inputs: ModelInputs) -> tuple[np.ndarray, float]:

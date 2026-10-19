@@ -1,12 +1,10 @@
 """Development-only RF selection and separately invoked held-out prediction."""
 
-import hashlib
 import json
 import platform
 import resource
 import sys
 import time
-from dataclasses import replace
 from importlib.metadata import version
 from pathlib import Path
 
@@ -14,8 +12,22 @@ import numpy as np
 
 from clauseguard.baselines.artifacts import load_run, write_run
 from clauseguard.baselines.contracts import RunMetadata
-from clauseguard.baselines.data import ExperimentBatch, experiment_cohort, iter_experiment_batches
 from clauseguard.baselines.operations import predict_adapter
+from clauseguard.baselines.tree_data import (
+    ids_hash as _ids_hash,
+)
+from clauseguard.baselines.tree_data import (
+    require_ready as _require_ready,
+)
+from clauseguard.baselines.tree_data import (
+    select_training as _select_training,
+)
+from clauseguard.baselines.tree_data import (
+    split_data as _split_data,
+)
+from clauseguard.baselines.tree_data import (
+    training_ids as _training_ids,
+)
 from clauseguard.datasets.scenarios import ScenarioDataset
 from clauseguard.kpi.features import ChannelMedianFeatures
 from clauseguard.kpi.random_forest import (
@@ -31,61 +43,6 @@ from clauseguard.kpi.random_forest import (
 def _write_json(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n",
                     encoding="utf-8")
-
-
-def _ids_hash(ids):
-    return hashlib.sha256(json.dumps(sorted(ids), separators=(",", ":")).encode()).hexdigest()
-
-
-def _require_ready(dataset, tasks, *, allow_exploratory=False):
-    dataset.check_source()
-    if dataset.splits["mode"] != "scored" and not allow_exploratory:
-        raise ValueError("exploratory training requires the explicit allow_exploratory option")
-    for task in tasks:
-        if task not in ("detection", "category"):
-            raise ValueError("invalid Random Forest task")
-        readiness = dataset.quality["tasks"][task]["kpi"]
-        valid = readiness["coverage_ready"] if dataset.splits["mode"] == "exploratory" else readiness["ready"]
-        if not valid:
-            raise ValueError(f"{task} KPI release lacks split coverage: {readiness['reasons']}")
-
-
-def _split_data(dataset, task, split):
-    cohort = experiment_cohort(dataset, task=task, split=split)
-    batches = list(iter_experiment_batches(dataset, cohort))
-    return cohort, ExperimentBatch(
-        cohort_id=cohort.cohort_id,
-        **{field: tuple(value for batch in batches for value in getattr(batch, field))
-           for field in ("inputs", "targets", "scenario_ids", "group_ids")},
-    )
-
-
-def _training_ids(dataset, path):
-    if path is None:
-        return None
-    selection = json.loads(Path(path).read_text(encoding="utf-8"))
-    ids = selection["scenario_ids"]
-    if selection["release_id"] != dataset.release_id:
-        raise ValueError("training selection belongs to a different release")
-    if len(ids) != len(set(ids)) or set(ids) - set(dataset.splits["membership"]):
-        raise ValueError("training selection contains duplicate or unknown IDs")
-    kept = set(ids)
-    if any(sid not in kept for sid, row in dataset.splits["membership"].items()
-           if row["split"] == "train" and row["detection_target"] == 1):
-        raise ValueError("normal-window reduction must retain every training fault")
-    return kept
-
-
-def _select_training(batch, ids):
-    if ids is None:
-        return batch
-    indices = [i for i, sid in enumerate(batch.scenario_ids) if sid in ids]
-    if not indices:
-        raise ValueError("training selection is empty")
-    return replace(batch, **{
-        field: tuple(getattr(batch, field)[i] for i in indices)
-        for field in ("inputs", "targets", "scenario_ids", "group_ids")
-    })
 
 
 def _versions():

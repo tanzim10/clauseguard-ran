@@ -461,6 +461,28 @@ downstream. Batching checks cohort identity and preserves the loader's readiness
 exploratory release therefore refuses default iteration; explicit exploratory opt-in still does
 not make it scored-ready.
 
+Task 3.2 defines per-case prediction records and run metadata, then scores only the saved cohort
+IDs. Missing predictions are recorded as missing; failed and out-of-range outputs count as
+incorrect in headline accuracy/F1 and remain visible in status counts. Detection, category and
+combined diagnosis results include class support and confusion matrices. Group-bootstrap intervals
+use 1,000 recording-group resamples when at least ten groups are present; smaller cohorts report why
+intervals are unavailable. No model is registered yet. Later baseline issues provide adapters whose
+training method receives labeled batches and whose prediction method receives observation inputs
+only. Transformations and checkpoint details belong in each saved run's metadata.
+
+Rescore or compare saved run directories offline:
+
+```bash
+uv run python -m clauseguard.cli.baseline_runs score artifacts/experiments/rf-test
+uv run python -m clauseguard.cli.baseline_runs compare \
+  artifacts/experiments/rf-test artifacts/experiments/xgb-test
+```
+
+Each run is write-once and contains its cohort, targets/groups, per-case predictions, scoring
+settings, metrics and checksums. Scoring replays predictions and verifies stored metrics. Comparison
+requires identical task, cohort, targets and recording groups. This baseline scorer is separate from
+the golden specification retrieval evaluator.
+
 ### Golden specification Q&A
 
 `data/golden/spec_qa.jsonl` is the hand-verified seed. Each line has `id`, `question`,

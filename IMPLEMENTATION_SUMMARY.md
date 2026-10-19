@@ -647,10 +647,52 @@ experiments are reported separately. The source release is neither resplit nor t
 
 ### Out of scope and follow-ups
 
-Task 3.2 owns scoring and saved model-run results. Model-specific feature extraction, shortening,
-train-fitted imputation/scaling and training remain in the later baseline issues. This work does
-not establish missing recording relationships or create approved text. Issue #29's real-data
-acceptance remains open while its scored release is unready.
+Task 3.2 now owns scoring and saved model-run results. Model-specific feature extraction,
+shortening, train-fitted imputation/scaling and model implementations remain in later baseline
+issues. This work does not establish missing recording relationships or create approved text.
+Issue #29's real-data acceptance remains open while its scored release is unready.
+
+## Task 3.2 — Baseline Scoring and Saved Runs
+
+**Focus:** [#30](https://github.com/tanzim10/clauseguard-ran/issues/30) — provide comparable,
+replayable scores over fixed experiment cohorts.
+
+**Date:** 2026-10-18
+
+**Status:** Scoring and artifact foundation implemented; model adapters are intentionally supplied
+by later baseline issues.
+
+### Delivered
+
+Every cohort case contributes to headline metrics. Failed, invalid and missing outputs remain
+visible; saved runs can be checked, replayed and compared offline. No baseline model was trained.
+
+### Technical implementation
+
+- `baselines/contracts.py` defines per-case outputs and run metadata, including cohort identity,
+  transformations, software versions, seed, configuration, checkpoint and resource fields.
+- `baselines/scoring.py` calculates detection, category and combined diagnosis results, including
+  class support, confusion matrices, successful-only summaries and group-bootstrap intervals.
+- `baselines/artifacts.py` saves write-once run directories with per-case predictions, targets,
+  groups, scoring settings, metrics and file checksums. Replay recomputes metrics; comparison rejects
+  mismatched cohorts or case sets.
+- `baselines/operations.py` provides an injected adapter seam. Training receives labeled batches;
+  prediction receives observation payloads only and retains inference errors per case.
+- `cli/baseline_runs.py` provides offline `score` and `compare` commands. The golden retrieval
+  evaluator remains separate.
+
+### Verification
+
+- Fixture tests cover hand-calculated misses, false alarms, wrong categories, invalid and missing
+  predictions, combined diagnosis, repeatable group bootstrap, artifact replay/integrity/overwrite,
+  comparison compatibility, CLI output and the adapter input boundary.
+- `make test` — 296 passed. Targeted Ruff and `git diff --check` passed.
+
+### Out of scope and follow-ups
+
+No model implementation or model-specific preprocessing is included. Later issues add adapters and
+must record their fitted transformations and checkpoint identity. The validated real scored release
+is still blocked on recording-family review under #29.
 
 ## Adding a New Phase
 

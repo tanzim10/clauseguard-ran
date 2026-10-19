@@ -132,8 +132,6 @@ def score_predictions(task: Task, expected: Mapping[str, int], groups: Mapping[s
     metrics["prediction_status_counts"] = {
         status: statuses.get(status, 0) for status in ("ok", "error", "invalid", "missing")
     }
-    if task == "category":
-        metrics.pop("precision", None)
     metrics["confidence_intervals"] = _bootstrap(
         task, actual, predicted, [groups[key] for key in expected], seed=seed,
         replicates=bootstrap_replicates,

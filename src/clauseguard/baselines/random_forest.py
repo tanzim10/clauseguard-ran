@@ -37,15 +37,17 @@ def _ids_hash(ids):
     return hashlib.sha256(json.dumps(sorted(ids), separators=(",", ":")).encode()).hexdigest()
 
 
-def _require_ready(dataset, tasks):
+def _require_ready(dataset, tasks, *, allow_exploratory=False):
     dataset.check_source()
-    if dataset.splits["mode"] != "scored":
-        raise ValueError("real training/prediction requires a scored release; recording review is unresolved")
+    if dataset.splits["mode"] != "scored" and not allow_exploratory:
+        raise ValueError("exploratory training requires the explicit allow_exploratory option")
     for task in tasks:
         if task not in ("detection", "category"):
             raise ValueError("invalid Random Forest task")
-        if not dataset.quality["tasks"][task]["kpi"]["ready"]:
-            raise ValueError(f"{task} KPI release is not ready")
+        readiness = dataset.quality["tasks"][task]["kpi"]
+        valid = readiness["coverage_ready"] if dataset.splits["mode"] == "exploratory" else readiness["ready"]
+        if not valid:
+            raise ValueError(f"{task} KPI release lacks split coverage: {readiness['reasons']}")
 
 
 def _split_data(dataset, task, split):
@@ -92,7 +94,7 @@ def _versions():
 
 
 def _record_run(path, model, cohort, data, *, train_cohort_id, training_ids_hash, resources,
-                bootstrap_replicates):
+                bootstrap_replicates, allow_exploratory=False):
     started = time.perf_counter()
     predictions = predict_adapter(RandomForestAdapter(model.task), model, cohort, [data])
     prediction_seconds = time.perf_counter() - started
@@ -105,7 +107,10 @@ def _record_run(path, model, cohort, data, *, train_cohort_id, training_ids_hash
                        **model.configuration},
         transformations={"channel_medians": model.features.medians_.tolist(),
                          "feature_order": list(model.features.feature_names_),
-                         "training_ids_sha256": training_ids_hash},
+                         "training_ids_sha256": training_ids_hash,
+                         **({"evaluation_status": "provisional_exploratory",
+                             "evaluation_note": "Recording independence is unresolved; interpret metrics as provisional."}
+                            if allow_exploratory else {})},
         checkpoint=checksum,
         resources={**resources, "prediction_seconds": prediction_seconds,
                    "process_peak_rss_bytes": float(peak_rss * (1 if sys.platform == "darwin" else 1024))},
@@ -125,18 +130,22 @@ def _record_run(path, model, cohort, data, *, train_cohort_id, training_ids_hash
 
 def run_random_forest(dataset: ScenarioDataset, output_dir: Path, *,
                       tasks=("detection", "category"), training_selection: Path | None = None,
-                      bootstrap_replicates: int = 1000) -> dict:
+                      bootstrap_replicates: int = 1000,
+                      allow_exploratory: bool = False) -> dict:
     """Tune on dev only; keep all dev cases and save selected seeds42/43/44."""
     tasks = tuple(tasks)
     if not tasks or len(set(tasks)) != len(tasks):
         raise ValueError("choose one or both distinct tasks")
-    _require_ready(dataset, tasks)
+    _require_ready(dataset, tasks, allow_exploratory=allow_exploratory)
+    provisional = dataset.splits["mode"] == "exploratory"
     output_dir = Path(output_dir)
     if output_dir.exists():
         raise FileExistsError("output exists; choose a new experiment directory")
     ids = _training_ids(dataset, training_selection)
     output_dir.mkdir(parents=True)
-    summary = {"release_id": dataset.release_id, "selection_split": "dev", "tasks": {}}
+    summary = {"release_id": dataset.release_id, "selection_split": "dev",
+               "evaluation_status": ("provisional_exploratory" if provisional else "scored"),
+               "tasks": {}}
     for task in tasks:
         train_cohort, full_train = _split_data(dataset, task, "train")
         train = _select_training(full_train, ids)
@@ -157,7 +166,7 @@ def run_random_forest(dataset: ScenarioDataset, output_dir: Path, *,
                 path, model, dev_cohort, dev, train_cohort_id=train_cohort.cohort_id,
                 training_ids_hash=_ids_hash(train.scenario_ids),
                 resources={"fit_seconds": fit_seconds, "feature_seconds": feature_seconds},
-                bootstrap_replicates=bootstrap_replicates,
+                bootstrap_replicates=bootstrap_replicates, allow_exploratory=provisional,
             )
             trials.append({"configuration": configuration, "dev_macro_f1": metrics["macro_f1"],
                            "run": str(path.relative_to(output_dir))})
@@ -175,7 +184,7 @@ def run_random_forest(dataset: ScenarioDataset, output_dir: Path, *,
                 path, model, dev_cohort, dev, train_cohort_id=train_cohort.cohort_id,
                 training_ids_hash=_ids_hash(train.scenario_ids),
                 resources={"fit_seconds": fit_seconds, "feature_seconds": feature_seconds},
-                bootstrap_replicates=bootstrap_replicates,
+                bootstrap_replicates=bootstrap_replicates, allow_exploratory=provisional,
             )
             selected.append({"seed": seed, "dev_macro_f1": metrics["macro_f1"],
                              "run": str(path.relative_to(output_dir))})
@@ -194,23 +203,28 @@ def run_random_forest(dataset: ScenarioDataset, output_dir: Path, *,
 
 
 def predict_saved_model(dataset: ScenarioDataset, model_run_dir: Path, output_dir: Path, *,
-                         split: str = "test", bootstrap_replicates: int = 1000) -> dict:
+                         split: str = "test", bootstrap_replicates: int = 1000,
+                         allow_exploratory: bool = False) -> dict:
     """Score a saved checkpoint on a requested split; never refit preprocessing or weights."""
     model_run_dir = Path(model_run_dir)
     saved = load_run(model_run_dir)
     metadata = saved["metadata"]
     if metadata.cohort.release_id != dataset.release_id:
         raise ValueError("checkpoint belongs to a different release")
-    _require_ready(dataset, (metadata.task,))
+    _require_ready(dataset, (metadata.task,), allow_exploratory=allow_exploratory)
+    if metadata.cohort.mode == "exploratory" and not allow_exploratory:
+        raise ValueError("exploratory checkpoint prediction requires explicit opt-in")
     model = load_model(model_run_dir / "model.joblib", expected_sha256=metadata.checkpoint)
     if model.task != metadata.task:
         raise ValueError("checkpoint task differs from saved run")
     if (list(model.features.feature_names_) != metadata.transformations["feature_order"]
             or model.features.medians_.tolist() != metadata.transformations["channel_medians"]):
         raise ValueError("checkpoint preprocessing differs from saved run")
+    provisional = dataset.splits["mode"] == "exploratory"
     cohort, data = _split_data(dataset, model.task, split)
     return _record_run(
         Path(output_dir), model, cohort, data, train_cohort_id=metadata.train_cohort_id,
         training_ids_hash=metadata.transformations["training_ids_sha256"],
         resources={}, bootstrap_replicates=bootstrap_replicates,
+        allow_exploratory=provisional,
     )

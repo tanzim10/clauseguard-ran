@@ -12,9 +12,13 @@ def main(argv=None):
     train = commands.add_parser("train", help="fit on train and select on dev; test is untouched")
     train.add_argument("--task", choices=("detection", "category", "both"), default="both")
     train.add_argument("--training-selection", type=Path)
+    train.add_argument("--allow-exploratory", action="store_true",
+                       help="run provisionally when recording independence is unresolved")
     predict = commands.add_parser("predict", help="score a checkpoint without refitting")
     predict.add_argument("--model-run-dir", type=Path, required=True)
     predict.add_argument("--split", choices=("dev", "test"), default="test")
+    predict.add_argument("--allow-exploratory", action="store_true",
+                         help="score provisionally when recording independence is unresolved")
     for command in (train, predict):
         command.add_argument("--release-dir", type=Path, required=True)
         command.add_argument("--output-dir", type=Path, required=True)
@@ -28,17 +32,19 @@ def main(argv=None):
             raise ValueError("bootstrap replicates must be nonnegative")
         if args.output_dir.exists():
             raise FileExistsError("output exists; choose a new experiment directory")
-        dataset = ScenarioDataset(args.release_dir)
+        dataset = ScenarioDataset(args.release_dir, allow_exploratory=args.allow_exploratory)
         if args.command == "train":
             tasks = ("detection", "category") if args.task == "both" else (args.task,)
             result = run_random_forest(
                 dataset, args.output_dir, tasks=tasks, training_selection=args.training_selection,
                 bootstrap_replicates=args.bootstrap_replicates,
+                allow_exploratory=args.allow_exploratory,
             )
         else:
             result = predict_saved_model(
                 dataset, args.model_run_dir, args.output_dir, split=args.split,
                 bootstrap_replicates=args.bootstrap_replicates,
+                allow_exploratory=args.allow_exploratory,
             )
     except ImportError:
         print("Install RF dependencies: uv sync --extra dev --extra baselines", file=sys.stderr)

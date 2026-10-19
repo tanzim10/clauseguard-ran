@@ -507,6 +507,10 @@ Training fits 224 window features and missing-value medians on train only. It se
 normal training windows; dev/test stay complete. Models, preprocessing, predictions, errors and
 timings are saved together. Real training requires a reviewed, ready release.
 
+For a provisional detection run on the exploratory synthetic-training release, add
+`--task detection --allow-exploratory` to train and `--allow-exploratory` to prediction.
+The saved runs record provisional status. Category evaluation is unavailable on that split.
+
 ### Golden specification Q&A
 
 `data/golden/spec_qa.jsonl` is the hand-verified seed. Each line has `id`, `question`,

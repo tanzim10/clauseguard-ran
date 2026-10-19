@@ -667,6 +667,18 @@ The notebook executed all 19 cells, including generated-data training and checkp
 Real scored training correctly remains blocked by the unresolved recording review. Verification:
 325 tests passed, targeted Ruff and whitespace checks passed. Real development scores remain outstanding.
 
+The RF CLI now has an explicit `--allow-exploratory` option when split coverage exists but recording
+independence is unresolved. It records provisional status in the run metadata. Category runs remain
+unavailable on the synthetic-training release because dev/test contain no category examples.
+
+An exploratory detection run trained on 19,173 windows and selected the unlimited-depth, 1-minimum-leaf
+model. Across three seeds, dev macro-F1 ranged from 0.414 to 0.419. On the held-out test set, macro-F1
+was 0.436 and jammer recall was 0.935, but it raised 2,135 false alarms among 6,321 normal windows
+(33.8% false-positive rate). The test has only four recording groups, so no confidence interval is
+available. Synthetic faults occur only in training, so this run does not measure synthetic-fault
+detection or category prediction. Treat all scores as provisional until recording independence is
+resolved.
+
 ## Recording review audit
 
 **Date:** 2026-10-18 · [Issue #31](https://github.com/tanzim10/clauseguard-ran/issues/31)

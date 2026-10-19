@@ -30,6 +30,8 @@ def main(argv=None):
     parser.add_argument("--stage", choices=("evidence", "release", "all"), default="all")
     parser.add_argument("--recording-reviews", type=Path, help="Human review JSON keyed by source path")
     parser.add_argument("--mode", choices=("scored", "exploratory"), default="scored")
+    parser.add_argument("--synthetics-train", action="store_true",
+                        help="Keep all synthetic source groups in training; category dev/test will be empty")
     parser.add_argument("--ratios", type=float, nargs=3, default=(0.6, 0.2, 0.2))
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--trials", type=int, default=4096)
@@ -60,9 +62,17 @@ def main(argv=None):
                                   "traces": len(evidence["traces"]),
                                   "matched_windows": sum(r["raw_match"] for r in evidence["records"])}))
                 return 0 if all(r["raw_match"] for r in evidence["records"]) and evidence["records"] else 3
+        source_split_overrides = {}
+        if args.synthetics_train:
+            evidence_dir = args.evidence_dir or args.output_dir
+            evidence = _object(evidence_dir / "evidence.json")
+            synthetic_sources = {r["source_file"] for r in evidence["records"]
+                                 if r["origin"] == "synthetic"}
+            source_split_overrides = {source: "train" for source in synthetic_sources}
         result = prepare_release(
             args.scenarios, args.evidence_dir or args.output_dir, args.output_dir,
             mode=args.mode, ratios=args.ratios, seed=args.seed, trials=args.trials,
+            source_split_overrides=source_split_overrides,
         )
         print(json.dumps(result, sort_keys=True))
         key = "coverage_ready" if args.mode == "exploratory" else "ready"

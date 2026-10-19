@@ -81,7 +81,8 @@ def _exclusion_reason(group, members, mode):
 
 
 def assign_splits(evidence: dict, *, ratios=(0.6, 0.2, 0.2), seed: int = 42,
-                  mode: str = "scored", trials: int = 4096) -> dict:
+                  mode: str = "scored", trials: int = 4096,
+                  source_split_overrides: dict[str, str] | None = None) -> dict:
     """Search deterministic group assignments using coverage and size only, never model scores.
 
     Search is bounded: a missing class may be infeasible or not found by this search.
@@ -103,6 +104,18 @@ def assign_splits(evidence: dict, *, ratios=(0.6, 0.2, 0.2), seed: int = 42,
         raise ValueError("duplicate scenario ID in recording evidence")
     if any(r["source_file"] not in groups for r in records):
         raise ValueError("scenario references unknown source")
+    source_names = set(groups)
+    source_split_overrides = dict(source_split_overrides or {})
+    if set(source_split_overrides) - source_names:
+        raise ValueError("split override references an unknown source")
+    if any(split not in SPLITS for split in source_split_overrides.values()):
+        raise ValueError("source split overrides must use train, dev or test")
+    fixed_groups = {}
+    for source, split in source_split_overrides.items():
+        gid = groups[source]["group_id"]
+        if gid in fixed_groups and fixed_groups[gid] != split:
+            raise ValueError("sources in one recording family have conflicting split overrides")
+        fixed_groups[gid] = split
     family_records = defaultdict(list)
     for record in records:
         family_records[groups[record["source_file"]]["group_id"]].append(record)
@@ -143,7 +156,8 @@ def assign_splits(evidence: dict, *, ratios=(0.6, 0.2, 0.2), seed: int = 42,
     rng = random.Random(seed)
     best, chosen_best = None, []
     for _ in range(trials if gids else 1):
-        chosen = rng.choices(range(3), weights=ratios, k=len(gids))
+        chosen = [SPLITS.index(fixed_groups[gid]) if gid in fixed_groups else
+                  rng.choices(range(3), weights=ratios, k=1)[0] for gid in gids]
         score = score_assignment(chosen)
         if best is None or score < best:
             best, chosen_best = score, chosen
@@ -152,6 +166,8 @@ def assign_splits(evidence: dict, *, ratios=(0.6, 0.2, 0.2), seed: int = 42,
     for _ in range(10):
         improved, next_choice = best, chosen_best
         for i in range(len(gids)):
+            if gids[i] in fixed_groups:
+                continue
             for index in range(3):
                 candidate = chosen_best.copy()
                 candidate[i] = index
@@ -159,6 +175,8 @@ def assign_splits(evidence: dict, *, ratios=(0.6, 0.2, 0.2), seed: int = 42,
                 if score < improved:
                     improved, next_choice = score, candidate
             for j in range(i):
+                if gids[j] in fixed_groups:
+                    continue
                 candidate = chosen_best.copy()
                 candidate[i], candidate[j] = candidate[j], candidate[i]
                 score = score_assignment(candidate)
@@ -181,6 +199,7 @@ def assign_splits(evidence: dict, *, ratios=(0.6, 0.2, 0.2), seed: int = 42,
         }
     return {"version": "1", "mode": mode, "algorithm": "family_search_v1",
             "seed": seed, "ratios": list(ratios), "trials": trials,
+            "source_split_overrides": source_split_overrides,
             "scenarios_sha256": evidence["scenarios_sha256"], "membership": membership}
 
 
@@ -259,6 +278,9 @@ def validate_membership(splits: dict, evidence: dict) -> None:
     if len(records) != len(evidence["records"]) or set(records) != set(membership):
         raise ValueError("missing, duplicate or unknown scenario membership")
     groups = family_groups(evidence)
+    overrides = splits.get("source_split_overrides", {})
+    if set(overrides) - set(groups) or any(v not in SPLITS for v in overrides.values()):
+        raise ValueError("invalid source split overrides")
     assignments = {}
     group_records = defaultdict(list)
     for r in records.values():
@@ -268,6 +290,9 @@ def validate_membership(splits: dict, evidence: dict) -> None:
     for sid, m in membership.items():
         source = records[sid]["source_file"]
         group = groups[source]
+        required_split = overrides.get(source)
+        if required_split and m["split"] != required_split:
+            raise ValueError(f"source split override was not applied: {source}")
         if any(m.get(k) != v for k, v in records[sid].items()):
             raise ValueError(f"membership changes scenario evidence: {sid}")
         if m["group_id"] != group["group_id"] or m["split"] not in (*SPLITS, "excluded"):

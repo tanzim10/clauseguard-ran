@@ -364,6 +364,17 @@ sizes. It does not balance labels or fit transformations. A search that cannot s
 reports the missing labels; it does not split a family to satisfy percentages or claim that all
 possible assignments were exhausted.
 
+For an exploratory detection run, `--synthetics-train` assigns every synthetic source group to
+training. This leaves category dev/test empty, so the release cannot evaluate the category model.
+It does not resolve synthetic parent recordings; recording independence remains unverified.
+
+```bash
+uv run python -m clauseguard.cli.prepare_scenarios --stage release \
+  --scenarios data/scenarios/scenarios.jsonl --evidence-dir data/scenarios/release \
+  --output-dir data/scenarios/release-synthetic-training --mode exploratory \
+  --synthetics-train --require-task detection
+```
+
 Outputs include:
 
 - `recording_evidence.csv` and `window_sources.csv`: raw matching and separate recording review.

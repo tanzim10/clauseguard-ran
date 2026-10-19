@@ -682,6 +682,11 @@ remain unknown; the release and approvals are unchanged. Six focused tests cover
 weak matches, repetitive values, missing values, integrity checks and review output.
 Verification: 331 tests passed; targeted Ruff and whitespace checks passed.
 
+The existing release command can also assign all synthetic source groups to training for an
+exploratory detection view. It leaves category dev/test empty and recording status unresolved.
+The new release contains 19,173/6,413/6,414 train/dev/test windows; detection label coverage is
+present, while readiness stays blocked by recording review. The original release is unchanged.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

@@ -6,6 +6,7 @@ from clauseguard.baselines.data import (
     ExperimentCohort,
     combined_diagnosis_ids,
     experiment_cohort,
+    experiment_targets,
     iter_experiment_batches,
 )
 from clauseguard.datasets.contracts import NUMERIC_CHANNELS
@@ -107,6 +108,20 @@ def test_combined_diagnosis_membership_excludes_jamming(experiment_release):
     assert all(experiment_release.splits["membership"][sid]["rca_label"] != "Jamming" for sid in ids)
     labels = {experiment_release.splits["membership"][sid]["category_target"] for sid in ids}
     assert labels == {None, *range(10)}
+
+
+def test_scoring_targets_and_recording_groups_come_from_validated_membership(experiment_release):
+    cohort = experiment_cohort(experiment_release, split="test", task="category")
+    targets, groups = experiment_targets(experiment_release, cohort)
+    assert set(targets) == set(cohort.scenario_ids)
+    assert set(targets.values()) == set(range(10))
+    assert groups == {sid: experiment_release.splits["membership"][sid]["group_id"]
+                      for sid in cohort.scenario_ids}
+    detection = experiment_cohort(experiment_release, split="test", task="detection")
+    combined_targets, combined_groups = experiment_targets(
+        experiment_release, detection, task="diagnosis")
+    assert set(combined_targets.values()) == set(range(11))
+    assert set(combined_targets) == set(combined_groups)
 
 
 def test_shuffled_channels_and_native_values_survive_batches(release_sources):

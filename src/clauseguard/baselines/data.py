@@ -124,3 +124,36 @@ def combined_diagnosis_ids(dataset: ScenarioDataset, *, split: str,
     category = set(select_task_cohort(dataset.splits, split=split, task="category", modality=modality))
     members = dataset.splits["membership"]
     return tuple(sid for sid in detection if members[sid]["detection_target"] == 0 or sid in category)
+
+
+def experiment_targets(dataset: ScenarioDataset, cohort: ExperimentCohort, *,
+                       task: str | None = None) -> tuple[dict[str, int], dict[str, str]]:
+    """Read scoring labels/groups from the checked release, never from model outputs."""
+    dataset.check_source()
+    if task is None:
+        task = cohort.task
+    if task not in ("detection", "category", "diagnosis"):
+        raise ValueError("invalid scoring task")
+    current = experiment_cohort(
+        dataset, split=cohort.split, task="detection" if task == "diagnosis" else task,
+        modality=cohort.modality,
+    )
+    if current != cohort:
+        raise ValueError("cohort differs from the validated release")
+    if dataset.splits["mode"] != "scored":
+        raise ValueError("exploratory releases cannot produce scored run artifacts")
+    required_tasks = ("detection", "category") if task == "diagnosis" else (task,)
+    if any(not dataset.quality["tasks"][name][cohort.modality]["ready"]
+           for name in required_tasks):
+        raise ValueError("experiment cohort is not ready for scoring")
+    members = dataset.splits["membership"]
+    ids = (combined_diagnosis_ids(dataset, split=cohort.split, modality=cohort.modality)
+           if task == "diagnosis" else cohort.scenario_ids)
+    if task == "diagnosis":
+        targets = {sid: (0 if members[sid]["detection_target"] == 0
+                         else members[sid]["category_target"] + 1) for sid in ids}
+    else:
+        targets = {sid: members[sid][f"{task}_target"] for sid in ids}
+    groups = {sid: members[sid]["group_id"] for sid in ids}
+    dataset.check_source()
+    return targets, groups

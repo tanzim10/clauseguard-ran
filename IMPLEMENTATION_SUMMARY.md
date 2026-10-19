@@ -607,6 +607,8 @@ cited by at least one answerable row.
 **Focus:** [#29](https://github.com/tanzim10/clauseguard-ran/issues/29) — expose consistent experiment
 cohorts and unchanged observations before model-specific preprocessing.
 
+**Implementation PR:** [#44](https://github.com/tanzim10/clauseguard-ran/pull/44).
+
 **Date:** 2026-10-18
 
 **Status:** Input layer implemented; real scored-data acceptance still needs recording review.
@@ -656,6 +658,8 @@ The real release remains unready for scored model runs until recording-family re
 
 **Focus:** [#30](https://github.com/tanzim10/clauseguard-ran/issues/30) — provide comparable,
 replayable scores over fixed experiment cohorts.
+
+**Implementation PR:** [#44](https://github.com/tanzim10/clauseguard-ran/pull/44).
 
 **Date:** 2026-10-18
 

@@ -10,8 +10,9 @@ from clauseguard.baselines.data import (
 )
 from clauseguard.datasets.contracts import NUMERIC_CHANNELS
 from clauseguard.datasets.evidence import build_recording_evidence
-from clauseguard.datasets.release import prepare_release, project_inputs
+from clauseguard.datasets.release import _identity, prepare_release, project_inputs
 from clauseguard.datasets.scenarios import ScenarioDataset
+from clauseguard.datasets.telecomts import file_sha256
 
 
 @pytest.fixture
@@ -176,3 +177,27 @@ def test_approved_observation_layers_share_batches_and_membership(release_source
         assert (inputs.kpi is not None) == (modality == "paired")
         assert "text_origin" not in inputs.model_dump_json()
         assert "reference" not in inputs.model_dump_json()
+
+
+@pytest.mark.parametrize("problem", ["missing_membership", "unsupported_target"])
+def test_experiment_loading_rejects_invalid_saved_membership(release_sources, recording_evidence,
+                                                            problem):
+    s = release_sources
+    prepare_release(s["scenarios"], s["output"], s["output"], trials=128)
+    path = s["output"] / "splits.json"
+    splits = json.loads(path.read_text())
+    sid = next(iter(splits["membership"]))
+    if problem == "missing_membership":
+        splits["membership"].pop(sid)
+    else:
+        splits["membership"][sid]["detection_target"] = 99
+    path.write_text(json.dumps(splits))
+    manifest_path = s["output"] / "release.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest.pop("release_id")
+    manifest["files"]["splits.json"] = file_sha256(path)
+    manifest["release_id"] = _identity(manifest)
+    manifest_path.write_text(json.dumps(manifest))
+    # Even a correctly resealed release must pass semantic membership/target checks.
+    with pytest.raises(ValueError, match="membership|incorrect target"):
+        ScenarioDataset(s["output"])

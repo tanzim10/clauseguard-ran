@@ -16,6 +16,7 @@ remains outside its scope.
 - [Shared Detection and Category Dataset Release](#shared-detection-and-category-dataset-release--issue-22)
 - [Phase 9 — Golden Q&A Schema and Loader](#phase-9--golden-qa-schema-and-loader)
 - [Phase 10 — Reviewed Golden Q&A with Source Evidence](#phase-10--reviewed-golden-qa-with-source-evidence)
+- [Task 3.1 — Validated Experiment Data](#task-31--validated-experiment-data)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -600,6 +601,56 @@ cited by at least one answerable row.
 
 - Schema checks cannot prove a clause says what the claim says; that remains manual review.
 - RCA cases, release membership, corpus expansion and metric calculation remain later work.
+
+## Task 3.1 — Validated Experiment Data
+
+**Focus:** [#29](https://github.com/tanzim10/clauseguard-ran/issues/29) — expose consistent experiment
+cohorts and unchanged observations before model-specific preprocessing.
+
+**Date:** 2026-10-18
+
+**Status:** Input layer implemented; real scored-data acceptance still needs recording review.
+
+### Delivered
+
+Models can share one checked data boundary: saved task membership, explicit exclusions, bounded
+observation batches and a readiness report. A valid dataset and a dataset ready for scored
+experiments are reported separately. The source release is neither resplit nor transformed.
+
+### Technical implementation
+
+- `baselines/data.py` reuses `ScenarioDataset`, task/modality selection and approved input
+  projection. Cohorts carry release/source/split identities and a hash of ordered IDs and exact
+  observation payloads. They can be serialized and checked against the release before iteration.
+- Batches retain the existing numeric/text/paired payloads, with targets, scenario IDs and family
+  IDs outside predictor inputs. Native values, nulls and all 128 time steps are preserved.
+- Combined-diagnosis membership includes normal and the ten supported synthetic categories,
+  excluding real jamming, without reconstructing source targets.
+- The loader exposes validated manifest metadata and a public source-change check. Its existing
+  readiness gates continue to govern batching, including explicit exploratory opt-in.
+- `cli/inspect_experiment.py` writes cohorts and class/group/exclusion diagnostics to a fresh
+  directory; unready releases retain reports with exit 3. Generated experiment reports are ignored.
+
+### Verification
+
+- Fixture tests cover cohort identities, invalid membership/targets, shuffled channel keys,
+  unchanged observations, metadata isolation, both tasks, approved text/paired layers, source
+  changes and unresolved recording gates. CLI fixtures check ready/unready output and overwrites.
+- `make test` — 285 passed. Targeted Ruff and `git diff --check` passed.
+- Full local inspection validated all 32,000 source records. Exploratory detection counts were
+  19,089 / 6,590 / 6,321 for train/dev/test; category counts were 563 / 177 / 216. Both tasks
+  retained all required labels, but every cohort remained unready because recording independence
+  is unresolved. Detection test has five unverified source groups; category test has two.
+- Text and paired cohorts remained empty. Inspecting the scored release retained 32,000 exclusions
+  with `recording_family_unresolved`. Both real inspections correctly exited 3 and saved reports
+  under ignored `artifacts/experiments/task-3.1-2026-10-18-{exploratory,scored}/`.
+
+### Out of scope and follow-ups
+
+Task 3.2 owns scoring and saved model-run results. Model-specific feature extraction, shortening,
+train-fitted imputation/scaling and training remain in the later baseline issues. This work does
+not establish missing recording relationships or create approved text. Issue #29's real-data
+acceptance remains open while its scored release is unready.
 
 ## Adding a New Phase
 

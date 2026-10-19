@@ -650,7 +650,7 @@ experiments are reported separately. The source release is neither resplit nor t
 Task 3.2 now owns scoring and saved model-run results. Model-specific feature extraction,
 shortening, train-fitted imputation/scaling and model implementations remain in later baseline
 issues. This work does not establish missing recording relationships or create approved text.
-Issue #29's real-data acceptance remains open while its scored release is unready.
+The real release remains unready for scored model runs until recording-family review is complete.
 
 ## Task 3.2 — Baseline Scoring and Saved Runs
 

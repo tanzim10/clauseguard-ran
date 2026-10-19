@@ -3,10 +3,12 @@
 import hashlib
 import json
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from clauseguard.datasets.contracts import ModelInputs
 from clauseguard.datasets.release import project_inputs
 from clauseguard.datasets.scenarios import ScenarioDataset
 from clauseguard.datasets.splits import select_task_cohort
@@ -72,3 +74,53 @@ def experiment_cohort(dataset: ScenarioDataset, *, split: str, task: str,
         coverage_ready=status["coverage_ready"], reasons=tuple(status["reasons"]),
         coverage=deepcopy(status["splits"]),
     )
+
+
+@dataclass(frozen=True)
+class ExperimentBatch:
+    """Pass only inputs to a predictor; targets and correlation metadata stay separate."""
+
+    cohort_id: str
+    inputs: tuple[ModelInputs, ...]
+    targets: tuple[int, ...]
+    scenario_ids: tuple[str, ...]
+    group_ids: tuple[str, ...]
+
+
+def _batch(examples, cohort_id):
+    return ExperimentBatch(
+        cohort_id=cohort_id, inputs=tuple(e.inputs for e in examples),
+        targets=tuple(e.target for e in examples),
+        scenario_ids=tuple(e.scenario_id for e in examples),
+        group_ids=tuple(e.group_id for e in examples),
+    )
+
+
+def iter_experiment_batches(dataset: ScenarioDataset, cohort: ExperimentCohort, *, batch_size=32):
+    """Yield unchanged observations, applying the release loader's existing readiness gates."""
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
+        raise ValueError("batch_size must be a positive integer")
+    current = experiment_cohort(dataset, split=cohort.split, task=cohort.task,
+                                modality=cohort.modality)
+    if current != cohort:
+        raise ValueError("cohort differs from the validated release")
+    cohort_id = cohort.cohort_id
+    examples = []
+    for example in dataset.iter_examples(split=cohort.split, task=cohort.task,
+                                         modality=cohort.modality):
+        examples.append(example)
+        if len(examples) == batch_size:
+            yield _batch(examples, cohort_id)
+            examples = []
+    if examples:
+        yield _batch(examples, cohort_id)
+
+
+def combined_diagnosis_ids(dataset: ScenarioDataset, *, split: str,
+                           modality: str = "kpi") -> tuple[str, ...]:
+    """Normal plus ten supported synthetic categories; retain source targets unchanged."""
+    dataset.check_source()
+    detection = select_task_cohort(dataset.splits, split=split, task="detection", modality=modality)
+    category = set(select_task_cohort(dataset.splits, split=split, task="category", modality=modality))
+    members = dataset.splits["membership"]
+    return tuple(sid for sid in detection if members[sid]["detection_target"] == 0 or sid in category)

@@ -43,4 +43,3 @@ class RunMetadata(BaseModel):
             raise ValueError("run task differs from experiment cohort")
         if self.task == "diagnosis" and self.cohort.task != "detection":
             raise ValueError("combined diagnosis requires a detection cohort")
-

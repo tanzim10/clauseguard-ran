@@ -636,6 +636,8 @@ Files: `baselines/contracts.py`, `scoring.py`, `artifacts.py`, `operations.py`,
 
 **Date:** 2026-10-18 · [Issue #31](https://github.com/tanzim10/clauseguard-ran/issues/31)
 
+**PR:** [#45](https://github.com/tanzim10/clauseguard-ran/pull/45).
+
 Added an audit command that saves proposed window selections without changing the source dataset.
 Removing overlapping normal training windows reduces training from 19,089 to 5,381 while keeping
 all 657 training faults. Dev/test remain 6,590/6,321; their final size is still being discussed.

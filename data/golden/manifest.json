@@ -1,0 +1,100 @@
+{
+  "release_id": "cc1fe5490adcfaae",
+  "files": {
+    "annotations.jsonl": {
+      "sha256": "e90d2ca2ade81c3d1f96b3d03433a21d03a963f7a04aba3286cf3cdd36cff946",
+      "rows": 24
+    },
+    "rca.jsonl": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rows": 0
+    },
+    "spec_qa.jsonl": {
+      "sha256": "d174666788ec5886834e715c00cd7a33ce519f1dbb87d43179e6d1ad57cd5003",
+      "rows": 24
+    }
+  },
+  "sources": {
+    "specs": [
+      {
+        "spec_id": "3GPP TS 28.552",
+        "version": "18.7.0",
+        "sha256": "9785644b0c5a3060ced870ba3470ea3f02212262d518b2b919b1c40ec0e9b5b6"
+      },
+      {
+        "spec_id": "3GPP TS 32.425",
+        "version": "18.0.0",
+        "sha256": "b3e04ba07ffbcb1d6963abe2e90cd7876de6ab61dbd847f5cd2e8c7e085e0fd9"
+      },
+      {
+        "spec_id": "3GPP TS 38.300",
+        "version": "18.1.0",
+        "sha256": "058188999eb469ae95097a3b29b3abd24e65470a10f60d9d8965f7610c0de8f1"
+      },
+      {
+        "spec_id": "3GPP TS 38.331",
+        "version": "18.1.0",
+        "sha256": "939befcf81d76ee493a45d8c9a47d32b0863bb0941a7b3ecf63f5907cf61ea3e"
+      },
+      {
+        "spec_id": "3GPP TS 38.413",
+        "version": "18.1.0",
+        "sha256": "83653aad40d34884b4e886887b8f6aa60b03bb13da42db3a6715ece218612d3a"
+      },
+      {
+        "spec_id": "O-RAN ALLIANCE Overview",
+        "version": "July 2026",
+        "sha256": "6bd602f250fc5fc4aa62e702afd6cd2ffce2db02082e0551277a0adfeca836fa"
+      },
+      {
+        "spec_id": "O-RAN.WG1.TS.OAD",
+        "version": "14.00",
+        "sha256": "6399390ac5fc2595b1d37e43770ccc3eb5dce72af69c708ce6a25d1873072f5d"
+      },
+      {
+        "spec_id": "O-RAN.WG2.A1AP",
+        "version": "04.03",
+        "sha256": "fd9206ea3d0f02474849ad224a1b0ae7439ef98523779bb084948a8eb64e9ab5"
+      },
+      {
+        "spec_id": "O-RAN.WG2.TS.A1TD",
+        "version": "12.00",
+        "sha256": "218367734581ba93b0b512608b0fca582322b09684123262220c78dd72074d6b"
+      },
+      {
+        "spec_id": "O-RAN.WG3.E2AP",
+        "version": "04.00",
+        "sha256": "03a20214920bba7dba5d2237e976e7501d81c895afcdf3081b3a1b0067ba2a55"
+      },
+      {
+        "spec_id": "O-RAN.WG3.E2GAP",
+        "version": "04.01",
+        "sha256": "722c80f9dffb5dbd1b2239883f4c608089ea25832070b2e3290ed8a6eb53eb38"
+      },
+      {
+        "spec_id": "O-RAN.WG3.TS.E2SM-KPM",
+        "version": "08.00",
+        "sha256": "174c856f804c7af10310be03ecd9879e0c27998c26dea5282624df6fae6dc8b7"
+      }
+    ],
+    "scenario_release": null
+  },
+  "counts": {
+    "approved": 24,
+    "by_split": {
+      "dev": {
+        "spec_qa": 19
+      },
+      "test": {
+        "spec_qa": 5
+      }
+    }
+  },
+  "complete": false,
+  "incomplete": [
+    "approved rows: 24 of 30",
+    "approved RCA rows: 0 of 6",
+    "dev has no RCA rows",
+    "test has no RCA rows"
+  ]
+}

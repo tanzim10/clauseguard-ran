@@ -750,7 +750,7 @@ and saves the data head, loss plots, RF comparison and source/category errors.
 ## Task 3.5 — TimesNet (PyTorch) implementation
 
 **Date:** 2026-10-19 · [Issue #33](https://github.com/tanzim10/clauseguard-ran/issues/33)
-**PR:** TBD
+**PR:** [#48](https://github.com/tanzim10/clauseguard-ran/pull/48)
 
 **In simple words:** the TimesNet model, its training/scoring runner and a command line are
 built and tested on tiny fixtures. No real training has been run; that is done manually next.

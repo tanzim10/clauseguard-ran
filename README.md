@@ -68,6 +68,7 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | `POST /search` | Implemented — typed vector search over indexed specification chunks |
 | `POST /query` | Grounded answer with retrieved citations; abstains when evidence is empty or insufficient |
 | Experiment data | Validated release cohorts, unchanged input batches and readiness inspection; scored data still needs recording review |
+| KPI Random Forest | Implemented and fixture-tested; real runs await recording review |
 | `POST /rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
 | CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing and TelecomTS ingestion implemented; golden/pipeline commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
@@ -363,6 +364,17 @@ sizes. It does not balance labels or fit transformations. A search that cannot s
 reports the missing labels; it does not split a family to satisfy percentages or claim that all
 possible assignments were exhausted.
 
+For an exploratory detection run, `--synthetics-train` assigns every synthetic source group to
+training. This leaves category dev/test empty, so the release cannot evaluate the category model.
+It does not resolve synthetic parent recordings; recording independence remains unverified.
+
+```bash
+uv run python -m clauseguard.cli.prepare_scenarios --stage release \
+  --scenarios data/scenarios/scenarios.jsonl --evidence-dir data/scenarios/release \
+  --output-dir data/scenarios/release-synthetic-training --mode exploratory \
+  --synthetics-train --require-task detection
+```
+
 Outputs include:
 
 - `recording_evidence.csv` and `window_sources.csv`: raw matching and separate recording review.
@@ -438,6 +450,19 @@ Exit codes: `0` ready, `3` valid data but not ready, `1` invalid input.
 and any synthetic versions made from it form a **recording family**. Keep that whole family in
 one split so train and test do not share the same underlying measurements.
 
+Audit possible links between source files with a separate script:
+
+```bash
+uv run --extra baselines python scripts/audit_recording_families.py \
+  --release-dir data/scenarios/release --acquisition-dir data/telecomts \
+  --output-dir artifacts/experiments/recording-review-001
+```
+
+It checks file hashes and searches every eligible 16-row segment across the numeric channels.
+Outputs include findings, search limits and an unresolved review JSON. Two channels must match
+the same segment to support a candidate link. The script leaves the release unchanged; a missing
+match does not establish independence.
+
 Compare ways to remove overlapping windows:
 
 ```bash
@@ -460,7 +485,31 @@ uv run python -m clauseguard.cli.baseline_runs compare \
 
 Saved runs include predictions, errors, settings and data IDs. Failed or missing predictions count
 as incorrect. Comparisons require the same evaluation cases. Commands refuse to overwrite existing
-output directories. No baseline model has been trained yet.
+output directories. Real-data baseline scores remain blocked by recording review.
+
+### Random Forest
+
+Start with [the notebook](notebooks/random_forest_baseline.ipynb): data plots, a small generated-data
+training demo, then the same real-data runner used by the CLI.
+
+```bash
+uv sync --extra dev --extra baselines --extra analysis
+uv run python -m clauseguard.cli.random_forest train \
+  --release-dir data/scenarios/release --output-dir artifacts/experiments/rf-dev-001
+uv run python -m clauseguard.cli.random_forest predict \
+  --release-dir data/scenarios/release \
+  --model-run-dir artifacts/experiments/rf-dev-001/detection/selected-seed-43 \
+  --output-dir artifacts/experiments/rf-test-001
+```
+
+Training fits 224 window features and missing-value medians on train only. It selects among four
+300-tree settings on dev and saves seeds 42/43/44. Add `--training-selection PATH` to remove selected
+normal training windows; dev/test stay complete. Models, preprocessing, predictions, errors and
+timings are saved together. Real training requires a reviewed, ready release.
+
+For a provisional detection run on the exploratory synthetic-training release, add
+`--task detection --allow-exploratory` to train and `--allow-exploratory` to prediction.
+The saved runs record provisional status. Category evaluation is unavailable on that split.
 
 ### Golden specification Q&A
 

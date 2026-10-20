@@ -650,6 +650,57 @@ Files: `datasets/window_overlap.py`, `cli/audit_window_overlap.py`.
 Verification: 301 tests passed; Ruff and whitespace checks passed. RF training comes next, with
 shared modules used by both a notebook and CLI.
 
+## Task 3.3 — Random Forest implementation
+
+**Date:** 2026-10-18 · [Issue #31](https://github.com/tanzim10/clauseguard-ran/issues/31)
+
+**PR:** [#46](https://github.com/tanzim10/clauseguard-ran/pull/46).
+
+Added real-data plots and a notebook before training. Shared modules now provide 224 KPI features,
+train-only median imputation, and separate detection/category Random Forest models. The runner
+tries four 300-tree settings on dev, then saves the chosen settings for seeds 42/43/44.
+
+The notebook and CLI use the same feature/model/runner code. Checkpoints save feature order and
+medians; prediction reloads them without fitting. Runs record errors, settings, selected training
+IDs, timings and process memory. Optional normal-window reduction leaves all faults and dev/test
+cases intact. Tiny fixture runs cover both tasks; they are not TelecomTS performance results.
+
+The notebook executed all 19 cells, including generated-data training and checkpoint reload.
+Real scored training correctly remains blocked by the unresolved recording review. Verification:
+325 tests passed, targeted Ruff and whitespace checks passed. Real development scores remain outstanding.
+
+The RF CLI now has an explicit `--allow-exploratory` option when split coverage exists but recording
+independence is unresolved. It records provisional status in the run metadata. Category runs remain
+unavailable on the synthetic-training release because dev/test contain no category examples.
+
+An exploratory detection run trained on 19,173 windows and selected the unlimited-depth, 1-minimum-leaf
+model. Across three seeds, dev macro-F1 ranged from 0.414 to 0.419. On the held-out test set, macro-F1
+was 0.436 and jammer recall was 0.935, but it raised 2,135 false alarms among 6,321 normal windows
+(33.8% false-positive rate). The test has only four recording groups, so no confidence interval is
+available. Synthetic faults occur only in training, so this run does not measure synthetic-fault
+detection or category prediction. Treat all scores as provisional until recording independence is
+resolved.
+
+## Recording review audit
+
+**Date:** 2026-10-18 · [Issue #31](https://github.com/tanzim10/clauseguard-ran/issues/31)
+
+Added `scripts/audit_recording_families.py` to check acquired file hashes and scan all eligible
+16-row numeric segments across source pairs. It distinguishes two channels matching the same
+segment from weak matches at separate positions, then saves findings and unresolved review JSON.
+
+The local scan covered 33 traces, 1,139,967 raw rows and 9,919,949 eligible channel segments.
+It found no corroborated shared segments and one weak offset between normal files already in
+the same split. Nine identical-description pairs are metadata hints only. Synthetic parent IDs
+remain unknown; the release and approvals are unchanged. Six focused tests cover copied segments,
+weak matches, repetitive values, missing values, integrity checks and review output.
+Verification: 331 tests passed; targeted Ruff and whitespace checks passed.
+
+The existing release command can also assign all synthetic source groups to training for an
+exploratory detection view. It leaves category dev/test empty and recording status unresolved.
+The new release contains 19,173/6,413/6,414 train/dev/test windows; detection label coverage is
+present, while readiness stays blocked by recording review. The original release is unchanged.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

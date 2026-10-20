@@ -747,6 +747,45 @@ Verification: 353 tests passed (`make test`), including 22 new XGBoost model/run
 Targeted Ruff and whitespace checks passed. The 14-cell XGBoost notebook executed successfully
 and saves the data head, loss plots, RF comparison and source/category errors.
 
+## Task 3.6 — Initial KPI model comparison
+
+**Date:** 2026-10-20 · [Issue #34](https://github.com/tanzim10/clauseguard-ran/issues/34)
+**PR:** pending
+
+In simple words: one command now puts Random Forest, XGBoost and TimesNet side by side on the
+development data, with detection and category kept in separate tables. Each row shows the
+selected settings, the score for each of the three seeds, false alarms, missed faults, failed
+predictions, training and prediction time, peak memory and model file size. It refuses to compare
+models that were not trained and scored on exactly the same data, and it never looks at test.
+
+Technical details: `baselines/comparison.py` reads each experiment's `selection.json`, reloads
+every selected seed with `load_run` (checksum check, then rescoring from saved predictions) and
+requires the run to be a dev run whose score equals the selection record. Experiments are
+compared only when release ID, dev cohort ID, training-ID hash, evaluation status, scored cases
+and recording groups all match. Standard deviation is the population value, as in the selection
+files. `cli/compare_models.py` writes `comparison.json` and `comparison.md` to a new directory and
+refuses to overwrite. It needs no model code, so it does not depend on the TimesNet branch.
+
+Result on the full-data dev runs (exploratory release, so provisional):
+
+| Task | Random Forest | XGBoost | TimesNet |
+|---|---:|---:|---:|
+| Detection dev macro-F1 | 0.661 | 0.882 | 0.616 |
+| Category dev macro-F1 | 0.569 | 0.518 | 0.166 |
+
+TimesNet raised 407-1,094 false alarms across seeds in detection (XGBoost 26), and its category
+score is far below the others. Settings are therefore not frozen for the transformer stage yet.
+
+Not done here: batch-size-one latency (needs the TimesNet code from PR #48 and a model-loading
+timing harness), the remaining GPU budget, and the written readiness review for the transformer
+probes. Reported fit time and peak memory come from each run's own record; peak memory is a
+process-wide high-water mark and fit times came from different devices (CPU trees, MPS TimesNet),
+so they are not directly comparable.
+
+Verification: 359 tests passed (`make test`), including 6 new comparison checks that cover
+changed cohorts, test-split runs, tampered score records and corrupted runs. Ruff passes on the
+new files. Artifacts: `artifacts/experiments/task-3-6-model-comparison-2026-10-20/`.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

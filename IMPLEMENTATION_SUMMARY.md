@@ -750,7 +750,7 @@ and saves the data head, loss plots, RF comparison and source/category errors.
 ## Task 3.6 — Initial KPI model comparison
 
 **Date:** 2026-10-20 · [Issue #34](https://github.com/tanzim10/clauseguard-ran/issues/34)
-**PR:** pending
+**PR:** [#49](https://github.com/tanzim10/clauseguard-ran/pull/49)
 
 In simple words: one command now puts Random Forest, XGBoost and TimesNet side by side on the
 development data, with detection and category kept in separate tables. Each row shows the

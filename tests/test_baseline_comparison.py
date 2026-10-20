@@ -1,4 +1,5 @@
 import json
+import statistics
 
 import pytest
 
@@ -25,7 +26,8 @@ def _write_experiment(root, dataset, name, *, flips=0, split="dev", cohort_updat
     key = f"{task}_target"
     expected = {sid: dataset.splits["membership"][sid][key] for sid in cohort.scenario_ids}
     groups = {sid: dataset.splits["membership"][sid]["group_id"] for sid in cohort.scenario_ids}
-    wrong = set(list(expected)[:flips])
+    wrong = set([sid for sid, target in expected.items() if target == 0 or task == "category"]
+                [:flips])
     classes = 2 if task == "detection" else 10
     predictions = [CasePrediction(
         scenario_id=sid, task=task,
@@ -123,3 +125,59 @@ def test_cli_writes_tables_and_refuses_overwrite(dataset, tmp_path, capsys):
     assert render_markdown(saved) == markdown
     assert compare_cli(args) == 1
     assert "output exists" in capsys.readouterr().err
+
+
+def _selection_file(tmp_path, dataset, ids, *, release_id=None):
+    path = tmp_path / "selection.json"
+    path.write_text(json.dumps({"policy": "test-policy", "purpose": "audit_only",
+                                "release_id": release_id or dataset.release_id,
+                                "scenario_ids": sorted(ids)}), encoding="utf-8")
+    return path
+
+
+def test_window_selection_rescores_every_model_on_the_same_subset(dataset, tmp_path):
+    a = _write_experiment(tmp_path, dataset, "a")
+    b = _write_experiment(tmp_path, dataset, "b", flips=1)
+    cohort = experiment_cohort(dataset, split="dev", task="detection")
+    membership = dataset.splits["membership"]
+    normals = [sid for sid in cohort.scenario_ids if membership[sid]["detection_target"] == 0]
+    flipped = set(normals[:1])
+    keep = [sid for sid in cohort.scenario_ids if sid not in flipped]
+    path = _selection_file(tmp_path, dataset, keep)
+
+    full = compare_experiments({"a": a, "b": b}, "detection")
+    reduced = compare_experiments({"a": a, "b": b}, "detection", window_selection=path)
+
+    assert full["models"]["b"]["dev_macro_f1_mean"] < full["models"]["a"]["dev_macro_f1_mean"]
+    assert (reduced["models"]["b"]["dev_macro_f1_mean"]
+            == reduced["models"]["a"]["dev_macro_f1_mean"])
+    assert reduced["window_selection"]["windows"] == len(keep)
+    assert reduced["window_selection"]["policy"] == "test-policy"
+    assert sum(reduced["models"]["a"]["seeds"][0]["prediction_status_counts"].values()) == len(keep)
+
+
+def test_window_selection_must_match_release_and_keep_faults(dataset, tmp_path):
+    a = _write_experiment(tmp_path, dataset, "a")
+    b = _write_experiment(tmp_path, dataset, "b")
+    cohort = experiment_cohort(dataset, split="dev", task="detection")
+    ids = cohort.scenario_ids
+    membership = dataset.splits["membership"]
+    faults = [sid for sid in ids if membership[sid]["detection_target"] == 1]
+
+    wrong_release = _selection_file(tmp_path, dataset, ids, release_id="other")
+    with pytest.raises(ValueError, match="different release"):
+        compare_experiments({"a": a, "b": b}, "detection", window_selection=wrong_release)
+    dropping = _selection_file(tmp_path, dataset, [sid for sid in ids if sid != faults[0]])
+    with pytest.raises(ValueError, match="every fault"):
+        compare_experiments({"a": a, "b": b}, "detection", window_selection=dropping)
+
+
+def test_seed_spread_exposes_a_lucky_seed(dataset, tmp_path):
+    a = _write_experiment(tmp_path, dataset, "a")
+    b = _write_experiment(tmp_path, dataset, "b", flips=3)
+
+    model = compare_experiments({"a": a, "b": b}, "detection")["models"]["b"]
+    scores = [seed["macro_f1"] for seed in model["seeds"]]
+
+    assert model["dev_macro_f1_median"] == pytest.approx(statistics.median(scores))
+    assert model["dev_macro_f1_range"] == [min(scores), max(scores)]

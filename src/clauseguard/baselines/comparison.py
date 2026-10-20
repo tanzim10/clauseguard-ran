@@ -1,5 +1,6 @@
 """Development-only comparison of saved baseline experiments, built from saved runs alone."""
 
+import hashlib
 import json
 import statistics
 from collections.abc import Mapping
@@ -7,12 +8,41 @@ from pathlib import Path
 from typing import Any
 
 from clauseguard.baselines.artifacts import load_run
+from clauseguard.baselines.scoring import score_predictions
 
 MODEL_FILES = ("model.joblib", "model.ubj", "model.pt")
 SELECTION_TOLERANCE = 1e-9
 
 
-def _selected_runs(experiment: Path, task: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def load_window_selection(path: Path) -> dict[str, Any]:
+    """Read an audit selection of scenario IDs to rescore every model on."""
+    selection = json.loads(Path(path).read_text(encoding="utf-8"))
+    ids = selection["scenario_ids"]
+    if len(ids) != len(set(ids)):
+        raise ValueError("window selection contains duplicate IDs")
+    digest = hashlib.sha256(json.dumps(sorted(ids)).encode()).hexdigest()
+    return {"policy": selection.get("policy"), "release_id": selection["release_id"],
+            "ids": set(ids), "ids_sha256": digest}
+
+
+def _restrict_run(run: dict[str, Any], selection: dict[str, Any], task: str) -> dict[str, Any]:
+    """Rescore a saved run on the selected windows only; every fault window must stay."""
+    if run["metadata"].cohort.release_id != selection["release_id"]:
+        raise ValueError("window selection belongs to a different release")
+    keep = selection["ids"]
+    positives = [sid for sid, target in run["expected"].items() if task == "category" or target == 1]
+    if any(sid not in keep for sid in positives):
+        raise ValueError("window selection must retain every fault window")
+    expected = {sid: target for sid, target in run["expected"].items() if sid in keep}
+    groups = {sid: run["groups"][sid] for sid in expected}
+    predictions = [p for p in run["predictions"] if p.scenario_id in expected]
+    metrics = score_predictions(task, expected, groups, predictions, bootstrap_replicates=0)
+    return {**run, "expected": expected, "groups": groups, "predictions": predictions,
+            "metrics": metrics}
+
+
+def _selected_runs(experiment: Path, task: str, window_selection: dict[str, Any] | None = None,
+                   ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     selection = json.loads((experiment / "selection.json").read_text(encoding="utf-8"))
     entry = selection["tasks"].get(task)
     if entry is None:
@@ -27,6 +57,8 @@ def _selected_runs(experiment: Path, task: str) -> tuple[dict[str, Any], list[di
             raise ValueError(f"{chosen['run']} does not match its selection record")
         if abs(run["metrics"]["macro_f1"] - chosen["dev_macro_f1"]) > SELECTION_TOLERANCE:
             raise ValueError(f"{chosen['run']} saved score differs from the selection record")
+        if window_selection is not None:
+            run = _restrict_run(run, window_selection, task)
         runs.append({**run, "path": experiment / chosen["run"]})
     if not runs:
         raise ValueError(f"{experiment.name} selected no {task} runs")
@@ -44,9 +76,10 @@ def _mean(values: list[float]) -> float | None:
     return statistics.fmean(values) if values else None
 
 
-def summarize_model(experiment: Path, task: str) -> dict[str, Any]:
+def summarize_model(experiment: Path, task: str,
+                    window_selection: dict[str, Any] | None = None) -> dict[str, Any]:
     """Summarize one experiment's selected development seeds for a single task."""
-    entry, runs = _selected_runs(Path(experiment), task)
+    entry, runs = _selected_runs(Path(experiment), task, window_selection)
     scores = [run["metrics"]["macro_f1"] for run in runs]
     seeds = []
     for run in runs:
@@ -72,6 +105,8 @@ def summarize_model(experiment: Path, task: str) -> dict[str, Any]:
         "trials": len(entry["trials"]),
         "dev_macro_f1_mean": statistics.fmean(scores),
         "dev_macro_f1_std": statistics.pstdev(scores),
+        "dev_macro_f1_median": statistics.median(scores),
+        "dev_macro_f1_range": [min(scores), max(scores)],
         "seeds": seeds,
         "per_class_f1_mean": {label: statistics.fmean(run["metrics"]["per_class"][label]["f1"]
                                                       for run in runs) for label in labels},
@@ -91,11 +126,17 @@ def summarize_model(experiment: Path, task: str) -> dict[str, Any]:
     return summary
 
 
-def compare_experiments(experiments: Mapping[str, Path], task: str) -> dict[str, Any]:
-    """Compare models only when release, cohort, scored cases, and training data are identical."""
+def compare_experiments(experiments: Mapping[str, Path], task: str,
+                        window_selection: Path | None = None) -> dict[str, Any]:
+    """Compare models only when release, cohort, scored cases, and training data are identical.
+
+    With ``window_selection`` every model is rescored from its saved predictions on that subset.
+    """
     if len(experiments) < 2:
         raise ValueError("comparison requires at least two experiments")
-    summaries = {name: summarize_model(path, task) for name, path in experiments.items()}
+    selection = load_window_selection(window_selection) if window_selection else None
+    summaries = {name: summarize_model(path, task, selection)
+                 for name, path in experiments.items()}
     first_name, first = next(iter(summaries.items()))
     for name, summary in summaries.items():
         for key in ("release_id", "dev_cohort_id", "train_ids_sha256", "evaluation_status"):
@@ -103,11 +144,16 @@ def compare_experiments(experiments: Mapping[str, Path], task: str) -> dict[str,
                 raise ValueError(f"{name} differs from {first_name} in {key}")
         if summary["_identity"] != first["_identity"]:
             raise ValueError(f"{name} differs from {first_name} in scored cases or groups")
+    windows = len(first["_identity"][0])
     for summary in summaries.values():
         del summary["_identity"]
-    return {"task": task, "split": "dev", "release_id": first["release_id"],
-            "evaluation_status": first["evaluation_status"],
-            "dev_cohort_id": first["dev_cohort_id"], "models": summaries}
+    report = {"task": task, "split": "dev", "release_id": first["release_id"],
+              "evaluation_status": first["evaluation_status"],
+              "dev_cohort_id": first["dev_cohort_id"], "models": summaries}
+    if selection is not None:
+        report["window_selection"] = {"policy": selection["policy"],
+                                      "ids_sha256": selection["ids_sha256"], "windows": windows}
+    return report
 
 
 def _fmt(value: float | None, scale: float = 1.0, digits: int = 1) -> str:
@@ -122,13 +168,20 @@ def render_markdown(reports: list[dict[str, Any]]) -> str:
         identity = (f"Release `{report['release_id'][:8]}`, status `{report['evaluation_status']}`, "
                     f"dev cohort `{report['dev_cohort_id'][:8]}`.")
         lines += [f"## {task.capitalize()}", "", identity, ""]
+        if "window_selection" in report:
+            window = report["window_selection"]
+            note = (f"Rescored from saved predictions on {window['windows']} selected windows "
+                    f"(policy `{window['policy']}`, hash `{window['ids_sha256'][:8]}`).")
+            lines += [note, ""]
         extra = " | False alarms | Missed faults" if task == "detection" else ""
-        header = (f"| Model | Dev macro-F1 | Seeds | Accuracy{extra} | Failed predictions | "
+        header = (f"| Model | Dev macro-F1 | Median | Seeds | Accuracy{extra} | Failed predictions | "
                   "Fit s | Predict s | Peak RSS GB | Size MB |")
-        lines += [header, "|---|---|---|---|" + ("---|---|" if extra else "") + "---|---|---|---|---|"]
+        lines += [header,
+                  "|---|---|---|---|---|" + ("---|---|" if extra else "") + "---|---|---|---|---|"]
         for name, model in models.items():
             seeds = model["seeds"]
             cells = [name, f"{model['dev_macro_f1_mean']:.3f} ± {model['dev_macro_f1_std']:.3f}",
+                     f"{model['dev_macro_f1_median']:.3f}",
                      " / ".join(f"{s['macro_f1']:.3f}" for s in seeds),
                      " / ".join(f"{s['accuracy']:.3f}" for s in seeds)]
             if extra:

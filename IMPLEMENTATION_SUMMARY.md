@@ -776,6 +776,20 @@ Result on the full-data dev runs (exploratory release, so provisional):
 TimesNet raised 407-1,094 false alarms across seeds in detection (XGBoost 26), and its category
 score is far below the others. Settings are therefore not frozen for the transformer stage yet.
 
+Follow-up the same day: the 0.74 TimesNet figure quoted from earlier work was a different
+experiment (trained on 5,381 windows, scored on the 1,894-window reduced dev set with repeated
+normal windows removed, seeds 0.627 / 0.932 / 0.655, where 0.932 is a single lucky epoch). The
+comparison now takes `--window-selection` and rescores every model from its saved predictions on
+that same reduced set, and reports the seed median and range so an outlier is visible.
+
+| Task (reduced dev set) | Random Forest | XGBoost | TimesNet (full-trained) |
+|---|---:|---:|---:|
+| Detection macro-F1, mean (median) | 0.669 (0.672) | 0.888 (0.888) | 0.729 (0.717) |
+| Category macro-F1, mean (median) | 0.569 (0.567) | 0.518 (0.518) | 0.166 (0.153) |
+
+The category cohort is identical in both views (all 177 windows are faults). No saved TimesNet
+category run averages 0.32; the best single seed is 0.267 macro-F1 and 0.339 accuracy.
+
 Not done here: batch-size-one latency (needs the TimesNet code from PR #48 and a model-loading
 timing harness), the remaining GPU budget, and the written readiness review for the transformer
 probes. Reported fit time and peak memory come from each run's own record; peak memory is a

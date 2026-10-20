@@ -20,6 +20,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", action="append", type=_model, required=True,
                         help="NAME=EXPERIMENT_DIR containing selection.json; repeat per model")
     parser.add_argument("--task", action="append", choices=("detection", "category"))
+    parser.add_argument("--window-selection", type=Path,
+                        help="audit selection JSON; rescores every model on those windows only")
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
@@ -29,7 +31,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.output_dir.exists():
             raise FileExistsError("output exists; choose a new output directory")
         tasks = sorted(set(args.task or ("detection", "category")))
-        reports = [compare_experiments(models, task) for task in tasks]
+        reports = [compare_experiments(models, task, args.window_selection) for task in tasks]
         args.output_dir.mkdir(parents=True, exist_ok=False)
         (args.output_dir / "comparison.json").write_text(
             json.dumps(reports, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")

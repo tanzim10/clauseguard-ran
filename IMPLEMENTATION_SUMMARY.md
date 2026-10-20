@@ -614,6 +614,10 @@ incomplete.
 
 **PR:** https://github.com/tanzim10/clauseguard-ran/pull/50
 
+**In simple words:** golden questions can now describe an incident, every reviewed row is labeled dev or test, and one command checks that the golden files still match a pinned release. The release stays incomplete until six RCA scenarios are approved.
+
+**Technical details:** `RcaRow` separates measured KPI evidence, source labels, and mechanism citations. `load_rca()` does not change specification Q&A loading. `eval/release.py` pins file hashes, cited specification identities, and the scenario release, and `data/golden/rca.jsonl` is empty.
+
 ### Delivered
 
 In simple words: there is now a fixed format for questions of the form "here is an incident, what caused it,

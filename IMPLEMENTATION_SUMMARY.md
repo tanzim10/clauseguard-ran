@@ -747,6 +747,58 @@ Verification: 353 tests passed (`make test`), including 22 new XGBoost model/run
 Targeted Ruff and whitespace checks passed. The 14-cell XGBoost notebook executed successfully
 and saves the data head, loss plots, RF comparison and source/category errors.
 
+## Task 3.6 — Initial KPI model comparison
+
+**Date:** 2026-10-20 · [Issue #34](https://github.com/tanzim10/clauseguard-ran/issues/34)
+**PR:** [#49](https://github.com/tanzim10/clauseguard-ran/pull/49)
+
+In simple words: one command now puts Random Forest, XGBoost and TimesNet side by side on the
+development data, with detection and category kept in separate tables. Each row shows the
+selected settings, the score for each of the three seeds, false alarms, missed faults, failed
+predictions, training and prediction time, peak memory and model file size. It refuses to compare
+models that were not trained and scored on exactly the same data, and it never looks at test.
+
+Technical details: `baselines/comparison.py` reads each experiment's `selection.json`, reloads
+every selected seed with `load_run` (checksum check, then rescoring from saved predictions) and
+requires the run to be a dev run whose score equals the selection record. Experiments are
+compared only when release ID, dev cohort ID, training-ID hash, evaluation status, scored cases
+and recording groups all match. Standard deviation is the population value, as in the selection
+files. `cli/compare_models.py` writes `comparison.json` and `comparison.md` to a new directory and
+refuses to overwrite. It needs no model code, so it does not depend on the TimesNet branch.
+
+Result on the full-data dev runs (exploratory release, so provisional):
+
+| Task | Random Forest | XGBoost | TimesNet |
+|---|---:|---:|---:|
+| Detection dev macro-F1 | 0.661 | 0.882 | 0.616 |
+| Category dev macro-F1 | 0.569 | 0.518 | 0.166 |
+
+TimesNet raised 407-1,094 false alarms across seeds in detection (XGBoost 26), and its category
+score is far below the others. Settings are therefore not frozen for the transformer stage yet.
+
+Follow-up the same day: the 0.74 TimesNet figure quoted from earlier work was a different
+experiment (trained on 5,381 windows, scored on the 1,894-window reduced dev set with repeated
+normal windows removed, seeds 0.627 / 0.932 / 0.655, where 0.932 is a single lucky epoch). The
+comparison now takes `--window-selection` and rescores every model from its saved predictions on
+that same reduced set, and reports the seed median and range so an outlier is visible.
+
+| Task (reduced dev set) | Random Forest | XGBoost | TimesNet (full-trained) |
+|---|---:|---:|---:|
+| Detection macro-F1, mean (median) | 0.669 (0.672) | 0.888 (0.888) | 0.729 (0.717) |
+| Category macro-F1, mean (median) | 0.569 (0.567) | 0.518 (0.518) | 0.166 (0.153) |
+
+The category cohort is identical in both views (all 177 windows are faults). No saved TimesNet
+category run averages 0.32; the best single seed is 0.267 macro-F1 and 0.339 accuracy.
+
+Not done here: batch-size-one latency (needs the TimesNet code from PR #48 and a model-loading
+timing harness), the remaining GPU budget, and the written readiness review for the transformer
+probes. Reported fit time and peak memory come from each run's own record; peak memory is a
+process-wide high-water mark and fit times came from different devices (CPU trees, MPS TimesNet),
+so they are not directly comparable.
+
+Verification: 359 tests passed (`make test`), including 6 new comparison checks that cover
+changed cohorts, test-split runs, tampered score records and corrupted runs. Ruff passes on the
+new files. Artifacts: `artifacts/experiments/task-3-6-model-comparison-2026-10-20/`.
 ## Task 3.5 — TimesNet (PyTorch) implementation
 
 **Date:** 2026-10-19 · [Issue #33](https://github.com/tanzim10/clauseguard-ran/issues/33)

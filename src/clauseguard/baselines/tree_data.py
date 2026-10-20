@@ -61,4 +61,3 @@ def select_training(batch, ids):
         field: tuple(getattr(batch, field)[i] for i in indices)
         for field in ("inputs", "targets", "scenario_ids", "group_ids")
     })
-

@@ -23,7 +23,14 @@ class QueryService:
     llm_router: LLMRouter | Any
 
     def query(self, question: str, top_k: int) -> QueryResponse:
-        hits = self.search_service.search(question, top_k)
+        return self.answer(question, self.search_service.search(question, top_k))
+
+    def answer(self, question: str, hits: list[SearchHit]) -> QueryResponse:
+        """Generate a grounded answer from hits already retrieved for this question.
+
+        Lets callers that record the ranking (such as the eval runner) reuse that exact search
+        instead of searching twice.
+        """
         if not hits:
             return QueryResponse(answer="not found", citations=[])
 

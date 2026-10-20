@@ -17,6 +17,7 @@ remains outside its scope.
 - [Phase 9 — Golden Q&A Schema and Loader](#phase-9--golden-qa-schema-and-loader)
 - [Phase 10 — Reviewed Golden Q&A with Source Evidence](#phase-10--reviewed-golden-qa-with-source-evidence)
 - [Phase 11 — Golden RCA Contract and Release Manifest](#phase-11--golden-rca-contract-and-release-manifest)
+- [Phase 12 — Golden Evaluation Runner](#phase-12--golden-evaluation-runner)
 - [Task 3.1 — Validated Experiment Data](#task-31--validated-experiment-data)
 - [Adding a New Phase](#adding-a-new-phase)
 
@@ -697,6 +698,23 @@ Split rule: spec rows that cite the same specification stay together, and seeds 
   splits. No placeholder RCA rows or extra spec rows were added to fill these targets.
   The milestone stays incomplete until the six scenarios are resolved and reviewed.
 - Scenario acquisition, RCA generation, training, metrics and evaluation runs are out of scope.
+
+## Phase 12 — Golden Evaluation Runner
+
+**Focus:** Task 2.2d (sub-issue of #23): one command that runs retrieval, optionally captures grounded answers, or replays a saved run, then scores and compares runs.
+
+**Status:** Built, 2026-10-20. Final acceptance on an approved golden release still waits on the six RCA scenarios from Phase 11.
+
+**PR:** TBD
+
+**In simple words:** one command searches the golden questions, saves exactly what came back, and scores it. It can also capture grounded answers, replay a saved run offline, and compare two runs, including whether they are fair to compare.
+
+**Technical details:** `eval/metrics.py` scores clause recall, group coverage, precision with duplicate rates, and MRR under a hashed policy. `eval/runner.py` reuses `SearchService` and `QueryService.answer()` so query mode searches once. Runs write `rows.jsonl`, `metrics.json`, `run.json`, and optional `comparison.json` under `artifacts/eval/`. `cli/run_eval.py` supports `retrieval`, `query`, `replay`, and `compare`.
+
+### Out of scope and follow-ups
+
+- BM25 or hybrid retrieval, reranking, corpus acquisition, full RCA generation, training, API/MCP endpoints, and automatic semantic grading.
+- A live retrieval run against the indexed corpus is not included. Final acceptance waits for the approved golden release.
 
 ## Task 3.1 — Experiment Data
 

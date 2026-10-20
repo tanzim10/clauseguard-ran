@@ -1,0 +1,19 @@
+{
+  "run_id": "fixture-retrieval-run",
+  "label": "FIXTURE: hand-made rankings for documentation and tests, not a real retrieval run",
+  "mode": "retrieval",
+  "status": "complete",
+  "identities": {
+    "golden_release": "cc1fe5490adcfaae",
+    "split": null
+  },
+  "settings": {
+    "retrieval": {
+      "collection": "fixture"
+    }
+  },
+  "answers_captured": false,
+  "rows": {
+    "total": 24
+  }
+}

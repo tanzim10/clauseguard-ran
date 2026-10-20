@@ -71,7 +71,7 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | KPI Random Forest | Implemented; exploratory full-data results available, recording independence unresolved |
 | KPI XGBoost | CPU baseline with RF data/feature parity, development early stopping, native checkpoints, CLI and notebook |
 | `POST /rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
-| CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing, TelecomTS ingestion and `build_golden` implemented; eval/pipeline commands remain stubs |
+| CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing, TelecomTS ingestion, `build_golden` and `run_eval` implemented; pipeline commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
 | UI | Deferred (`src/ui/` placeholder only) |
 | QLoRA training | Host GPU later — not in Docker |
@@ -205,7 +205,8 @@ All non-health routes will eventually call the shared `RcaPipeline` / eval runne
 | `make parse` | Working — validates and parses acquired PDF/DOCX corpus sources |
 | `make index` | Working for parsed text; requires Qdrant and `NVIDIA_API_KEY` |
 | `make ingest-telecomts` | Pinned TelecomTS acquisition, validated scenarios and analysis CSVs |
-| `make eval` / `e2e` | Stubs |
+| `make eval` | Implemented, not yet run in Docker — golden retrieval eval (`EVAL_ARGS="query --split dev"` etc.); requires Qdrant and `NVIDIA_API_KEY`. See [Golden evaluation](#golden-evaluation) |
+| `make e2e` | Stub |
 | `make mcp` | Stub MCP profile |
 
 `make parse` validates every acquired manifest row against the source file under
@@ -571,6 +572,27 @@ uv run python -m clauseguard.cli.build_golden check --strict   # also fail while
 RCA rows are checked against the scenario release in `data/scenarios/release`
 (`--scenario-release`), which is only needed once `rca.jsonl` has rows. The release currently
 reports itself incomplete: the six RCA evaluation scenarios are not approved yet.
+
+### Golden evaluation
+
+`clauseguard.cli.run_eval` measures retrieval, and optionally grounded answers, against the golden set, saves what came back, and compares runs.
+
+```bash
+uv run python -m clauseguard.cli.run_eval retrieval [--split dev|test] [--top-k 10]
+uv run python -m clauseguard.cli.run_eval query [--split dev|test]
+uv run python -m clauseguard.cli.run_eval replay --from artifacts/eval/<run_id>
+uv run python -m clauseguard.cli.run_eval compare artifacts/eval/<new> artifacts/eval/<old>
+```
+
+`retrieval` and `query` need Qdrant and `NVIDIA_API_KEY`. `replay` and `compare` do not. `make eval` runs `retrieval`; other arguments go in `EVAL_ARGS`. Exit 0 means every row succeeded, 1 means some rows failed and the artifacts are kept, and 2 means the run could not start.
+
+Each run writes a new `artifacts/eval/<UTC>-<mode>-<id>/` directory with `rows.jsonl`, `metrics.json`, `run.json`, and `comparison.json` when `--compare-to` is set. Existing runs are not overwritten. Credentials are not written.
+
+Rankings stay in retrieval order. Scores include clause recall@k, required-group coverage@k, complete-reference match@k, precision@k with a duplicate rate, and MRR, at k = 1, 3, 5, 10. No-answer rows stay out of retrieval averages. Failed answerable rows count as 0 in the headline scores. Judged precision stays unavailable until human passage judgments exist.
+
+A comparison lists improved, worsened, mixed, and unchanged rows. Changed golden data, corpus, scenario release, split, inputs, or metric policy are non-equivalent. Changed mode or model settings stay visible as experiment variables.
+
+`tests/fixtures/eval/fixture-retrieval-run/` is a hand-made ranking over the 24 golden rows, not a live retrieval run. Replaying it reports MRR 0.417 and precision@1 0.200.
 
 ---
 

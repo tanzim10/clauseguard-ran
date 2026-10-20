@@ -4,6 +4,7 @@ import csv
 import json
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -15,6 +16,7 @@ from clauseguard.datasets.acquisition import acquire_supplements, acquire_teleco
 from clauseguard.datasets.contracts import CATEGORY_LABELS, NUMERIC_CHANNELS
 from clauseguard.datasets.evidence import build_recording_evidence
 from clauseguard.datasets.telecomts import build_scenarios, file_sha256
+from clauseguard.eval.release import ReleasePaths, build_release
 
 
 @pytest.fixture
@@ -83,3 +85,96 @@ def release_sources(tmp_path):
 def recording_evidence(release_sources):
     s = release_sources
     return build_recording_evidence(s["scenarios"], s["acquired"], s["output"], reviews=s["reviews"])
+
+
+SPECS = {"3GPP TS 28.552": "a" * 64, "3GPP TS 38.331": "b" * 64}
+
+
+def _locator(spec_id: str) -> dict:
+    return {
+        "spec_id": spec_id,
+        "version": "18.0.0",
+        "sha256": SPECS[spec_id],
+        "clause": "5.1",
+        "pdf_page": 1,
+    }
+
+
+def _write_jsonl(path: Path, rows) -> None:
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+
+@pytest.fixture
+def golden(tmp_path) -> ReleasePaths:
+    """q_001 answerable (dev), q_002 no-answer (dev), q_003 answerable and difficult (test)."""
+    root = tmp_path / "golden"
+    root.mkdir()
+    spec_rows = [
+        {
+            "id": "q_001",
+            "question": "Question one?",
+            "expected_answer": "One.",
+            "expected_citations": [{"spec_id": "3GPP TS 28.552", "section": "5.1 Title"}],
+        },
+        {
+            "id": "q_002",
+            "question": "Question two?",
+            "expected_answer": "not found",
+            "expected_citations": [],
+            "is_answerable": False,
+        },
+        {
+            "id": "q_003",
+            "question": "Question three?",
+            "expected_answer": "Three.",
+            "expected_citations": [{"spec_id": "3GPP TS 38.331", "section": "5.1 Title"}],
+        },
+    ]
+    approved = {"status": "approved", "reviewer": "Reviewer", "reviewed_on": "2026-10-16"}
+    annotations = [
+        {
+            "id": "q_001",
+            **approved,
+            "membership": "dev",
+            "families": ["direct"],
+            "evidence": [{"claim": "C.", "alternatives": [_locator("3GPP TS 28.552")]}],
+        },
+        {
+            "id": "q_002",
+            **approved,
+            "membership": "dev",
+            "families": ["no_answer"],
+            "no_answer": {"sources_checked": list(SPECS), "missing_evidence": "Nothing."},
+        },
+        {
+            "id": "q_003",
+            **approved,
+            "membership": "test",
+            "families": ["difficult"],
+            "evidence": [{"claim": "C.", "alternatives": [_locator("3GPP TS 38.331")]}],
+        },
+    ]
+    _write_jsonl(root / "spec_qa.jsonl", spec_rows)
+    _write_jsonl(root / "rca.jsonl", [])
+    _write_jsonl(root / "annotations.jsonl", annotations)
+
+    corpus = tmp_path / "manifest.csv"
+    with open(corpus, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(
+            handle, fieldnames=["spec_id", "version", "sha256", "file_format", "page_count"]
+        )
+        writer.writeheader()
+        for spec_id, sha in SPECS.items():
+            writer.writerow(
+                {
+                    "spec_id": spec_id,
+                    "version": "18.0.0",
+                    "sha256": sha,
+                    "file_format": "pdf",
+                    "page_count": "9",
+                }
+            )
+
+    paths = ReleasePaths(root, corpus, tmp_path / "scenario-release")
+    assert build_release(paths).ok
+    return paths

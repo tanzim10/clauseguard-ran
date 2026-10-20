@@ -21,7 +21,7 @@ ingest-telecomts:
 	docker compose run --rm api python -m clauseguard.cli.ingest_telecomts --revision $(TELECOMTS_REVISION)
 
 eval:
-	docker compose run --rm api python -m clauseguard.cli.run_eval
+	docker compose run --rm api python -m clauseguard.cli.run_eval $(or $(EVAL_ARGS),retrieval)
 
 e2e:
 	docker compose run --rm api python -m clauseguard.cli.run_pipeline

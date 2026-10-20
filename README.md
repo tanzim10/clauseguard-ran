@@ -71,7 +71,7 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | KPI Random Forest | Implemented; exploratory full-data results available, recording independence unresolved |
 | KPI XGBoost | CPU baseline with RF data/feature parity, development early stopping, native checkpoints, CLI and notebook |
 | `POST /rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
-| CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing and TelecomTS ingestion implemented; golden/pipeline commands remain stubs |
+| CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing, TelecomTS ingestion and `build_golden` implemented; eval/pipeline commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
 | UI | Deferred (`src/ui/` placeholder only) |
 | QLoRA training | Host GPU later — not in Docker |
@@ -552,11 +552,25 @@ The loader fails with `path:line: reason` on invalid JSON, missing or unexpected
 duplicate IDs, unknown manifest `spec_id`s, and answerability violations (answerable rows need
 citations; unanswerable rows need exactly `"not found"` and no citations). The scaffold's
 placeholder fields `expected_spec_id`, `expected_section`, `spec_refs_golden` and `scenario_id`
-are deprecated and rejected rather than converted. RCA rows are not supported yet. Loading checks
-structure and references only, not whether an answer is correct.
+are deprecated and rejected rather than converted. RCA rows live in `data/golden/rca.jsonl` and
+load with `load_rca`. Loading checks structure and references only, not whether an answer is
+correct.
 
 Reviewed evidence for each row lives in `data/golden/annotations.jsonl` (source locator, claim
-groups, review status). Load with `clauseguard.eval.annotations.load_annotations`.
+groups, review status, dev/test `membership`). Load with
+`clauseguard.eval.annotations.load_annotations`.
+
+The reviewed files are pinned as one release in `data/golden/manifest.json`:
+
+```bash
+uv run python -m clauseguard.cli.build_golden check            # validate + match the manifest
+uv run python -m clauseguard.cli.build_golden build            # rewrite the manifest after review
+uv run python -m clauseguard.cli.build_golden check --strict   # also fail while incomplete
+```
+
+RCA rows are checked against the scenario release in `data/scenarios/release`
+(`--scenario-release`), which is only needed once `rca.jsonl` has rows. The release currently
+reports itself incomplete: the six RCA evaluation scenarios are not approved yet.
 
 ---
 

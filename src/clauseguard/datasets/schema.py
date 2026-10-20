@@ -188,7 +188,7 @@ class GoldenEvalRow(BaseModel):
     """Golden specification Q&A row, matching `data/golden/spec_qa.jsonl`.
 
     Answerable rows need at least one citation. Unanswerable rows must have
-    `expected_answer == "not found"` and no citations. RCA rows are not supported yet.
+    `expected_answer == "not found"` and no citations. RCA rows use `RcaRow` instead.
     The scaffold's legacy fields (`LEGACY_GOLDEN_FIELDS`) are deprecated and rejected.
     """
 
@@ -226,4 +226,96 @@ class GoldenEvalRow(BaseModel):
                 )
             if self.expected_citations:
                 raise ValueError("unanswerable rows must not have expected citations")
+        return self
+
+
+class KpiInterval(BaseModel):
+    """A window on the scenario's own source timeline (timestamps or sample indices)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    start: NonEmptyStr
+    end: NonEmptyStr
+
+
+class KpiEvidence(BaseModel):
+    """One measured channel: its value over a baseline window versus the incident window."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    channel: NonEmptyStr
+    unit: NonEmptyStr | None = None
+    baseline: KpiInterval
+    comparison: KpiInterval
+    baseline_value: float
+    comparison_value: float
+    direction: Literal["increase", "decrease", "unchanged"]
+
+    @model_validator(mode="after")
+    def _check_direction(self) -> "KpiEvidence":
+        delta = self.comparison_value - self.baseline_value
+        observed = "increase" if delta > 0 else "decrease" if delta < 0 else "unchanged"
+        if observed != self.direction:
+            raise ValueError(
+                f"direction {self.direction!r} disagrees with measured values "
+                f"({self.baseline_value} -> {self.comparison_value})"
+            )
+        return self
+
+
+class RcaCitation(BaseModel):
+    """Expected citation for an RCA row, with the role the clause plays in the explanation.
+
+    `definition` clauses only say what a KPI measures; `mechanism` clauses describe behavior
+    that links the symptom to a cause. A definition alone cannot support a diagnosis.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    spec_id: NonEmptyStr
+    section: NonEmptyStr
+    role: Literal["definition", "mechanism"]
+    explanation: NonEmptyStr
+
+
+class RcaRow(BaseModel):
+    """Golden RCA row, matching `data/golden/rca.jsonl`.
+
+    The question describes symptoms only: it must not contain any source label value, so a
+    lexical retriever cannot match the diagnosis from the question text. Source labels are
+    recorded as claims to compare against, not as ground truth.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: NonEmptyStr
+    type: Literal["rca"] = "rca"
+    scenario_id: NonEmptyStr
+    origin: Literal["real", "synthetic"]
+    inputs: Literal["kpi_only", "multimodal"]
+    question: NonEmptyStr
+    kpi_evidence: list[KpiEvidence] = Field(min_length=1)
+    source_labels: dict[NonEmptyStr, NonEmptyStr] = Field(min_length=1)
+    expected_conclusion: NonEmptyStr
+    acceptable_conclusions: list[NonEmptyStr] = Field(default_factory=list)
+    uncertainty: NonEmptyStr
+    expected_citations: list[RcaCitation] = Field(min_length=1)
+
+    @property
+    def is_answerable(self) -> bool:
+        return True
+
+    @model_validator(mode="after")
+    def _check_contract(self) -> "RcaRow":
+        question = self.question.casefold()
+        leaked = sorted(
+            {value for value in self.source_labels.values() if value.casefold() in question}
+        )
+        if leaked:
+            raise ValueError(f"question reveals source label(s) {', '.join(map(repr, leaked))}")
+        if not any(citation.role == "mechanism" for citation in self.expected_citations):
+            raise ValueError(
+                "RCA rows need at least one mechanism citation; definitions alone cannot "
+                "support a cause"
+            )
         return self

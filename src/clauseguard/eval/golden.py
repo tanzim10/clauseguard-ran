@@ -1,4 +1,4 @@
-"""Golden dataset JSONL loading and validation (Week 5).
+"""Golden dataset JSONL loading and validation (Week 5): spec Q&A rows and RCA rows.
 
 Checks structure and references only: unique IDs, required fields, answerability rules and,
 when `known_spec_ids` is given, that every cited `spec_id` exists in the corpus manifest.
@@ -10,11 +10,14 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable
 from pathlib import Path
+from typing import TypeVar
 
 from pydantic import ValidationError
 
 from clauseguard.corpus.manifest import load_manifest
-from clauseguard.datasets.schema import GoldenEvalRow
+from clauseguard.datasets.schema import GoldenEvalRow, RcaRow
+
+RowT = TypeVar("RowT", GoldenEvalRow, RcaRow)
 
 
 class GoldenLoadError(ValueError):
@@ -40,9 +43,24 @@ def load_golden(
     Blank lines are skipped. Pass `known_spec_ids` (see `load_known_spec_ids`) to reject
     citations to specifications that are not in the manifest.
     """
+    return _load_rows(path, GoldenEvalRow, known_spec_ids)
+
+
+def load_rca(path: Path | str, known_spec_ids: Iterable[str] | None = None) -> list[RcaRow]:
+    """Load and validate a golden RCA JSONL file, raising `GoldenLoadError` on the first bad row.
+
+    Same rules as `load_golden`. Scenario references are checked at release time, against
+    issue #3's scenario release (`eval/release.py`), not here.
+    """
+    return _load_rows(path, RcaRow, known_spec_ids)
+
+
+def _load_rows(
+    path: Path | str, model: type[RowT], known_spec_ids: Iterable[str] | None
+) -> list[RowT]:
     path = Path(path)
     known = set(known_spec_ids) if known_spec_ids is not None else None
-    rows: list[GoldenEvalRow] = []
+    rows: list[RowT] = []
     first_seen: dict[str, int] = {}
 
     with open(path, encoding="utf-8") as f:
@@ -57,7 +75,7 @@ def load_golden(
                 raise GoldenLoadError(path, line_no, "each line must be a JSON object")
 
             try:
-                row = GoldenEvalRow.model_validate(raw)
+                row = model.model_validate(raw)
             except ValidationError as exc:
                 raise GoldenLoadError(path, line_no, _describe(exc)) from exc
 

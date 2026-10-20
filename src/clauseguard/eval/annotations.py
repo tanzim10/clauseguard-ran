@@ -27,10 +27,11 @@ from pydantic import (
     model_validator,
 )
 
-from clauseguard.datasets.schema import GoldenEvalRow, NonEmptyStr
+from clauseguard.datasets.schema import GoldenEvalRow, NonEmptyStr, RcaRow
 from clauseguard.eval.golden import GoldenLoadError, _describe
 
 Family = Literal["direct", "multi_clause", "difficult", "no_answer"]
+Membership = Literal["dev", "test"]
 
 # A clause number only, such as "5.1.1.3.1" or "A.1.2"; titles go in `title`.
 ClauseId = Annotated[str, StringConstraints(pattern=r"^\S+$")]
@@ -89,6 +90,8 @@ class Annotation(BaseModel):
 
     Families may overlap (a row can be both `multi_clause` and `difficult`), except
     `no_answer`, which stands alone. Rows start as `draft`; only a person sets `approved`.
+    `membership` places the row in the development or test split; it is optional on the
+    record and required for every row in a release (see `eval/release.py`).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -97,6 +100,7 @@ class Annotation(BaseModel):
     status: Literal["draft", "approved"] = "draft"
     reviewer: NonEmptyStr | None = None
     reviewed_on: date | None = None
+    membership: Membership | None = None
     families: list[Family] = Field(min_length=1)
     tags: list[NonEmptyStr] = Field(default_factory=list)
     evidence: list[EvidenceGroup] = Field(default_factory=list)
@@ -229,7 +233,7 @@ def section_clause(section: str) -> str:
 
 
 def check_against_golden(
-    annotations: Iterable[Annotation], rows: Iterable[GoldenEvalRow]
+    annotations: Iterable[Annotation], rows: Iterable[GoldenEvalRow | RcaRow]
 ) -> list[str]:
     """List every disagreement between annotations and golden rows (empty when consistent).
 

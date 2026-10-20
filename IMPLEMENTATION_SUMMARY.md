@@ -16,6 +16,7 @@ remains outside its scope.
 - [Shared Detection and Category Dataset Release](#shared-detection-and-category-dataset-release--issue-22)
 - [Phase 9 — Golden Q&A Schema and Loader](#phase-9--golden-qa-schema-and-loader)
 - [Phase 10 — Reviewed Golden Q&A with Source Evidence](#phase-10--reviewed-golden-qa-with-source-evidence)
+- [Phase 11 — Golden RCA Contract and Release Manifest](#phase-11--golden-rca-contract-and-release-manifest)
 - [Task 3.1 — Validated Experiment Data](#task-31--validated-experiment-data)
 - [Adding a New Phase](#adding-a-new-phase)
 
@@ -601,6 +602,97 @@ cited by at least one answerable row.
 
 - Schema checks cannot prove a clause says what the claim says; that remains manual review.
 - RCA cases, release membership, corpus expansion and metric calculation remain later work.
+
+## Phase 11 — Golden RCA Contract and Release Manifest
+
+**Focus:** Task 2.2c (sub-issue of #4): define golden RCA rows, give every golden row a
+development/test membership, and pin the reviewed golden files as one checkable release.
+
+**Status:** Partial, 2026-10-19. The RCA contract, membership and release manifest are done.
+Approving the six RCA evaluation scenarios is still blocked, so the release reports itself
+incomplete.
+
+**PR:** TBD
+
+### Delivered
+
+In simple words: there is now a fixed format for questions of the form "here is an incident, what caused it,
+and which spec clauses back that up". It keeps three things apart: what the KPI data measured,
+what the dataset label claims, and what a spec clause actually supports. Every golden question
+is now labelled dev or test. One command checks that the golden files are consistent and
+unchanged since the release was built. The release has 24 approved rows (19 dev, 5 test).
+It reports itself incomplete until six RCA incidents are approved.
+
+### Technical implementation
+
+- `datasets/schema.py` adds `RcaRow` (separate from `GoldenEvalRow`, `type: "rca"`):
+  - `scenario_id`, `origin` (`real`/`synthetic`), `inputs` (`kpi_only`/`multimodal`) and a
+    symptom-only `question`.
+  - `kpi_evidence`: for each channel, baseline and comparison intervals on the source timeline,
+    both measured values, and a `direction` that must agree with those values.
+  - `source_labels` (claims, not ground truth), `expected_conclusion`,
+    `acceptable_conclusions`, `uncertainty`.
+  - `expected_citations` with a `role` (`definition` or `mechanism`) and an `explanation`. At
+    least one `mechanism` citation is required, because a measurement definition cannot support a cause.
+  - The question may not contain any source label value, so it cannot reveal the diagnosis.
+- `eval/golden.py` adds `load_rca(path, known_spec_ids=None)`, which shares the row loop with
+  `load_golden`. Spec Q&A loading and its error messages are unchanged.
+- `eval/annotations.py` adds an optional `membership` (`dev`/`test`). `check_against_golden`
+  also accepts RCA rows.
+- `eval/release.py`, run with `python -m clauseguard.cli.build_golden build|check [--strict]`:
+  - Rejects missing or orphaned annotations, unapproved rows, missing membership, seed rows
+    (001–012) outside dev, IDs repeated across files, and spec rows that cite a shared
+    specification but sit in different splits.
+  - RCA rows are checked against issue #3's scenario release (`data/scenarios/release`). The release is
+    loaded through `ScenarioDataset`, so its identity, checksums and membership are validated
+    by the same code that serves the baselines. Each referenced scenario must:
+    - exist in a `scored` release;
+    - not sit in `train` or `excluded`;
+    - match the row's membership and origin;
+    - have a usable KPI window.
+
+    `multimodal` rows also need scenario text approved for the category task.
+    The release is only required once `rca.jsonl` has rows.
+  - `build` writes `data/golden/manifest.json`. It records:
+    - file hashes and row counts;
+    - the version and hash of every cited specification;
+    - the scenario `release_id` and mode;
+    - counts per split, a `release_id`, and coverage gaps.
+
+    `check` also fails if any of those no longer match the files.
+  - Fewer than 30 approved rows, fewer than 6 RCA rows, or a split without ordinary, difficult
+    or RCA rows marks the release incomplete. That exits 0 unless `--strict` is passed.
+- `data/golden/rca.jsonl` (empty) and `data/golden/manifest.json` are tracked.
+
+### Membership
+
+Split rule: spec rows that cite the same specification stay together, and seeds stay in dev.
+
+| Split | Rows |
+|---|---|
+| dev (19) | 001–015, 019, 020, 021, 024 |
+| test (5) | 016 (difficult), 017 (multi-clause), 018 and 022 (no-answer), 023 (direct) |
+
+`annotations.jsonl` differs from Phase 10 only by the added `membership` key.
+
+### Verification
+
+- `uv run pytest tests/test_golden_rca.py tests/test_golden_release.py -q`. The tests cover:
+  - RCA row validation and loading;
+  - every release rejection above;
+  - a check against a real scenario release built offline from the shared fixtures, plus a
+    tampered-release case;
+  - manifest reproducibility and staleness, and CLI exit codes;
+  - a check that the repository's golden files match their manifest.
+- `tests/test_golden_loader.py` and `tests/test_golden_annotations.py` are unchanged and pass.
+- `make test` passes, and Ruff passes on the changed files.
+
+### Out of scope and follow-ups
+
+- **Blocked:** approving six eligible RCA incidents, reaching 30 approved rows, and RCA rows in both
+  splits. No placeholder RCA rows or extra spec rows were added to fill these targets.
+  The milestone stays incomplete until the six scenarios are resolved and reviewed.
+- Scenario acquisition, RCA generation, training, metrics and evaluation runs are out of scope.
 
 ## Task 3.1 — Experiment Data
 

@@ -28,6 +28,9 @@ baselines = [
   "joblib>=1.4.0",
   "xgboost>=3.0,<4",
 ]
+timesnet = [
+  "torch>=2.4,<3",
+]
 analysis = [
   "pandas>=2.2.0",
   "matplotlib>=3.9.0",

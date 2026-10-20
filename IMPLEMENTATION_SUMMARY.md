@@ -747,6 +747,56 @@ Verification: 353 tests passed (`make test`), including 22 new XGBoost model/run
 Targeted Ruff and whitespace checks passed. The 14-cell XGBoost notebook executed successfully
 and saves the data head, loss plots, RF comparison and source/category errors.
 
+## Task 3.5 — TimesNet (PyTorch) implementation
+
+**Date:** 2026-10-19 · [Issue #33](https://github.com/tanzim10/clauseguard-ran/issues/33)
+**PR:** TBD
+
+**In simple words:** the TimesNet model, its training/scoring runner and a command line are
+built and tested on tiny fixtures. No real training has been run; that is done manually next.
+
+**Technical details:**
+- `kpi/timesnet.py` adapts the classification path of thuml/Time-Series-Library at
+  `4e938a17` (MIT, notice kept). Upstream's runner and loader are not used because they pick
+  models on test and standardize each split separately. Parameters: 698,690 (detection),
+  731,466 (category).
+- `WindowScaler` fits medians, means and population SDs on train only; windows are
+  `(128, 16)` in `NUMERIC_CHANNELS` order and the padding mask is all ones.
+- Training uses balanced `N/(K·count)` weights (weighted-mean reduction), RAdam, gradient
+  clip 4.0, batch 32, and stops on unweighted dev cross-entropy (patience 10, cap 100). The
+  four-configuration grid is selected by dev macro-F1 at the loss-best epoch.
+- Prediction runs in cohort order at batch size 32, recorded in metadata, because periods
+  are chosen per batch. Each run reports batch-1 vs batch-32 agreement on 512 dev windows.
+- `baselines/timesnet.py` checks release, training IDs, dev cohort and dev labels against the
+  XGBoost seed-42 run and never loads test during training. Weights are saved as
+  `model.pt` (`weights_only` reload, SHA-256). Runs stay `provisional_exploratory`.
+- `cli/timesnet.py` adds `train` (`--max-epochs`, `--patience`, `--device`,
+  `--skip-seed-repeats`) and `predict`. torch is an optional `timesnet` extra.
+- Only CPU runs are bit-reproducible; MPS is recorded as non-deterministic.
+- `tests/conftest.py` sets `OMP_NUM_THREADS=1` because torch and XGBoost OpenMP runtimes
+  deadlock together on macOS.
+- Measured on an M3 Pro: about 45 s per detection epoch on MPS, about 5 min on CPU
+  (extrapolated); about 3 s per category epoch on MPS.
+
+**Follow-up (2026-10-20): training diagnosis and switches.** The first capped runs reached
+only 0.48–0.58 dev macro-F1 for detection and chance for category. A root-cause check found
+that RSRP/UL_SNR levels act as a recording-location shortcut: one normal dev recording
+(`d0fec5`, 41% of reduced dev) is classified correctly only 58% of the time, and
+re-centring just those two channels fixes it (0.58 → 1.00). The same channels also carry the
+real jamming signal (YouTube jammer 0.67 → 0.03 when re-centred), so per-window
+normalization (`--instance-norm`) fixes the normal recording (dev macro-F1 0.67 → 0.71, three
+seeds) but loses the jammer. XGBoost scores 0.888 on the same reduced dev windows. Category
+memorizes (a boosted-tree model reaches 0.459 dev macro-F1 where TimesNet gets 0.165).
+Opt-in switches, all off by default so earlier runs stay reproducible:
+- `--window-selection`: apply an audited window selection to train, dev and test.
+- `--recipe v2`: prior-corrected stopping, cosine LR decay, 3 inception kernels.
+- `--head pooled`: average over time before the classifier (about 4,000 fewer weights per class).
+- `--recording-weights`: every recording counts equally within its class.
+- `--instance-norm`: per-window standardization.
+Per-recording dev accuracy is logged every epoch. Results remain exploratory.
+
+**Verification:** 24 TimesNet tests; full suite 377 passed; targeted Ruff and whitespace checks pass.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

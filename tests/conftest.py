@@ -2,9 +2,14 @@
 
 import csv
 import json
+import os
 from datetime import datetime, timedelta
 
 import pytest
+
+# torch and xgboost each bundle an OpenMP runtime; with threads enabled, building a torch
+# model in a process that already trained XGBoost deadlocks on macOS. Set before either loads.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 from clauseguard.datasets.acquisition import acquire_supplements, acquire_telecomts
 from clauseguard.datasets.contracts import CATEGORY_LABELS, NUMERIC_CHANNELS

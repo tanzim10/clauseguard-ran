@@ -119,13 +119,13 @@ def render_markdown(reports: list[dict[str, Any]]) -> str:
     lines = ["# KPI model comparison (development split only)", ""]
     for report in reports:
         task, models = report["task"], report["models"]
-        lines += [f"## {task.capitalize()}", "",
-                  f"Release `{report['release_id'][:8]}`, status `{report['evaluation_status']}`, "
-                  f"dev cohort `{report['dev_cohort_id'][:8]}`.", ""]
+        identity = (f"Release `{report['release_id'][:8]}`, status `{report['evaluation_status']}`, "
+                    f"dev cohort `{report['dev_cohort_id'][:8]}`.")
+        lines += [f"## {task.capitalize()}", "", identity, ""]
         extra = " | False alarms | Missed faults" if task == "detection" else ""
-        lines += [f"| Model | Dev macro-F1 | Seeds | Accuracy{extra} | Failed predictions | "
-                  "Fit s | Predict s | Peak RSS GB | Size MB |",
-                  "|---|---|---|---|" + ("---|---|" if extra else "") + "---|---|---|---|---|"]
+        header = (f"| Model | Dev macro-F1 | Seeds | Accuracy{extra} | Failed predictions | "
+                  "Fit s | Predict s | Peak RSS GB | Size MB |")
+        lines += [header, "|---|---|---|---|" + ("---|---|" if extra else "") + "---|---|---|---|---|"]
         for name, model in models.items():
             seeds = model["seeds"]
             cells = [name, f"{model['dev_macro_f1_mean']:.3f} ± {model['dev_macro_f1_std']:.3f}",

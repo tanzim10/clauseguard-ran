@@ -654,6 +654,8 @@ shared modules used by both a notebook and CLI.
 
 **Date:** 2026-10-18 · [Issue #31](https://github.com/tanzim10/clauseguard-ran/issues/31)
 
+**PR:** [#46](https://github.com/tanzim10/clauseguard-ran/pull/46).
+
 Added real-data plots and a notebook before training. Shared modules now provide 224 KPI features,
 train-only median imputation, and separate detection/category Random Forest models. The runner
 tries four 300-tree settings on dev, then saves the chosen settings for seeds 42/43/44.

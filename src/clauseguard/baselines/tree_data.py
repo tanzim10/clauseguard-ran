@@ -62,4 +62,3 @@ def select_training(batch, ids):
         for field in ("inputs", "targets", "scenario_ids", "group_ids")
     })
 
-

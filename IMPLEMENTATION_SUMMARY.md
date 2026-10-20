@@ -704,6 +704,7 @@ present, while readiness stays blocked by recording review. The original release
 ## Task 3.4 — XGBoost baseline
 
 **Date:** 2026-10-19 · [Issue #32](https://github.com/tanzim10/clauseguard-ran/issues/32)
+**PR:** [#47](https://github.com/tanzim10/clauseguard-ran/pull/47)
 
 Added CPU XGBoost for detection and all ten fault categories. The runner verifies its training
 selection, development labels, 224 feature columns, fitted medians and dense feature matrices

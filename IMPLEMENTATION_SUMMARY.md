@@ -701,6 +701,52 @@ exploratory detection view. It leaves category dev/test empty and recording stat
 The new release contains 19,173/6,413/6,414 train/dev/test windows; detection label coverage is
 present, while readiness stays blocked by recording review. The original release is unchanged.
 
+## Task 3.4 — XGBoost baseline
+
+**Date:** 2026-10-19 · [Issue #32](https://github.com/tanzim10/clauseguard-ran/issues/32)
+**PR:** [#47](https://github.com/tanzim10/clauseguard-ran/pull/47)
+
+Added CPU XGBoost for detection and all ten fault categories. The runner verifies its training
+selection, development labels, 224 feature columns, fitted medians and dense feature matrices
+against an existing Random Forest run. Both tree runners now share cohort-loading and training
+selection helpers. The existing RF notebook work remains separate.
+
+Training uses exact balanced weights `N / (K * class_count)` from training labels, with unweighted
+development logloss/mlogloss for early stopping (30-round patience, at most 500 rounds). Four
+depth/child-weight settings compete on dev macro-F1 at their loss-best checkpoints. The winner
+is repeated with seeds 42/43/44; zero seed variation is accepted with full row/column sampling.
+
+Native UBJSON checkpoints save selected rounds and feature names. Reload validates the checksum,
+objective, classes and preprocessing, and preserves one-thread CPU inference. Runs save loss
+histories, selected iterations, errors, software versions and resource measurements. CLI and
+`notebooks/xgboost_baseline.ipynb` call the same modules. XGBoost 3.2.0 is locked as an optional
+baseline dependency. Exploratory runs retain their status in the metadata.
+
+Resource interpretation: XGBoost's feature-preparation time includes train and dev transformations;
+RF's preparation field covers train only. Prediction timers include transformation for both.
+Peak RSS is a process-wide high-water mark, including earlier fits and loaded reference models.
+These fields are not isolated per-model memory or directly comparable feature-only timings.
+
+The full-data run used the same 19,089 detection and 563 category training windows as RF. Both
+tasks selected depth 6 / child weight 5, retaining 127 and 271 rounds respectively. All three
+seeds produced identical development scores.
+
+| Task | RF dev macro-F1 (mean) | XGBoost dev macro-F1 (mean) | RF test macro-F1 | XGBoost test macro-F1 |
+|---|---:|---:|---:|---:|
+| Detection | 0.661 | 0.882 | 0.663 | 0.925 |
+| Category | 0.569 | 0.518 | 0.224 | 0.352 |
+
+The seed-42 detection test caught 240/309 faults, with 69 misses and 11 false alarms, versus RF's
+65/309 caught, 244 misses and one false alarm. XGBoost caught 90/93 jammer windows and 150/216
+synthetic faults. Category test accuracy was 49.5%, versus RF's 31.0%. Native reload reproduced
+every selected-model dev prediction for both tasks. Settings were chosen on dev; current test
+results remain exploratory because recording independence is unresolved and test has already
+been inspected in earlier work. Artifacts: `artifacts/experiments/xgboost-full-data-2026-10-19/`.
+
+Verification: 353 tests passed (`make test`), including 22 new XGBoost model/runner checks.
+Targeted Ruff and whitespace checks passed. The 14-cell XGBoost notebook executed successfully
+and saves the data head, loss plots, RF comparison and source/category errors.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

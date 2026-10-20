@@ -68,7 +68,8 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | `POST /search` | Implemented — typed vector search over indexed specification chunks |
 | `POST /query` | Grounded answer with retrieved citations; abstains when evidence is empty or insufficient |
 | Experiment data | Validated release cohorts, unchanged input batches and readiness inspection; scored data still needs recording review |
-| KPI Random Forest | Implemented and fixture-tested; real runs await recording review |
+| KPI Random Forest | Implemented; exploratory full-data results available, recording independence unresolved |
+| KPI XGBoost | CPU baseline with RF data/feature parity, development early stopping, native checkpoints, CLI and notebook |
 | `POST /rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
 | CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing and TelecomTS ingestion implemented; golden/pipeline commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
@@ -510,6 +511,27 @@ timings are saved together. Real training requires a reviewed, ready release.
 For a provisional detection run on the exploratory synthetic-training release, add
 `--task detection --allow-exploratory` to train and `--allow-exploratory` to prediction.
 The saved runs record provisional status. Category evaluation is unavailable on that split.
+
+### XGBoost baseline
+
+Install with `uv sync --extra dev --extra baselines`. The runner requires a saved RF experiment
+and verifies the same training/dev IDs, labels, medians, feature order and dense feature matrices.
+It fits four CPU histogram settings using balanced training weights `N / (K * class_count)`.
+Unweighted dev log loss selects the boosting iteration; dev macro-F1 selects the configuration.
+The winner is repeated with seeds 42/43/44. Native UBJSON models reload without fitting preprocessing.
+
+```bash
+uv run python -m clauseguard.cli.xgboost train --task both \
+  --release-dir data/scenarios/release --allow-exploratory \
+  --rf-reference artifacts/experiments/rf-all-data-provisional-2026-10-19 \
+  --output-dir artifacts/experiments/xgboost-new-run
+uv run python -m clauseguard.cli.xgboost predict \
+  --release-dir data/scenarios/release --allow-exploratory \
+  --model-run-dir PATH_TO_SELECTED_RUN --output-dir artifacts/experiments/xgboost-new-test
+```
+
+The [XGBoost notebook](notebooks/xgboost_baseline.ipynb) shows the data head, loss histories,
+RF comparison and errors by fault source. Exploratory runs are labeled in their metadata.
 
 ### Golden specification Q&A
 

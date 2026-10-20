@@ -612,7 +612,7 @@ development/test membership, and pin the reviewed golden files as one checkable 
 Approving the six RCA evaluation scenarios is still blocked, so the release reports itself
 incomplete.
 
-**PR:** TBD
+**PR:** https://github.com/tanzim10/clauseguard-ran/pull/50
 
 ### Delivered
 

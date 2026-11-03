@@ -966,6 +966,8 @@ Per-recording dev accuracy is logged every epoch. Results remain exploratory.
 
 ## Task 3.9 — Frozen MantisV2 baseline — 2026-10-28
 
+**PR:** [#64](https://github.com/tanzim10/clauseguard-ran/pull/64)
+
 ### Delivered
 
 The baseline now uses a frozen MantisV2 encoder for TelecomTS detection and category prediction.

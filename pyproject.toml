@@ -31,6 +31,9 @@ baselines = [
 timesnet = [
   "torch>=2.4,<3",
 ]
+mantis = [
+  "mantis-tsfm @ git+https://github.com/vfeofanov/mantis.git@23ecfe493830db177546ef159947de7d79a573bd",
+]
 analysis = [
   "pandas>=2.2.0",
   "matplotlib>=3.9.0",

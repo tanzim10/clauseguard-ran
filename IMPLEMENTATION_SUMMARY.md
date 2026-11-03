@@ -19,6 +19,7 @@ remains outside its scope.
 - [Phase 11 — Golden RCA Contract and Release Manifest](#phase-11--golden-rca-contract-and-release-manifest)
 - [Phase 12 — Golden Evaluation Runner](#phase-12--golden-evaluation-runner)
 - [Task 3.1 — Validated Experiment Data](#task-31--validated-experiment-data)
+- [Task 3.9 — Frozen MantisV2 Baseline](#task-39--frozen-mantisv2-baseline--2026-10-28)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -962,6 +963,55 @@ Opt-in switches, all off by default so earlier runs stay reproducible:
 Per-recording dev accuracy is logged every epoch. Results remain exploratory.
 
 **Verification:** 24 TimesNet tests; full suite 377 passed; targeted Ruff and whitespace checks pass.
+
+## Task 3.9 — Frozen MantisV2 baseline — 2026-10-28
+
+### Delivered
+
+The baseline now uses a frozen MantisV2 encoder for TelecomTS detection and category prediction.
+It compares embeddings alone with embeddings plus 32 channel statistics. The runner checks both
+feature sets against saved RF and XGBoost runs on the same release, windows and labels.
+
+The full development run selected embeddings for detection and embeddings plus statistics for
+categories. Detection macro-F1 was 0.766. Category macro-F1 was 0.351. These results are
+provisional because the release still has unresolved recording reviews. No test scores were run.
+
+### Technical implementation
+
+- Pinned `mantis-tsfm` 1.1.0 to upstream commit
+  `23ecfe493830db177546ef159947de7d79a573bd`.
+- Pinned `paris-noah/MantisV2` revision
+  `99fe0f548960e272fbfa4b82fd9b5b5956779dfd` and verified its weight checksum before loading.
+- Kept 128 measurements and 16 ordered channels. The encoder uses 32 patches and returns 512
+  features per channel, for 8,192 total. The second input adds 32 imputed-channel statistics.
+- Fit missing-value medians and feature scaling on train only. Fit balanced logistic heads with
+  exact `N / (K * class_count)` weights. Select each head by full-dev macro-F1.
+- Saved both heads, predictions, settings, errors and feature caches. Cache keys include checkpoint,
+  release, split, cohort, input and preprocessing identities. Cache files have checksums.
+- Added the shared train/replay CLI and a notebook with data plots, comparisons and errors by origin.
+  Cached dev replay does not need to load the encoder again.
+
+### Development results
+
+| Task | Model | Macro-F1 | Accuracy | Fault recall | False alarms | Missed faults |
+|---|---|---:|---:|---:|---:|---:|
+| Detection | MantisV2 | 0.766 | 0.963 | 0.561 | 128 | 118 |
+| Detection | Random Forest | 0.663 | 0.958 | 0.275 | 83 | 195 |
+| Detection | XGBoost | 0.882 | 0.983 | 0.691 | 26 | 83 |
+
+MantisV2 category accuracy was 0.429. RF reached 0.672 and XGBoost reached 0.571.
+The category dev set has 177 windows and only two recording groups. Group confidence intervals
+are unavailable. MantisV2 did not beat either tree model on this task.
+
+The CPU run encoded the detection train and dev sets in 189 seconds. The category sets took
+5.5 seconds. Peak process memory was 3.3 GB. The feature cache used 869 MB.
+
+### Verification
+
+- Fifteen focused Mantis tests passed, including cache checks, checkpoint validation and replay.
+- Ruff passed for the new Python files. The notebook ran all six code cells with cached features.
+- The run used release `f3bd4d46bb04363adbecd0e3106767f179c560815b09fdf6309aaf013fc0b784`.
+  Its status remains provisional. No test predictions were generated.
 
 ## Adding a New Phase
 

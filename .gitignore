@@ -48,6 +48,7 @@ artifacts/*
 artifacts/telecomts_eda/**
 artifacts/telecomts_release_eda/**
 artifacts/experiments/**
+artifacts/cache/**
 artifacts/eval/*/
 models/*
 !models/.gitkeep

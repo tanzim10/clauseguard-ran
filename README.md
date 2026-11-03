@@ -70,6 +70,7 @@ This repository is a **scaffold**: package layout, Docker Compose (Qdrant + API)
 | Experiment data | Validated release cohorts, unchanged input batches and readiness inspection; scored data still needs recording review |
 | KPI Random Forest | Implemented; exploratory full-data results available, recording independence unresolved |
 | KPI XGBoost | CPU baseline with RF data/feature parity, development early stopping, native checkpoints, CLI and notebook |
+| KPI MantisV2 | Frozen encoder with detection and category heads; exploratory results remain provisional |
 | `POST /rca`, `/evaluate` | Stubs (`501` / `not_implemented`) |
 | CLI (`parse_corpus`, `index_corpus`, …) | Corpus parsing/indexing, TelecomTS ingestion, `build_golden` and `run_eval` implemented; pipeline commands remain stubs |
 | MCP tools | Stub (lists planned tool names) |
@@ -533,6 +534,33 @@ uv run python -m clauseguard.cli.xgboost predict \
 
 The [XGBoost notebook](notebooks/xgboost_baseline.ipynb) shows the data head, loss histories,
 RF comparison and errors by fault source. Exploratory runs are labeled in their metadata.
+
+### MantisV2 baseline
+
+Install the pinned Mantis code and the notebook tools:
+
+```bash
+uv sync --extra dev --extra baselines --extra mantis --extra analysis
+```
+
+The runner checks the release, split IDs and labels against saved RF and XGBoost runs. It loads
+the verified MantisV2 checkpoint, freezes its weights and processes all 16 channels in the saved
+order. Each channel produces 512 values. The runner compares those embeddings with embeddings
+plus 32 channel statistics. It fits balanced logistic heads on train and selects each task on dev.
+It does not use test data for selection.
+
+```bash
+uv run python -m clauseguard.cli.mantis train --task both \
+  --release-dir data/scenarios/release --allow-exploratory \
+  --rf-reference artifacts/experiments/rf-all-data-provisional-2026-10-19 \
+  --xgboost-reference artifacts/experiments/xgboost-full-data-2026-10-19 \
+  --output-dir artifacts/experiments/mantis-new-run
+```
+
+The [Mantis notebook](notebooks/mantis_baseline.ipynb) shows the input data, KPI plots,
+development comparisons and errors by fault origin. The current release has unresolved recording
+reviews, so exploratory results remain provisional. Category results are available only when the
+release has category coverage in train and dev.
 
 ### Golden specification Q&A
 

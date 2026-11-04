@@ -1,0 +1,50 @@
+{
+  "contract_version": "rca-v1",
+  "example_status": "illustrative_pending_human_review",
+  "inference_input": {
+    "source": {
+      "dataset": "TelecomTS",
+      "revision": "1b3a88a440f4922edfcd1e230e42c003c0e13bdf",
+      "scenario_id": "telecomts-0055b5f1bf7823e310d314ab1bead01f3ed92a126f5746850eb8582d124080d6",
+      "source_sha256": "ef9db761f22c2f8d67a4ddf7f2dfef2b5fc2c13ac1d0968b79f23447f8cf91a8",
+      "recording_family_status": "unresolved"
+    },
+    "detector_prediction": {
+      "task": "category",
+      "predicted_label_id": 2,
+      "predicted_label": "Co-Channel Interference (Severe)",
+      "label_mapping_version": "1",
+      "confidence": null,
+      "evaluation_status": "provisional_exploratory"
+    },
+    "modalities": {
+      "kpi": "included",
+      "text": "missing",
+      "specification": "omitted_by_example"
+    },
+    "kpi_evidence": [
+      {"evidence_id": "K1", "channel": "DL_BLER", "statistic": "mean", "value": 0.002752169907424376, "unit": null, "valid_count": 128, "sample_count": 128, "baseline": null},
+      {"evidence_id": "K2", "channel": "UL_BLER", "statistic": "mean", "value": 0.09287847466127934, "unit": null, "valid_count": 128, "sample_count": 128, "baseline": null},
+      {"evidence_id": "K3", "channel": "UL_SNR", "statistic": "mean", "value": 16.836269818511063, "unit": null, "valid_count": 128, "sample_count": 128, "baseline": null},
+      {"evidence_id": "K4", "channel": "RX_Bytes", "statistic": "mean", "value": 673.28125, "unit": null, "valid_count": 128, "sample_count": 128, "baseline": null}
+    ],
+    "text_evidence": [],
+    "specification_evidence": [],
+    "retrieval_status": "not_run"
+  },
+  "expected_output_for_injected_empty_retrieval": {
+    "status": "abstained",
+    "final_fault_categories": [],
+    "claims": [],
+    "uncertainty_reasons": ["no_spec_evidence"],
+    "abstention_reason": "no_spec_evidence",
+    "explanation": "not found"
+  },
+  "review_record": {
+    "status": "pending",
+    "reviewer": null,
+    "reviewed_at": null,
+    "golden_eligible": false,
+    "reason": "Recording family is unresolved; retrieval did not run; no RCA reference was reviewed."
+  }
+}

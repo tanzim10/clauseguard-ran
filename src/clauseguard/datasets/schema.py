@@ -278,6 +278,16 @@ class RcaCitation(BaseModel):
     explanation: NonEmptyStr
 
 
+class RcaCause(BaseModel):
+    """One independently scored cause in an RCA reference."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: NonEmptyStr
+    conclusion: NonEmptyStr
+    claim_ids: list[NonEmptyStr] = Field(min_length=1)
+
+
 class RcaRow(BaseModel):
     """Golden RCA row, matching `data/golden/rca.jsonl`.
 
@@ -296,8 +306,9 @@ class RcaRow(BaseModel):
     question: NonEmptyStr
     kpi_evidence: list[KpiEvidence] = Field(min_length=1)
     source_labels: dict[NonEmptyStr, NonEmptyStr] = Field(min_length=1)
-    expected_conclusion: NonEmptyStr
+    expected_conclusion: NonEmptyStr | None = None
     acceptable_conclusions: list[NonEmptyStr] = Field(default_factory=list)
+    expected_causes: list[RcaCause] = Field(default_factory=list)
     uncertainty: NonEmptyStr
     expected_citations: list[RcaCitation] = Field(min_length=1)
 
@@ -318,4 +329,8 @@ class RcaRow(BaseModel):
                 "RCA rows need at least one mechanism citation; definitions alone cannot "
                 "support a cause"
             )
+        if not self.expected_causes and self.expected_conclusion is None:
+            raise ValueError("RCA rows need expected_causes or expected_conclusion")
+        if len({cause.category for cause in self.expected_causes}) != len(self.expected_causes):
+            raise ValueError("expected cause categories must be unique")
         return self

@@ -102,6 +102,26 @@ def test_rca_row_rejects_unknown_fields():
         RcaRow.model_validate(_rca_row(fault_label="congestion"))
 
 
+def test_rca_row_supports_multiple_expected_causes():
+    row = RcaRow.model_validate(
+        _rca_row(
+            expected_conclusion=None,
+            expected_causes=[
+                {"category": "congestion", "conclusion": "Cell congestion.", "claim_ids": ["C1"]},
+                {"category": "interference", "conclusion": "Radio interference.", "claim_ids": ["C2"]},
+            ],
+        )
+    )
+
+    assert [cause.category for cause in row.expected_causes] == ["congestion", "interference"]
+
+
+def test_rca_row_rejects_duplicate_expected_causes():
+    cause = {"category": "congestion", "conclusion": "Cell congestion.", "claim_ids": ["C1"]}
+    with pytest.raises(ValidationError, match="categories must be unique"):
+        RcaRow.model_validate(_rca_row(expected_conclusion=None, expected_causes=[cause, cause]))
+
+
 def test_load_rca_reads_rows_and_checks_spec_ids(tmp_path):
     path = _write_jsonl(tmp_path / "rca.jsonl", [_rca_row(), _rca_row(id="rca_002")])
 

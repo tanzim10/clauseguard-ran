@@ -20,6 +20,7 @@ remains outside its scope.
 - [Phase 12 — Golden Evaluation Runner](#phase-12--golden-evaluation-runner)
 - [Task 3.1 — Validated Experiment Data](#task-31--validated-experiment-data)
 - [Task 3.9 — Frozen MantisV2 Baseline](#task-39--frozen-mantisv2-baseline--2026-10-28)
+- [Task 4.1 — RCA input and output contract](#task-41--rca-input-and-output-contract--2026-11-03)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -975,6 +976,24 @@ feature sets against saved RF and XGBoost runs on the same release, windows and 
 The full development run selected embeddings for detection and embeddings plus statistics for
 categories. Detection macro-F1 was 0.766. Category macro-F1 was 0.351. These results are
 provisional because the release still has unresolved recording reviews. No test scores were run.
+
+## Task 4.1 — RCA input and output contract — 2026-11-03
+
+### Delivered
+
+Defined versioned records for RCA requests, evidence packets, model outputs, server responses, and evaluation references. The contract keeps detector predictions separate from final causes and keeps evaluation labels outside inference inputs.
+
+### Technical implementation
+
+- Added strict request and output schemas with bounded retrieval, evidence-linked claims, single or multiple causes, and explicit abstention rules.
+- Added typed source, detector, KPI, text, specification, packet, and server response records, plus checks that resolve claim citations against the exact packet.
+- Added the five-dataset source matrix, field rules, experiment projections, failure states, and all 16 acceptance checks in `data/golden/rca-contract.md`.
+- Added an exploratory source example with its injected empty-retrieval condition and evidence limits. Recorded the owner's approval of the contract example only; it is not a golden RCA case.
+
+### Verification
+
+- Full test suite: 515 passed.
+- Ruff and `git diff --check` passed.
 
 ### Technical implementation
 

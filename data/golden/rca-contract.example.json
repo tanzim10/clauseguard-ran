@@ -1,6 +1,6 @@
 {
   "contract_version": "rca-v1",
-  "example_status": "illustrative_pending_human_review",
+  "example_status": "human_reviewed_contract_example",
   "inference_input": {
     "source": {
       "dataset": "TelecomTS",
@@ -41,10 +41,11 @@
     "explanation": "not found"
   },
   "review_record": {
-    "status": "pending",
-    "reviewer": null,
-    "reviewed_at": null,
+    "status": "approved_contract_example",
+    "reviewer": "project owner",
+    "reviewed_at": "2026-11-03",
     "golden_eligible": false,
-    "reason": "Recording family is unresolved; retrieval did not run; no RCA reference was reviewed."
+    "scope": "The input and output contract example only.",
+    "reason": "The contract example was reviewed and accepted. The case remains ineligible as a golden RCA row because its recording family is unresolved, retrieval did not run, and no RCA reference was reviewed."
   }
 }

@@ -117,3 +117,33 @@ DATASET_SOURCE_RULES = {
     "TeleLogs": ("text_settings_measurements", "cause_labels", "source_targets", "access_and_taxonomy_review"),
     "5G core faults": ("text", "troubleshooting_response", "source_targets", "accuracy_and_reuse_review"),
 }
+
+
+def validate_output_for_packet(output: RcaModelOutput, packet: EvidencePacket) -> None:
+    """Check claim IDs and claim types against the exact evidence packet."""
+    evidence_by_id = {
+        item.evidence_id: item
+        for item in [
+            *packet.kpi_evidence,
+            *packet.text_evidence,
+            *packet.specification_evidence,
+        ]
+    }
+    for claim in output.claims:
+        missing = set(claim.evidence_ids) - evidence_by_id.keys()
+        if missing:
+            raise ValueError(f"claim {claim.claim_id!r} cites unknown evidence IDs: {sorted(missing)}")
+        cited = [evidence_by_id[evidence_id] for evidence_id in claim.evidence_ids]
+        if claim.claim_type == "observation" and not all(
+            isinstance(item, (KpiStatisticEvidence, TextEvidence)) for item in cited
+        ):
+            raise ValueError("observation claims must cite KPI or text evidence")
+        if claim.claim_type == "mechanism" and not all(
+            isinstance(item, SpecificationEvidence) for item in cited
+        ):
+            raise ValueError("mechanism claims must cite specification evidence")
+        if claim.claim_type == "diagnostic_inference" and not (
+            any(isinstance(item, (KpiStatisticEvidence, TextEvidence)) for item in cited)
+            and any(isinstance(item, SpecificationEvidence) for item in cited)
+        ):
+            raise ValueError("diagnostic claims must cite incident and specification evidence")

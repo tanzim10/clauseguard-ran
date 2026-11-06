@@ -1,0 +1,92 @@
+{
+ "id": "rca_003",
+ "provider": "openrouter",
+ "model": "openai/gpt-oss-120b",
+ "prompt_sha256": "d14da92211e391d311083f41cea093596f55682e829784f34113581b408c2592",
+ "row_sha256": "6964e9a00cada3816ebb31922c52da93dbd6649a03e7f814d735dc4294d7b07f",
+ "served_model": "openai/gpt-oss-120b",
+ "usage": {
+  "completion_tokens": 1819,
+  "prompt_tokens": 5472,
+  "total_tokens": 7291,
+  "completion_tokens_details": {
+   "accepted_prediction_tokens": null,
+   "audio_tokens": 0,
+   "reasoning_tokens": 1101,
+   "rejected_prediction_tokens": null,
+   "text_tokens": null,
+   "image_tokens": 0
+  },
+  "prompt_tokens_details": {
+   "audio_tokens": 0,
+   "cache_write_tokens": 0,
+   "cached_tokens": 64,
+   "image_tokens": null,
+   "text_tokens": null,
+   "video_tokens": 0
+  },
+  "cost": 0.000504313,
+  "is_byok": false,
+  "cost_details": {
+   "upstream_inference_cost": 0.000504313,
+   "upstream_inference_prompt_cost": 0.00016416,
+   "upstream_inference_completions_cost": 0.000340153
+  }
+ },
+ "raw_content": "{\n  \"question_leaks_answer\": false,\n  \"question_leak_note\": \"The question asks for the root cause and supporting spec clauses without revealing the answer.\",\n  \"evidence_supports_conclusion\": \"yes\",\n  \"evidence_note\": \"All KPI metrics show a clear increase in PRB utilization and packet counts while radio quality remains flat, indicating a traffic load increase.\",\n  \"unsupported_claims_in_conclusion\": [\n    \"Method: 'changed' means |shift| > 2x baseline std and > 5 % of |baseline| (BLER also >= 0.01); 'roughly flat' also needs < 20 % relative change.\",\n    \"PRB_Utilization is a percent of the cell's 106 PRBs per the TelecomTS paper; in unaffected rows PRBs_*_Current = 1.06 x PRB_Utilization_* exactly, confirming the scale.\"\n  ],\n  \"citations\": [\n    {\n      \"spec_id\": \"3GPP TS 28.552\",\n      \"section\": \"5.1.1.2.1 DL Total PRB Usage\",\n      \"role_claimed\": \"definition\",\n      \"passage_supports_explanation\": \"partial\",\n      \"role_correct\": true,\n      \"note\": \"Provides the definition of DL PRB usage, useful for understanding the metric but does not explain the cause.\"\n    },\n    {\n      \"spec_id\": \"3GPP TS 28.552\",\n      \"section\": \"5.1.1.2.2 UL Total PRB Usage\",\n      \"role_claimed\": \"definition\",\n      \"passage_supports_explanation\": \"partial\",\n      \"role_correct\": true,\n      \"note\": \"Defines UL PRB usage; similar limitation as the DL definition.\"\n    },\n    {\n      \"spec_id\": \"3GPP TS 38.300\",\n      \"section\": \"10.1 Basic Scheduler Operation\",\n      \"role_claimed\": \"mechanism\",\n      \"passage_supports_explanation\": \"yes\",\n      \"role_correct\": true,\n      \"note\": \"Describes how the scheduler allocates resources based on UE buffer status and QoS, linking increased traffic to higher PRB usage.\"\n    },\n    {\n      \"spec_id\": \"3GPP TS 38.300\",\n      \"section\": \"15.5.1.2 Load reporting for intra-RAT and intra-system inter-RAT load balancing\",\n      \"role_claimed\": \"mechanism\",\n      \"passage_supports_explanation\": \"yes\",\n      \"role_correct\": true,\n      \"note\": \"Specifies that per‑cell PRB usage is used as a load indicator, supporting the interpretation of rising PRB utilization as rising load.\"\n    }\n  ],\n  \"has_adequate_mechanism_citation\": true,\n  \"acceptable_conclusions_reasonable\": true,\n  \"uncertainty_honest_and_complete\": true,\n  \"uncertainty_missing\": [],\n  \"verdict\": \"valid_with_changes\",\n  \"required_changes\": [\n    \"Remove or qualify the unsupported methodological claim about the statistical thresholds for 'changed' and 'roughly flat'.\",\n    \"Remove the unsupported statement about PRB_Utilization being a percent of 106 PRBs and the exact scaling relationship, unless a citation is added.\"\n  ],\n  \"confidence\": 0.93\n}",
+ "status": "reviewed",
+ "review": {
+  "question_leaks_answer": false,
+  "question_leak_note": "The question asks for the root cause and supporting spec clauses without revealing the answer.",
+  "evidence_supports_conclusion": "yes",
+  "evidence_note": "All KPI metrics show a clear increase in PRB utilization and packet counts while radio quality remains flat, indicating a traffic load increase.",
+  "unsupported_claims_in_conclusion": [
+   "Method: 'changed' means |shift| > 2x baseline std and > 5 % of |baseline| (BLER also >= 0.01); 'roughly flat' also needs < 20 % relative change.",
+   "PRB_Utilization is a percent of the cell's 106 PRBs per the TelecomTS paper; in unaffected rows PRBs_*_Current = 1.06 x PRB_Utilization_* exactly, confirming the scale."
+  ],
+  "citations": [
+   {
+    "spec_id": "3GPP TS 28.552",
+    "section": "5.1.1.2.1 DL Total PRB Usage",
+    "role_claimed": "definition",
+    "passage_supports_explanation": "partial",
+    "role_correct": true,
+    "note": "Provides the definition of DL PRB usage, useful for understanding the metric but does not explain the cause."
+   },
+   {
+    "spec_id": "3GPP TS 28.552",
+    "section": "5.1.1.2.2 UL Total PRB Usage",
+    "role_claimed": "definition",
+    "passage_supports_explanation": "partial",
+    "role_correct": true,
+    "note": "Defines UL PRB usage; similar limitation as the DL definition."
+   },
+   {
+    "spec_id": "3GPP TS 38.300",
+    "section": "10.1 Basic Scheduler Operation",
+    "role_claimed": "mechanism",
+    "passage_supports_explanation": "yes",
+    "role_correct": true,
+    "note": "Describes how the scheduler allocates resources based on UE buffer status and QoS, linking increased traffic to higher PRB usage."
+   },
+   {
+    "spec_id": "3GPP TS 38.300",
+    "section": "15.5.1.2 Load reporting for intra-RAT and intra-system inter-RAT load balancing",
+    "role_claimed": "mechanism",
+    "passage_supports_explanation": "yes",
+    "role_correct": true,
+    "note": "Specifies that per‑cell PRB usage is used as a load indicator, supporting the interpretation of rising PRB utilization as rising load."
+   }
+  ],
+  "has_adequate_mechanism_citation": true,
+  "acceptable_conclusions_reasonable": true,
+  "uncertainty_honest_and_complete": true,
+  "uncertainty_missing": [],
+  "verdict": "valid_with_changes",
+  "required_changes": [
+   "Remove or qualify the unsupported methodological claim about the statistical thresholds for 'changed' and 'roughly flat'.",
+   "Remove the unsupported statement about PRB_Utilization being a percent of 106 PRBs and the exact scaling relationship, unless a citation is added."
+  ],
+  "confidence": 0.93
+ }
+}

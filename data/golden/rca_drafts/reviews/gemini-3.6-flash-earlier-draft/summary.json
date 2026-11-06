@@ -1,0 +1,13 @@
+{
+ "provider": "gemini",
+ "model": "gemini-3.6-flash",
+ "rows": 12,
+ "failed": [
+  "rca_011",
+  "rca_012"
+ ],
+ "verdicts": {
+  "valid": 10
+ },
+ "question_leaks": []
+}

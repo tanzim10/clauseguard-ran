@@ -1,0 +1,415 @@
+{
+ "picked": [
+  "E14",
+  "E10",
+  "E16",
+  "E09",
+  "E15",
+  "E38",
+  "E21",
+  "E29",
+  "E26",
+  "E23",
+  "E28",
+  "E36"
+ ],
+ "agree": {
+  "E09": {
+   "agree": [
+    "RSRP",
+    "UL_SNR",
+    "UL_BLER"
+   ],
+   "contra": [],
+   "changed_material": [
+    "RSRP",
+    "UL_SNR",
+    "UL_BLER"
+   ]
+  },
+  "E15": {
+   "agree": [
+    "UL_BLER",
+    "Estimated_UL_Buffer"
+   ],
+   "contra": [],
+   "changed_material": [
+    "UL_BLER",
+    "Estimated_UL_Buffer"
+   ]
+  },
+  "E16": {
+   "agree": [
+    "UL_BLER",
+    "Estimated_UL_Buffer"
+   ],
+   "contra": [],
+   "changed_material": [
+    "UL_BLER",
+    "UL_MCS",
+    "Estimated_UL_Buffer"
+   ]
+  },
+  "E14": {
+   "agree": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "DL_NumberOfPackets",
+    "UL_NumberOfPackets"
+   ],
+   "contra": [],
+   "changed_material": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "DL_NumberOfPackets",
+    "UL_NumberOfPackets"
+   ]
+  },
+  "E27": {
+   "agree": [
+    "RSRP",
+    "UL_SNR",
+    "UL_NPRB",
+    "RX_Bytes"
+   ],
+   "contra": [],
+   "changed_material": [
+    "RSRP",
+    "UL_SNR",
+    "UL_NPRB",
+    "RX_Bytes"
+   ]
+  },
+  "E28": {
+   "agree": [
+    "RSRP",
+    "UL_SNR",
+    "UL_NPRB",
+    "RX_Bytes"
+   ],
+   "contra": [],
+   "changed_material": [
+    "RSRP",
+    "UL_SNR",
+    "UL_NPRB",
+    "RX_Bytes"
+   ]
+  },
+  "E29": {
+   "agree": [
+    "RSRP",
+    "UL_SNR",
+    "UL_NPRB",
+    "RX_Bytes"
+   ],
+   "contra": [],
+   "changed_material": [
+    "RSRP",
+    "UL_SNR",
+    "UL_NPRB",
+    "RX_Bytes"
+   ]
+  },
+  "E21": {
+   "agree": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "DL_NumberOfPackets",
+    "UL_NumberOfPackets"
+   ],
+   "contra": [],
+   "changed_material": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "DL_NumberOfPackets",
+    "UL_NumberOfPackets"
+   ]
+  },
+  "E22": {
+   "agree": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "UL_NPRB",
+    "UL_NumberOfPackets"
+   ],
+   "contra": [],
+   "changed_material": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "UL_NPRB",
+    "UL_NumberOfPackets"
+   ]
+  },
+  "E36": {
+   "agree": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "UL_NumberOfPackets",
+    "Estimated_UL_Buffer"
+   ],
+   "contra": [],
+   "changed_material": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "UL_NumberOfPackets",
+    "Estimated_UL_Buffer"
+   ]
+  },
+  "E37": {
+   "agree": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "UL_NPRB",
+    "UL_NumberOfPackets",
+    "Estimated_UL_Buffer"
+   ],
+   "contra": [
+    "RX_Bytes",
+    "TX_Bytes"
+   ],
+   "changed_material": [
+    "UL_MCS",
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "PRBs_DL_Current",
+    "PRBs_UL_Current",
+    "UL_NPRB",
+    "RX_Bytes",
+    "TX_Bytes",
+    "UL_NumberOfPackets",
+    "Estimated_UL_Buffer"
+   ]
+  },
+  "E38": {
+   "agree": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "UL_NPRB",
+    "DL_NumberOfPackets",
+    "UL_NumberOfPackets"
+   ],
+   "contra": [],
+   "changed_material": [
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "UL_NPRB",
+    "DL_NumberOfPackets",
+    "UL_NumberOfPackets"
+   ]
+  },
+  "E23": {
+   "agree": [
+    "PRB_Utilization_UL",
+    "UL_NumberOfPackets"
+   ],
+   "contra": [],
+   "changed_material": [
+    "PRB_Utilization_UL",
+    "UL_NumberOfPackets"
+   ]
+  },
+  "E26": {
+   "agree": [
+    "RSRP",
+    "UL_SNR",
+    "UL_NPRB"
+   ],
+   "contra": [],
+   "changed_material": [
+    "RSRP",
+    "UL_SNR",
+    "DL_MCS",
+    "UL_MCS",
+    "UL_NPRB"
+   ]
+  },
+  "E10": {
+   "agree": [
+    "RSRP",
+    "UL_SNR",
+    "UL_BLER"
+   ],
+   "contra": [],
+   "changed_material": [
+    "RSRP",
+    "UL_SNR",
+    "UL_BLER"
+   ]
+  }
+ },
+ "passed": [
+  "E09",
+  "E15",
+  "E16",
+  "E14",
+  "E27",
+  "E28",
+  "E29",
+  "E21",
+  "E22",
+  "E36",
+  "E37",
+  "E38",
+  "E23",
+  "E26",
+  "E10"
+ ],
+ "rejected": [
+  [
+   "E07",
+   "dev",
+   "Co-Channel Interference (Mild)",
+   "rule3: no window with >=16 pre rows and >=8 anomaly rows"
+  ],
+  [
+   "E13",
+   "dev",
+   "Faulty RF Filters (Temporal)",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E01",
+   "dev",
+   "Antenna Failure",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E02",
+   "dev",
+   "Antenna Failure",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E03",
+   "dev",
+   "Antenna Failure",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E12",
+   "dev",
+   "Faulty Handover Algorithm (Too Frequent)",
+   "rule6: handover signature (0.1-0.3 Hz RSRP/SNR oscillation) not observable in span; single-gNB testbed"
+  ],
+  [
+   "E34",
+   "test",
+   "Faulty RF Filters (Temporal)",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E35",
+   "test",
+   "Faulty RF Filters (Temporal)",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E30",
+   "test",
+   "Doppler Shift (Severe)",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E31",
+   "test",
+   "Faulty Handover Algorithm (Too Frequent)",
+   "rule6: handover signature (0.1-0.3 Hz RSRP/SNR oscillation) not observable in span; single-gNB testbed"
+  ],
+  [
+   "E32",
+   "test",
+   "Faulty Handover Algorithm (Too Frequent)",
+   "rule6: handover signature (0.1-0.3 Hz RSRP/SNR oscillation) not observable in span; single-gNB testbed"
+  ],
+  [
+   "E24",
+   "test",
+   "Co-Channel Interference (Mild)",
+   "rule5b: primary symptom ['UL_SNR'] not observed; agree=['RSRP', 'UL_NPRB']"
+  ],
+  [
+   "E25",
+   "test",
+   "Co-Channel Interference (Mild)",
+   "rule5b: primary symptom ['UL_SNR'] not observed; agree=['UL_NPRB']"
+  ],
+  [
+   "E41",
+   "test",
+   "Resource Allocation Bugs",
+   "rule6: weak mechanism support (scheduler describes correct behaviour only)"
+  ],
+  [
+   "E19",
+   "test",
+   "Antenna Failure",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E39",
+   "test",
+   "High Network Congestion (Sudden Spike)",
+   "rule5: agree=['UL_NPRB'] contra=[]"
+  ],
+  [
+   "E40",
+   "test",
+   "High Network Congestion (Sudden Spike)",
+   "rule5: agree=['UL_NPRB'] contra=[]"
+  ],
+  [
+   "E20",
+   "test",
+   "Antenna Failure",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E33",
+   "test",
+   "Faulty Handover Algorithm (Too Frequent)",
+   "rule3: no window with >=16 pre rows and >=8 anomaly rows"
+  ],
+  [
+   "E08",
+   "dev",
+   "Co-Channel Interference (Mild)",
+   "rule5b: primary symptom ['UL_SNR'] not observed; agree=[]"
+  ],
+  [
+   "E05",
+   "dev",
+   "Buffer Overflow (Gradual Buildup)",
+   "rule5: agree=['UL_NumberOfPackets'] contra=[]"
+  ],
+  [
+   "E06",
+   "dev",
+   "Buffer Overflow (Gradual Buildup)",
+   "rule5b: primary symptom ['PRB_Utilization_DL', 'PRB_Utilization_UL', 'UL_NumberOfPackets'] not observed; agree=['Estimated_UL_Buffer']"
+  ],
+  [
+   "E17",
+   "dev",
+   "High Network Congestion (Sudden Spike)",
+   "rule5: agree=['Estimated_UL_Buffer'] contra=[]"
+  ],
+  [
+   "E18",
+   "dev",
+   "Resource Allocation Bugs",
+   "rule6: weak mechanism support (scheduler describes correct behaviour only)"
+  ],
+  [
+   "E04",
+   "dev",
+   "Antenna Failure",
+   "rule6: no mechanism clause in corpus"
+  ],
+  [
+   "E11",
+   "dev",
+   "Doppler Shift (Severe)",
+   "rule6: no mechanism clause in corpus"
+  ]
+ ]
+}

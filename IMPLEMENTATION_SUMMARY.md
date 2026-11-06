@@ -21,6 +21,7 @@ remains outside its scope.
 - [Task 3.1 — Validated Experiment Data](#task-31--validated-experiment-data)
 - [Task 3.9 — Frozen MantisV2 Baseline](#task-39--frozen-mantisv2-baseline--2026-10-28)
 - [Task 4.1 — RCA input and output contract](#task-41--rca-input-and-output-contract--2026-11-03)
+- [Task 4.3 — Draft RCA golden cases and independent model review](#task-43--draft-rca-golden-cases-and-independent-model-review--2026-11-04)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -1031,6 +1032,86 @@ The CPU run encoded the detection train and dev sets in 189 seconds. The categor
 - Ruff passed for the new Python files. The notebook ran all six code cells with cached features.
 - The run used release `f3bd4d46bb04363adbecd0e3106767f179c560815b09fdf6309aaf013fc0b784`.
   Its status remains provisional. No test predictions were generated.
+
+## Task 4.3 — Draft RCA golden cases and independent model review — 2026-11-04
+
+**Focus:** dev #34 (public #58), first milestone: reviewed RCA cases for the golden release.
+
+**Status:** Partial. Twelve evidence-grounded RCA cases are drafted and model-reviewed, but none
+is approved yet and they stay outside `rca.jsonl`, because the only scored scenario release
+excludes every window (all 33 recording reviews are unresolved).
+
+### Delivered
+
+In simple words: twelve "here is a KPI incident, what caused it, which spec clause explains it"
+cases built from real TelecomTS measurements. Every number was measured from the raw source file
+and re-computed by an independent script. Every citation quote was checked on its PDF page. A
+model from a different family reviewed each case through a new CLI. A person still has to approve
+each case before it can enter the golden release.
+
+- `data/golden/rca_drafts/`: `rca.draft.jsonl` and `annotations.draft.jsonl` (12 rows, all
+  `status: draft`), the selection rule with its amendments, the case inventory with every
+  rejected candidate and its reason, the research notes, and the review packet.
+- `clauseguard.cli.validate_rca`: reviews RCA rows with one named model on an OpenAI-compatible
+  endpoint (`--provider gemini|groq|nvidia`) and saves one verdict file per row plus a summary.
+- `scripts/rca_drafts/`: the scripts that rebuild the drafts from local data.
+
+### Case set
+
+| Split | Cases | Dataset labels |
+|---|---|---|
+| dev | 5 | Co-Channel Interference (Severe) ×2, Congestion Gradual Buildup, Congestion Sudden Spike ×2 |
+| test | 7 | Co-Channel Interference (Mild, Severe ×2), Congestion Gradual Buildup ×2, Buffer Overflow ×2 |
+
+The 12 cases come from 12 distinct anomaly events but only 4 synthetic base recordings (2 per
+split). All are `kpi_only`: no scenario text is approved and the tickets reveal the label.
+Rejected: real jamming (no in-window baseline; jammer-on and jammer-off rows are
+indistinguishable), Antenna, RF filters and Doppler (no mechanism clause in the corpus), Handover
+(its oscillation is not observable in the spans; one-gNB testbed), Resource Allocation (weak
+mechanism), and events whose measured change did not show the category's primary symptom.
+
+### Technical implementation
+
+- Overlapping windows (stride 32) were merged into 41 dev/test synthetic events. Each case uses
+  the event window with the most balanced pre-fault and fault samples; baseline and comparison
+  come from the same window and were recomputed from `data/telecomts/raw/.../metrics.csv`
+  (0 mismatches against the release; an independent re-computation matched all 192 values).
+- A channel counts as changed only above 2x baseline std and 5 % of baseline (BLER also needs a
+  1-point move). Each category's primary symptom must be present (amendment 5b).
+- Conclusions state only measured changes. Where the data contradicts the dataset label (the
+  buffer falls in the two "Buffer Overflow" windows; PRB utilization stays in low single-digit
+  percent), the conclusion follows the data and the uncertainty says so.
+- Citations come from 28.552, 32.425 and 38.300; quotes were verified on their physical PDF pages
+  and locators match the corpus manifest. Mechanism support is partial: interference relies on an
+  informative LTE annex (32.425 A.9); congestion and backlog rely on 38.300 scheduler and
+  load-balancing text. These limits are written into each case's uncertainty.
+- `eval/rca_validation.py` sends the row, its KPI evidence and the text of every cited page;
+  validates the reply against a schema; keeps provider errors and malformed replies as failed
+  records; resumes per provider, model and prompt hash. One model per run, no failover.
+
+### Verification
+
+- The drafts load through `load_rca`, `load_annotations` (against the corpus manifest) and
+  `check_against_golden` with no problems.
+- `uv run pytest tests/test_rca_validation.py` (11 passed); full suite 453 passed, 11 skipped.
+- Independent review through `clauseguard.cli.validate_rca` (verdicts in
+  `data/golden/rca_drafts/reviews/`), all models outside the drafting model's family:
+  - gpt-oss-120b via OpenRouter, all 12 (final text): 1 valid, 10 valid with changes, 1 invalid (rca_001);
+  - qwen3.8-27b via Groq, all 12 (final text): 7 valid, 5 valid with changes;
+  - gemini-3.6-flash, 10 of 12 on an earlier draft (free daily quota): all valid.
+  No reviewer found a question that leaks the answer. Recurring requests: an NR-specific mechanism
+  clause for interference (none exists in the corpus), treating the dataset label as a definitive
+  cause (it is kept only as `source_labels`), and the use of 28.552 A.78 (downlink SS-SINR) as the
+  closest definition for UL_SNR. Verdicts differ between models and between runs of the same model,
+  so they inform, but do not replace, the human review.
+
+### Out of scope and follow-ups
+
+- **Blocked:** approval and release entry. `build_golden check --strict` requires a scored scenario
+  release; the current one excludes all windows. The PM must choose between reviewing the four
+  source recordings, an exploratory-golden tier, or keeping the cases as drafts.
+- A person must open each cited page and approve or reject each case (`review_packet.md`).
+- NVIDIA NIM keys could not be created from Bangladesh, so the review used OpenRouter, Groq and Gemini (OpenAI-compatible providers in the same CLI).
 
 ## Adding a New Phase
 

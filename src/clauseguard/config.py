@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     nvidia_cooldown_seconds: int = Field(default=30, ge=0)
     nvidia_timeout_seconds: float = Field(default=30.0, gt=0)
 
+    # Reviewer providers for `cli.validate_rca` (OpenAI-compatible endpoints).
+    gemini_api_key: str = ""
+    groq_api_key: str = ""
+    openrouter_api_key: str = ""
+
     chunk_size_tokens: int = 512
     retrieval_top_k: int = 8
     raw_corpus_dir: str = "./data/corpus/raw"

@@ -1,0 +1,77 @@
+{
+ "id": "rca_008",
+ "provider": "openrouter",
+ "model": "openai/gpt-oss-120b",
+ "prompt_sha256": "9e6d16d6ec1e7b683d199f5bf869704265ec2950b8641b82ce9149b6d0be83fd",
+ "row_sha256": "df54ff3a89bde5b0c669e30eac6f5d5c53f1a07b9fd864f5e80a9d4a4d326e31",
+ "served_model": "openai/gpt-oss-120b",
+ "usage": {
+  "completion_tokens": 1753,
+  "prompt_tokens": 3773,
+  "total_tokens": 5526,
+  "completion_tokens_details": {
+   "accepted_prediction_tokens": null,
+   "audio_tokens": 0,
+   "reasoning_tokens": 1114,
+   "rejected_prediction_tokens": null,
+   "text_tokens": null,
+   "image_tokens": 0
+  },
+  "prompt_tokens_details": {
+   "audio_tokens": 0,
+   "cache_write_tokens": 0,
+   "cached_tokens": 64,
+   "image_tokens": null,
+   "text_tokens": null,
+   "video_tokens": 0
+  },
+  "cost": 0.00042873,
+  "is_byok": false,
+  "cost_details": {
+   "upstream_inference_cost": 0.00042873,
+   "upstream_inference_prompt_cost": 0.00011319,
+   "upstream_inference_completions_cost": 0.00031554
+  }
+ },
+ "raw_content": "{\n  \"question_leaks_answer\": false,\n  \"question_leak_note\": \"The question only describes KPI changes and asks for the root cause; it does not reveal the fault category.\",\n  \"evidence_supports_conclusion\": \"partial\",\n  \"evidence_note\": \"The KPI pattern (UL SNR and RSRP decrease, slight UL PRB increase, other metrics flat) indicates uplink radio‑quality degradation, but it cannot uniquely distinguish co‑channel interference from a simple received‑power loss.\",\n  \"unsupported_claims_in_conclusion\": [\n    \"The claim that the fault is specifically \\\"Co‑Channel Interference (Mild)\\\" is not uniquely supported by the presented KPIs.\",\n    \"Citation of 3GPP TS 28.552 A.78 as evidence for uplink interference is inappropriate because it defines downlink SS‑SINR, not UL SNR.\"\n  ],\n  \"citations\": [\n    {\n      \"spec_id\": \"3GPP TS 28.552\",\n      \"section\": \"A.78 Monitoring of SS-SINR\",\n      \"role_claimed\": \"definition\",\n      \"passage_supports_explanation\": \"no\",\n      \"role_correct\": true,\n      \"note\": \"Defines downlink SS‑SINR and its relation to interference; does not apply to the uplink SNR metric used in the case.\"\n    },\n    {\n      \"spec_id\": \"3GPP TS 32.425\",\n      \"section\": \"A.9 Monitoring of RF performance\",\n      \"role_claimed\": \"mechanism\",\n      \"passage_supports_explanation\": \"partial\",\n      \"role_correct\": true,\n      \"note\": \"Describes uplink interference degrading the base‑station receiver (LTE context). It supports the general idea of interference‑induced degradation but does not specify NR, nor does it differentiate mild co‑channel interference.\"\n    }\n  ],\n  \"has_adequate_mechanism_citation\": false,\n  \"acceptable_conclusions_reasonable\": true,\n  \"uncertainty_honest_and_complete\": true,\n  \"uncertainty_missing\": [],\n  \"verdict\": \"valid_with_changes\",\n  \"required_changes\": [\n    \"Rephrase the root‑cause conclusion to state that the observed KPI changes indicate uplink radio‑quality degradation that could be caused by either co‑channel interference or a loss of received power (e.g., antenna or path loss), rather than asserting \\\"Co‑Channel Interference (Mild)\\\" as the definitive cause.\",\n    \"Replace or supplement the 3GPP TS 28.552 citation with a clause that actually defines uplink SNR/SINR for NR (e.g., 3GPP TS 38.133 §5.2.2) or note the lack of an appropriate NR uplink SINR definition in the corpus.\",\n    \"Clarify that the 3GPP TS 32.425 citation is LTE‑specific and only provides a generic mechanism; indicate the limitation for NR applicability.\"\n  ],\n  \"confidence\": 0.86\n}",
+ "status": "reviewed",
+ "review": {
+  "question_leaks_answer": false,
+  "question_leak_note": "The question only describes KPI changes and asks for the root cause; it does not reveal the fault category.",
+  "evidence_supports_conclusion": "partial",
+  "evidence_note": "The KPI pattern (UL SNR and RSRP decrease, slight UL PRB increase, other metrics flat) indicates uplink radio‑quality degradation, but it cannot uniquely distinguish co‑channel interference from a simple received‑power loss.",
+  "unsupported_claims_in_conclusion": [
+   "The claim that the fault is specifically \"Co‑Channel Interference (Mild)\" is not uniquely supported by the presented KPIs.",
+   "Citation of 3GPP TS 28.552 A.78 as evidence for uplink interference is inappropriate because it defines downlink SS‑SINR, not UL SNR."
+  ],
+  "citations": [
+   {
+    "spec_id": "3GPP TS 28.552",
+    "section": "A.78 Monitoring of SS-SINR",
+    "role_claimed": "definition",
+    "passage_supports_explanation": "no",
+    "role_correct": true,
+    "note": "Defines downlink SS‑SINR and its relation to interference; does not apply to the uplink SNR metric used in the case."
+   },
+   {
+    "spec_id": "3GPP TS 32.425",
+    "section": "A.9 Monitoring of RF performance",
+    "role_claimed": "mechanism",
+    "passage_supports_explanation": "partial",
+    "role_correct": true,
+    "note": "Describes uplink interference degrading the base‑station receiver (LTE context). It supports the general idea of interference‑induced degradation but does not specify NR, nor does it differentiate mild co‑channel interference."
+   }
+  ],
+  "has_adequate_mechanism_citation": false,
+  "acceptable_conclusions_reasonable": true,
+  "uncertainty_honest_and_complete": true,
+  "uncertainty_missing": [],
+  "verdict": "valid_with_changes",
+  "required_changes": [
+   "Rephrase the root‑cause conclusion to state that the observed KPI changes indicate uplink radio‑quality degradation that could be caused by either co‑channel interference or a loss of received power (e.g., antenna or path loss), rather than asserting \"Co‑Channel Interference (Mild)\" as the definitive cause.",
+   "Replace or supplement the 3GPP TS 28.552 citation with a clause that actually defines uplink SNR/SINR for NR (e.g., 3GPP TS 38.133 §5.2.2) or note the lack of an appropriate NR uplink SINR definition in the corpus.",
+   "Clarify that the 3GPP TS 32.425 citation is LTE‑specific and only provides a generic mechanism; indicate the limitation for NR applicability."
+  ],
+  "confidence": 0.86
+ }
+}

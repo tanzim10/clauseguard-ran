@@ -1,0 +1,49 @@
+{
+ "id": "rca_010",
+ "provider": "gemini",
+ "model": "gemini-3.6-flash",
+ "prompt_sha256": "ebc104e24ead87a2b61b59c6142fefad9bc57193c2384bed2148b31e3d5fed9d",
+ "row_sha256": "e7a6490554f2cc68571f4c13b0e898401e8ca90617d73f45dc20cf7a3037942e",
+ "served_model": "gemini-3.6-flash",
+ "usage": {
+  "completion_tokens": 352,
+  "prompt_tokens": 4422,
+  "total_tokens": 6004,
+  "completion_tokens_details": null,
+  "prompt_tokens_details": null
+ },
+ "raw_content": "{\n \"question_leaks_answer\": false,\n \"question_leak_note\": \"The question presents observed KPI changes neutrally without indicating the diagnosis or root cause.\",\n \"evidence_supports_conclusion\": \"yes\",\n \"evidence_note\": \"The baseline and comparison values cited in the conclusion accurately match the provided KPI evidence table.\",\n \"unsupported_claims_in_conclusion\": [],\n \"citations\": [\n  {\n   \"spec_id\": \"3GPP TS 28.552\",\n   \"section\": \"A.78 Monitoring of SS-SINR\",\n   \"role_claimed\": \"definition\",\n   \"passage_supports_explanation\": \"yes\",\n   \"role_correct\": true,\n   \"note\": \"Defines SS-SINR as the ratio of received signal level to the sum of interference and noise.\"\n  },\n  {\n   \"spec_id\": \"3GPP TS 32.425\",\n   \"section\": \"A.9 Monitoring of RF performance\",\n   \"role_claimed\": \"mechanism\",\n   \"passage_supports_explanation\": \"yes\",\n   \"role_correct\": true,\n   \"note\": \"Explains how uplink interference disturbs the base station receiver and degrades performance.\"\n  }\n ],\n \"has_adequate_mechanism_citation\": true,\n \"acceptable_conclusions_reasonable\": true,\n \"uncertainty_honest_and_complete\": true,\n \"uncertainty_missing\": [],\n \"verdict\": \"valid\",\n \"required_changes\": [],\n \"confidence\": 1.0\n}",
+ "status": "reviewed",
+ "review": {
+  "question_leaks_answer": false,
+  "question_leak_note": "The question presents observed KPI changes neutrally without indicating the diagnosis or root cause.",
+  "evidence_supports_conclusion": "yes",
+  "evidence_note": "The baseline and comparison values cited in the conclusion accurately match the provided KPI evidence table.",
+  "unsupported_claims_in_conclusion": [],
+  "citations": [
+   {
+    "spec_id": "3GPP TS 28.552",
+    "section": "A.78 Monitoring of SS-SINR",
+    "role_claimed": "definition",
+    "passage_supports_explanation": "yes",
+    "role_correct": true,
+    "note": "Defines SS-SINR as the ratio of received signal level to the sum of interference and noise."
+   },
+   {
+    "spec_id": "3GPP TS 32.425",
+    "section": "A.9 Monitoring of RF performance",
+    "role_claimed": "mechanism",
+    "passage_supports_explanation": "yes",
+    "role_correct": true,
+    "note": "Explains how uplink interference disturbs the base station receiver and degrades performance."
+   }
+  ],
+  "has_adequate_mechanism_citation": true,
+  "acceptable_conclusions_reasonable": true,
+  "uncertainty_honest_and_complete": true,
+  "uncertainty_missing": [],
+  "verdict": "valid",
+  "required_changes": [],
+  "confidence": 1.0
+ }
+}

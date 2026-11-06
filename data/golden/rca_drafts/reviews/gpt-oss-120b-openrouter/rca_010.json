@@ -1,0 +1,76 @@
+{
+ "id": "rca_010",
+ "provider": "openrouter",
+ "model": "openai/gpt-oss-120b",
+ "prompt_sha256": "55be6cf0a7e48a1511928298156ef60d4b4a458688eb97d7c6d54a9337ef4c25",
+ "row_sha256": "f9a2a74324c8cb502b69cece1a80f0753565f0a31f6aac51b067a95f941642c3",
+ "served_model": "openai/gpt-oss-120b",
+ "usage": {
+  "completion_tokens": 1473,
+  "prompt_tokens": 3944,
+  "total_tokens": 5417,
+  "completion_tokens_details": {
+   "accepted_prediction_tokens": null,
+   "audio_tokens": 0,
+   "reasoning_tokens": 936,
+   "rejected_prediction_tokens": null,
+   "text_tokens": null,
+   "image_tokens": 0
+  },
+  "prompt_tokens_details": {
+   "audio_tokens": 0,
+   "cache_write_tokens": 0,
+   "cached_tokens": 0,
+   "image_tokens": null,
+   "text_tokens": null,
+   "video_tokens": 0
+  },
+  "cost": 0.0014754,
+  "is_byok": false,
+  "cost_details": {
+   "upstream_inference_cost": 0.0014754,
+   "upstream_inference_prompt_cost": 0.0005916,
+   "upstream_inference_completions_cost": 0.0008838
+  }
+ },
+ "raw_content": "{\n  \"question_leaks_answer\": false,\n  \"question_leak_note\": \"The question asks for the most likely root cause and supporting spec clauses but does not name or strongly imply a specific fault category.\",\n  \"evidence_supports_conclusion\": \"partial\",\n  \"evidence_note\": \"The KPI changes (UL SNR and RSRP drop, UL traffic drop, slight PRB utilization increase) indicate uplink quality degradation, but they do not uniquely identify co‑channel interference versus a simple received‑power loss.\",\n  \"unsupported_claims_in_conclusion\": [\n    \"The definitive labeling of the root cause as \\\"Co‑Channel Interference (Severe)\\\" is not fully supported by the KPI evidence alone.\"\n  ],\n  \"citations\": [\n    {\n      \"spec_id\": \"3GPP TS 28.552\",\n      \"section\": \"A.78 Monitoring of SS-SINR\",\n      \"role_claimed\": \"definition\",\n      \"passage_supports_explanation\": \"partial\",\n      \"role_correct\": true,\n      \"note\": \"Provides a generic definition of SINR (ratio of received signal to interference+noise) but refers to downlink SS‑SINR, not the uplink SNR metric in the data.\"\n    },\n    {\n      \"spec_id\": \"3GPP TS 32.425\",\n      \"section\": \"A.9 Monitoring of RF performance\",\n      \"role_claimed\": \"mechanism\",\n      \"passage_supports_explanation\": \"partial\",\n      \"role_correct\": true,\n      \"note\": \"Describes a causal chain where uplink interference degrades the base‑station receiver and overall service, but it is an LTE‑focused, informative annex and does not provide NR‑specific or severity‑specific details.\"\n    }\n  ],\n  \"has_adequate_mechanism_citation\": false,\n  \"acceptable_conclusions_reasonable\": true,\n  \"uncertainty_honest_and_complete\": true,\n  \"uncertainty_missing\": [],\n  \"verdict\": \"valid_with_changes\",\n  \"required_changes\": [\n    \"Temper the root‑cause label to reflect that the evidence only indicates uplink quality degradation, not definitively severe co‑channel interference.\",\n    \"State explicitly that the KPI pattern is also consistent with a received‑power loss (e.g., antenna or RF path issue).\",\n    \"Acknowledge the lack of an NR‑specific mechanism clause linking interference to the observed UL SNR drop.\"\n  ],\n  \"confidence\": 0.78\n}",
+ "status": "reviewed",
+ "review": {
+  "question_leaks_answer": false,
+  "question_leak_note": "The question asks for the most likely root cause and supporting spec clauses but does not name or strongly imply a specific fault category.",
+  "evidence_supports_conclusion": "partial",
+  "evidence_note": "The KPI changes (UL SNR and RSRP drop, UL traffic drop, slight PRB utilization increase) indicate uplink quality degradation, but they do not uniquely identify co‑channel interference versus a simple received‑power loss.",
+  "unsupported_claims_in_conclusion": [
+   "The definitive labeling of the root cause as \"Co‑Channel Interference (Severe)\" is not fully supported by the KPI evidence alone."
+  ],
+  "citations": [
+   {
+    "spec_id": "3GPP TS 28.552",
+    "section": "A.78 Monitoring of SS-SINR",
+    "role_claimed": "definition",
+    "passage_supports_explanation": "partial",
+    "role_correct": true,
+    "note": "Provides a generic definition of SINR (ratio of received signal to interference+noise) but refers to downlink SS‑SINR, not the uplink SNR metric in the data."
+   },
+   {
+    "spec_id": "3GPP TS 32.425",
+    "section": "A.9 Monitoring of RF performance",
+    "role_claimed": "mechanism",
+    "passage_supports_explanation": "partial",
+    "role_correct": true,
+    "note": "Describes a causal chain where uplink interference degrades the base‑station receiver and overall service, but it is an LTE‑focused, informative annex and does not provide NR‑specific or severity‑specific details."
+   }
+  ],
+  "has_adequate_mechanism_citation": false,
+  "acceptable_conclusions_reasonable": true,
+  "uncertainty_honest_and_complete": true,
+  "uncertainty_missing": [],
+  "verdict": "valid_with_changes",
+  "required_changes": [
+   "Temper the root‑cause label to reflect that the evidence only indicates uplink quality degradation, not definitively severe co‑channel interference.",
+   "State explicitly that the KPI pattern is also consistent with a received‑power loss (e.g., antenna or RF path issue).",
+   "Acknowledge the lack of an NR‑specific mechanism clause linking interference to the observed UL SNR drop."
+  ],
+  "confidence": 0.78
+ }
+}

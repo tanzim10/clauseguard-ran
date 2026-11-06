@@ -44,6 +44,8 @@ data/scenarios/*
 !data/scenarios/.gitkeep
 !data/scenarios/scenarios.example.jsonl
 data/golden/golden_eval.jsonl
+data/golden/rca_drafts/
+scripts/rca_drafts/
 artifacts/*
 !artifacts/**/
 !artifacts/**/.gitkeep

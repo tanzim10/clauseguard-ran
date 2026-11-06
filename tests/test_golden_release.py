@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -576,11 +577,34 @@ def test_cli_fails_on_validation_problems(tmp_path, capsys):
     assert "error: q_002: missing annotation" in capsys.readouterr().err
 
 
-def test_repository_release_matches_its_manifest():
+def test_repository_release_matches_approved_twelve_case_manifest():
     report = check_release(ReleasePaths())
 
     assert report.problems == []
+    assert report.complete
+    assert report.manifest["counts"]["approved"] == 36
     assert report.manifest["counts"]["by_split"] == {
-        "dev": {"spec_qa": 19},
-        "test": {"spec_qa": 5},
+        "dev": {"spec_qa": 19, "rca": 5},
+        "test": {"spec_qa": 5, "rca": 7},
     }
+    assert "rca_policy.json" in report.manifest["files"]
+
+
+def test_approved_policy_snapshot_supports_offline_release_checks(tmp_path):
+    golden = tmp_path / "golden"
+    shutil.copytree(ReleasePaths.golden_dir, golden)
+    paths = ReleasePaths(golden, ReleasePaths.corpus_manifest, tmp_path / "absent-scenarios")
+    assert check_release(paths).complete
+
+
+def test_policy_rejects_text_only_eligibility_without_text(tmp_path):
+    golden = tmp_path / "golden"
+    shutil.copytree(ReleasePaths.golden_dir, golden)
+    policy_path = golden / "rca_policy.json"
+    policy = json.loads(policy_path.read_text())
+    policy["cases"]["rca_001"]["configurations"]["text_rag"]["eligible"] = True
+    policy_path.write_text(json.dumps(policy))
+    report = build_release(ReleasePaths(golden, ReleasePaths.corpus_manifest, tmp_path / "absent"))
+    assert report.problems == [
+        "rca_policy.json: text-only configuration requires approved incident text"
+    ]

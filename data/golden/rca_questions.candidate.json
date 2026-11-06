@@ -1,0 +1,2284 @@
+[
+  {
+    "id": "rca_001_questions",
+    "scenario_id": "telecomts-61a3b56949b3d19375eb5d474a8728cc3640aa3e4c32f05bf5fa813ec7bc1af9",
+    "membership": "dev",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, UL_SNR decreased; RSRP decreased; UL_BLER increased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, UL_SNR changed from 21.37 to 6.422; RSRP changed from -87.81 to -98.11; UL_BLER changed from 0.08657 to 0.1892. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_A/Twitch/raw/metrics.csv",
+      "sha256": "f743338e65f35fb8631e6fc74a9a0a5881ea6acbf3e1b8e60bdcc82839d6f016",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "UL_SNR",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 21.368805970149253,
+          "valid_count": 67,
+          "raw_rows_inclusive": [
+            5249,
+            5315
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:08:44.800",
+            "end": "2026-09-02 00:08:51.400"
+          }
+        },
+        "comparison": {
+          "mean": 6.422109484184407,
+          "valid_count": 61,
+          "raw_rows_inclusive": [
+            5316,
+            5376
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:08:51.500",
+            "end": "2026-09-02 00:08:57.500"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": -87.80597014925372,
+          "valid_count": 67,
+          "raw_rows_inclusive": [
+            5249,
+            5315
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:08:44.800",
+            "end": "2026-09-02 00:08:51.400"
+          }
+        },
+        "comparison": {
+          "mean": -98.11178985942396,
+          "valid_count": 61,
+          "raw_rows_inclusive": [
+            5316,
+            5376
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:08:51.500",
+            "end": "2026-09-02 00:08:57.500"
+          }
+        }
+      },
+      {
+        "channel": "UL_BLER",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.08657111967806635,
+          "valid_count": 67,
+          "raw_rows_inclusive": [
+            5249,
+            5315
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:08:44.800",
+            "end": "2026-09-02 00:08:51.400"
+          }
+        },
+        "comparison": {
+          "mean": 0.18915293318685653,
+          "valid_count": 61,
+          "raw_rows_inclusive": [
+            5316,
+            5376
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:08:51.500",
+            "end": "2026-09-02 00:08:57.500"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_002_questions",
+    "scenario_id": "telecomts-0ef60c5b2a02754e4e9af4a1f44a63aad5a76f53a9ea63f4d5ef48a9a4dc4e56",
+    "membership": "dev",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, UL_SNR decreased; RSRP decreased; UL_BLER increased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, UL_SNR changed from 20.59 to 9.33; RSRP changed from -117.1 to -126.5; UL_BLER changed from 0.09781 to 0.1767. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_C/Twitch/raw/metrics.csv",
+      "sha256": "eb8ec13afb72aea6d052759cf6c080e1b3e97929cb204e1945172dd33c9af456",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "UL_SNR",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 20.58917808219178,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            5313,
+            5385
+          ],
+          "time_range": {
+            "start": "2037-04-08 00:08:51.200",
+            "end": "2037-04-08 00:08:58.400"
+          }
+        },
+        "comparison": {
+          "mean": 9.330077682442312,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            5386,
+            5440
+          ],
+          "time_range": {
+            "start": "2037-04-08 00:08:58.500",
+            "end": "2037-04-08 00:09:03.900"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": -117.05479452054794,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            5313,
+            5385
+          ],
+          "time_range": {
+            "start": "2037-04-08 00:08:51.200",
+            "end": "2037-04-08 00:08:58.400"
+          }
+        },
+        "comparison": {
+          "mean": -126.50601081970387,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            5386,
+            5440
+          ],
+          "time_range": {
+            "start": "2037-04-08 00:08:58.500",
+            "end": "2037-04-08 00:09:03.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_BLER",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0978147520547945,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            5313,
+            5385
+          ],
+          "time_range": {
+            "start": "2037-04-08 00:08:51.200",
+            "end": "2037-04-08 00:08:58.400"
+          }
+        },
+        "comparison": {
+          "mean": 0.17674781392937083,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            5386,
+            5440
+          ],
+          "time_range": {
+            "start": "2037-04-08 00:08:58.500",
+            "end": "2037-04-08 00:09:03.900"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_003_questions",
+    "scenario_id": "telecomts-8ac8201b86308141f6cd34339b2274de0e38edddb0bc749d447a0b2b38f26221",
+    "membership": "dev",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, PRB_Utilization_DL increased; PRB_Utilization_UL increased; DL_NumberOfPackets increased; UL_NumberOfPackets increased; RSRP decreased; UL_SNR increased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, PRB_Utilization_DL changed from 1.205 to 3.611; PRB_Utilization_UL changed from 0.1519 to 1.076; DL_NumberOfPackets changed from 5.879 to 20.8; UL_NumberOfPackets changed from 2.788 to 17.43; RSRP changed from -87.61 to -87.89; UL_SNR changed from 20.98 to 21.09. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_A/Twitch/raw/metrics.csv",
+      "sha256": "f743338e65f35fb8631e6fc74a9a0a5881ea6acbf3e1b8e60bdcc82839d6f016",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "PRB_Utilization_DL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 1.204928787878788,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            4129,
+            4194
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:52.800",
+            "end": "2026-09-02 00:06:59.300"
+          }
+        },
+        "comparison": {
+          "mean": 3.611010938745185,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            4195,
+            4256
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:59.400",
+            "end": "2026-09-02 00:07:05.500"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_UL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.15185909090909092,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            4129,
+            4194
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:52.800",
+            "end": "2026-09-02 00:06:59.300"
+          }
+        },
+        "comparison": {
+          "mean": 1.0760027744762735,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            4195,
+            4256
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:59.400",
+            "end": "2026-09-02 00:07:05.500"
+          }
+        }
+      },
+      {
+        "channel": "DL_NumberOfPackets",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 5.878787878787879,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            4129,
+            4194
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:52.800",
+            "end": "2026-09-02 00:06:59.300"
+          }
+        },
+        "comparison": {
+          "mean": 20.795890794530017,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            4195,
+            4256
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:59.400",
+            "end": "2026-09-02 00:07:05.500"
+          }
+        }
+      },
+      {
+        "channel": "UL_NumberOfPackets",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 2.787878787878788,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            4129,
+            4194
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:52.800",
+            "end": "2026-09-02 00:06:59.300"
+          }
+        },
+        "comparison": {
+          "mean": 17.429017068336112,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            4195,
+            4256
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:59.400",
+            "end": "2026-09-02 00:07:05.500"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": -87.60866731834473,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            4129,
+            4194
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:52.800",
+            "end": "2026-09-02 00:06:59.300"
+          }
+        },
+        "comparison": {
+          "mean": -87.88709677419355,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            4195,
+            4256
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:59.400",
+            "end": "2026-09-02 00:07:05.500"
+          }
+        }
+      },
+      {
+        "channel": "UL_SNR",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 20.98242424242424,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            4129,
+            4194
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:52.800",
+            "end": "2026-09-02 00:06:59.300"
+          }
+        },
+        "comparison": {
+          "mean": 21.089274193548388,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            4195,
+            4256
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:59.400",
+            "end": "2026-09-02 00:07:05.500"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_004_questions",
+    "scenario_id": "telecomts-b0685933f73c9be86af5b68aa71efe8f34487a9fc4a5dac1a84b67910b4a1283",
+    "membership": "dev",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, UL_BLER increased; Estimated_UL_Buffer increased; UL_NPRB increased; RSRP increased; UL_SNR increased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, UL_BLER changed from 0.08688 to 0.1739; Estimated_UL_Buffer changed from 861.6 to 3944; UL_NPRB changed from 5.544 to 10.96; RSRP changed from -88 to -87.75; UL_SNR changed from 21.69 to 21.73. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_A/Twitch/raw/metrics.csv",
+      "sha256": "f743338e65f35fb8631e6fc74a9a0a5881ea6acbf3e1b8e60bdcc82839d6f016",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "UL_BLER",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.08688265709020306,
+          "valid_count": 57,
+          "raw_rows_inclusive": [
+            833,
+            889
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:23.200",
+            "end": "2026-09-02 00:01:28.800"
+          }
+        },
+        "comparison": {
+          "mean": 0.1738998209522495,
+          "valid_count": 71,
+          "raw_rows_inclusive": [
+            890,
+            960
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:28.900",
+            "end": "2026-09-02 00:01:35.900"
+          }
+        }
+      },
+      {
+        "channel": "Estimated_UL_Buffer",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 861.6263157894737,
+          "valid_count": 57,
+          "raw_rows_inclusive": [
+            833,
+            889
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:23.200",
+            "end": "2026-09-02 00:01:28.800"
+          }
+        },
+        "comparison": {
+          "mean": 3943.628110819228,
+          "valid_count": 71,
+          "raw_rows_inclusive": [
+            890,
+            960
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:28.900",
+            "end": "2026-09-02 00:01:35.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_NPRB",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 5.543920708588996,
+          "valid_count": 57,
+          "raw_rows_inclusive": [
+            833,
+            889
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:23.200",
+            "end": "2026-09-02 00:01:28.800"
+          }
+        },
+        "comparison": {
+          "mean": 10.959979505046393,
+          "valid_count": 71,
+          "raw_rows_inclusive": [
+            890,
+            960
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:28.900",
+            "end": "2026-09-02 00:01:35.900"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": -88.0,
+          "valid_count": 57,
+          "raw_rows_inclusive": [
+            833,
+            889
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:23.200",
+            "end": "2026-09-02 00:01:28.800"
+          }
+        },
+        "comparison": {
+          "mean": -87.74518400726943,
+          "valid_count": 71,
+          "raw_rows_inclusive": [
+            890,
+            960
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:28.900",
+            "end": "2026-09-02 00:01:35.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_SNR",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 21.691929824561406,
+          "valid_count": 57,
+          "raw_rows_inclusive": [
+            833,
+            889
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:23.200",
+            "end": "2026-09-02 00:01:28.800"
+          }
+        },
+        "comparison": {
+          "mean": 21.725915492957746,
+          "valid_count": 71,
+          "raw_rows_inclusive": [
+            890,
+            960
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:01:28.900",
+            "end": "2026-09-02 00:01:35.900"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_005_questions",
+    "scenario_id": "telecomts-ec8abd176a3001dd9eebde990fe8fccb10d7f13daf9f87afe95e6462c6189032",
+    "membership": "dev",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, UL_BLER increased; Estimated_UL_Buffer increased; UL_NPRB increased; RSRP decreased; UL_SNR decreased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, UL_BLER changed from 0.08796 to 0.1704; Estimated_UL_Buffer changed from 1174 to 8071; UL_NPRB changed from 7.104 to 13.78; RSRP changed from -87.66 to -87.96; UL_SNR changed from 21.36 to 20.81. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_A/Twitch/raw/metrics.csv",
+      "sha256": "f743338e65f35fb8631e6fc74a9a0a5881ea6acbf3e1b8e60bdcc82839d6f016",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "UL_BLER",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.08796459245283014,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            3809,
+            3861
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:20.800",
+            "end": "2026-09-02 00:06:26.000"
+          }
+        },
+        "comparison": {
+          "mean": 0.1704363998179357,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            3862,
+            3936
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:26.100",
+            "end": "2026-09-02 00:06:33.500"
+          }
+        }
+      },
+      {
+        "channel": "Estimated_UL_Buffer",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 1173.9616981132076,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            3809,
+            3861
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:20.800",
+            "end": "2026-09-02 00:06:26.000"
+          }
+        },
+        "comparison": {
+          "mean": 8070.735490208076,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            3862,
+            3936
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:26.100",
+            "end": "2026-09-02 00:06:33.500"
+          }
+        }
+      },
+      {
+        "channel": "UL_NPRB",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 7.10377358490566,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            3809,
+            3861
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:20.800",
+            "end": "2026-09-02 00:06:26.000"
+          }
+        },
+        "comparison": {
+          "mean": 13.780478962387342,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            3862,
+            3936
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:26.100",
+            "end": "2026-09-02 00:06:33.500"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": -87.65981132075473,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            3809,
+            3861
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:20.800",
+            "end": "2026-09-02 00:06:26.000"
+          }
+        },
+        "comparison": {
+          "mean": -87.96,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            3862,
+            3936
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:26.100",
+            "end": "2026-09-02 00:06:33.500"
+          }
+        }
+      },
+      {
+        "channel": "UL_SNR",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 21.363584905660378,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            3809,
+            3861
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:20.800",
+            "end": "2026-09-02 00:06:26.000"
+          }
+        },
+        "comparison": {
+          "mean": 20.8076,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            3862,
+            3936
+          ],
+          "time_range": {
+            "start": "2026-09-02 00:06:26.100",
+            "end": "2026-09-02 00:06:33.500"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_006_questions",
+    "scenario_id": "telecomts-27aa7e0653b962a96812e3c35b973596058dad2806a6a9d7c0782811fa01d3ea",
+    "membership": "test",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, PRB_Utilization_DL increased; PRB_Utilization_UL increased; DL_NumberOfPackets increased; UL_NumberOfPackets increased; Estimated_UL_Buffer decreased; RSRP increased; UL_SNR increased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, PRB_Utilization_DL changed from 0.006504 to 1.899; PRB_Utilization_UL changed from 0.02505 to 1.229; DL_NumberOfPackets changed from 0 to 16.62; UL_NumberOfPackets changed from 0 to 25.57; Estimated_UL_Buffer changed from 0.6587 to 2.664e-08; RSRP changed from -92.82 to -92.69; UL_SNR changed from 19.63 to 19.66. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_A/YouTube/raw/metrics.csv",
+      "sha256": "a03078fbfaac5147e92500f380331788c92a303c7ca5a5fbb79060a20bb7dd23",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "PRB_Utilization_DL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0065044891768065,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            4161,
+            4235
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:06:56.000",
+            "end": "2026-01-28 00:07:03.400"
+          }
+        },
+        "comparison": {
+          "mean": 1.8994827286000155,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            4236,
+            4288
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:07:03.500",
+            "end": "2026-01-28 00:07:08.700"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_UL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.025045328700230032,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            4161,
+            4235
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:06:56.000",
+            "end": "2026-01-28 00:07:03.400"
+          }
+        },
+        "comparison": {
+          "mean": 1.2287858008529042,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            4236,
+            4288
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:07:03.500",
+            "end": "2026-01-28 00:07:08.700"
+          }
+        }
+      },
+      {
+        "channel": "DL_NumberOfPackets",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            4161,
+            4235
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:06:56.000",
+            "end": "2026-01-28 00:07:03.400"
+          }
+        },
+        "comparison": {
+          "mean": 16.624529856988275,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            4236,
+            4288
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:07:03.500",
+            "end": "2026-01-28 00:07:08.700"
+          }
+        }
+      },
+      {
+        "channel": "UL_NumberOfPackets",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            4161,
+            4235
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:06:56.000",
+            "end": "2026-01-28 00:07:03.400"
+          }
+        },
+        "comparison": {
+          "mean": 25.566645039760427,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            4236,
+            4288
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:07:03.500",
+            "end": "2026-01-28 00:07:08.700"
+          }
+        }
+      },
+      {
+        "channel": "Estimated_UL_Buffer",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.6586666666666666,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            4161,
+            4235
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:06:56.000",
+            "end": "2026-01-28 00:07:03.400"
+          }
+        },
+        "comparison": {
+          "mean": 2.663956381232248e-08,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            4236,
+            4288
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:07:03.500",
+            "end": "2026-01-28 00:07:08.700"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": -92.82153105801575,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            4161,
+            4235
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:06:56.000",
+            "end": "2026-01-28 00:07:03.400"
+          }
+        },
+        "comparison": {
+          "mean": -92.69459204481116,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            4236,
+            4288
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:07:03.500",
+            "end": "2026-01-28 00:07:08.700"
+          }
+        }
+      },
+      {
+        "channel": "UL_SNR",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 19.63349639520864,
+          "valid_count": 75,
+          "raw_rows_inclusive": [
+            4161,
+            4235
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:06:56.000",
+            "end": "2026-01-28 00:07:03.400"
+          }
+        },
+        "comparison": {
+          "mean": 19.658077914522188,
+          "valid_count": 53,
+          "raw_rows_inclusive": [
+            4236,
+            4288
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:07:03.500",
+            "end": "2026-01-28 00:07:08.700"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_007_questions",
+    "scenario_id": "telecomts-e9d3c94262c9a437c27459583cc334db52da00d723867bced91417ba7593a8bb",
+    "membership": "test",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, PRB_Utilization_UL increased; UL_NumberOfPackets increased; Estimated_UL_Buffer decreased; RSRP increased; UL_SNR increased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, PRB_Utilization_UL changed from 0.07335 to 1.54; UL_NumberOfPackets changed from 1.152 to 19.02; Estimated_UL_Buffer changed from 7.997 to 0; RSRP changed from -109 to -108.4; UL_SNR changed from 18.93 to 19.75. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_B/YouTube/raw/metrics.csv",
+      "sha256": "67d8499e6dd7091590c19ddb84fff045963aa37cc5345af794c4ab56f528bdc1",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "PRB_Utilization_UL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.07335,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            8673,
+            8738
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:27.200",
+            "end": "2027-07-07 00:14:33.700"
+          }
+        },
+        "comparison": {
+          "mean": 1.5403492896236055,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            8739,
+            8800
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:33.800",
+            "end": "2027-07-07 00:14:39.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_NumberOfPackets",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 1.1515151515151516,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            8673,
+            8738
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:27.200",
+            "end": "2027-07-07 00:14:33.700"
+          }
+        },
+        "comparison": {
+          "mean": 19.02169307254365,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            8739,
+            8800
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:33.800",
+            "end": "2027-07-07 00:14:39.900"
+          }
+        }
+      },
+      {
+        "channel": "Estimated_UL_Buffer",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 7.997121212121211,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            8673,
+            8738
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:27.200",
+            "end": "2027-07-07 00:14:33.700"
+          }
+        },
+        "comparison": {
+          "mean": 0.0,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            8739,
+            8800
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:33.800",
+            "end": "2027-07-07 00:14:39.900"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": -109.03630758566243,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            8673,
+            8738
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:27.200",
+            "end": "2027-07-07 00:14:33.700"
+          }
+        },
+        "comparison": {
+          "mean": -108.40911438211673,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            8739,
+            8800
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:33.800",
+            "end": "2027-07-07 00:14:39.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_SNR",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 18.931110050828508,
+          "valid_count": 66,
+          "raw_rows_inclusive": [
+            8673,
+            8738
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:27.200",
+            "end": "2027-07-07 00:14:33.700"
+          }
+        },
+        "comparison": {
+          "mean": 19.751089755588506,
+          "valid_count": 62,
+          "raw_rows_inclusive": [
+            8739,
+            8800
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:14:33.800",
+            "end": "2027-07-07 00:14:39.900"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_008_questions",
+    "scenario_id": "telecomts-2510347a7fdef5a421825133cdaa33062d97a8919d92363decbb7c4fb5faca25",
+    "membership": "test",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, UL_SNR decreased; RSRP decreased; UL_NPRB increased; PRB_Utilization_DL increased; PRB_Utilization_UL decreased; DL_NumberOfPackets stayed unchanged; UL_NumberOfPackets stayed unchanged. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, UL_SNR changed from 21.5 to 16.7; RSRP changed from -106 to -114.8; UL_NPRB changed from 5 to 5.837; PRB_Utilization_DL changed from 0.005149 to 0.005209; PRB_Utilization_UL changed from 0.02403 to 0.02388; DL_NumberOfPackets changed from 0 to 0; UL_NumberOfPackets changed from 0 to 0. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_B/YouTube/raw/metrics.csv",
+      "sha256": "67d8499e6dd7091590c19ddb84fff045963aa37cc5345af794c4ab56f528bdc1",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "UL_SNR",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 21.498454545454546,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            321,
+            375
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:32.000",
+            "end": "2027-07-07 00:00:37.400"
+          }
+        },
+        "comparison": {
+          "mean": 16.697845124747293,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            376,
+            448
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:37.500",
+            "end": "2027-07-07 00:00:44.700"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": -106.0,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            321,
+            375
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:32.000",
+            "end": "2027-07-07 00:00:37.400"
+          }
+        },
+        "comparison": {
+          "mean": -114.78611460569948,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            376,
+            448
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:37.500",
+            "end": "2027-07-07 00:00:44.700"
+          }
+        }
+      },
+      {
+        "channel": "UL_NPRB",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 5.0,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            321,
+            375
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:32.000",
+            "end": "2027-07-07 00:00:37.400"
+          }
+        },
+        "comparison": {
+          "mean": 5.8374334434455335,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            376,
+            448
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:37.500",
+            "end": "2027-07-07 00:00:44.700"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_DL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.00514909090909091,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            321,
+            375
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:32.000",
+            "end": "2027-07-07 00:00:37.400"
+          }
+        },
+        "comparison": {
+          "mean": 0.005208985209558201,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            376,
+            448
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:37.500",
+            "end": "2027-07-07 00:00:44.700"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_UL",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.024029090909090906,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            321,
+            375
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:32.000",
+            "end": "2027-07-07 00:00:37.400"
+          }
+        },
+        "comparison": {
+          "mean": 0.023879415559372442,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            376,
+            448
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:37.500",
+            "end": "2027-07-07 00:00:44.700"
+          }
+        }
+      },
+      {
+        "channel": "DL_NumberOfPackets",
+        "direction": "stayed unchanged",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            321,
+            375
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:32.000",
+            "end": "2027-07-07 00:00:37.400"
+          }
+        },
+        "comparison": {
+          "mean": 0.0,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            376,
+            448
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:37.500",
+            "end": "2027-07-07 00:00:44.700"
+          }
+        }
+      },
+      {
+        "channel": "UL_NumberOfPackets",
+        "direction": "stayed unchanged",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0,
+          "valid_count": 55,
+          "raw_rows_inclusive": [
+            321,
+            375
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:32.000",
+            "end": "2027-07-07 00:00:37.400"
+          }
+        },
+        "comparison": {
+          "mean": 0.0,
+          "valid_count": 73,
+          "raw_rows_inclusive": [
+            376,
+            448
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:37.500",
+            "end": "2027-07-07 00:00:44.700"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_009_questions",
+    "scenario_id": "telecomts-a6f309dcd341b8d2436497a1c8a399d14f0dcfce3dabbe725e195c4eb862299e",
+    "membership": "test",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, UL_SNR decreased; RSRP decreased; UL_NPRB increased; RX_Bytes decreased; PRB_Utilization_DL increased; PRB_Utilization_UL increased; DL_NumberOfPackets decreased; UL_NumberOfPackets decreased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, UL_SNR changed from 21.6 to 10.88; RSRP changed from -87 to -99.81; UL_NPRB changed from 5 to 7.251; RX_Bytes changed from 208.8 to 116.1; PRB_Utilization_DL changed from 0.003702 to 0.006632; PRB_Utilization_UL changed from 0.02591 to 0.04373; DL_NumberOfPackets changed from 0.09804 to 0; UL_NumberOfPackets changed from 0.1373 to 0. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_A/YouTube/raw/metrics.csv",
+      "sha256": "a03078fbfaac5147e92500f380331788c92a303c7ca5a5fbb79060a20bb7dd23",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "UL_SNR",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 21.595882352941178,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            1633,
+            1683
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:43.200",
+            "end": "2026-01-28 00:02:48.200"
+          }
+        },
+        "comparison": {
+          "mean": 10.884848921087606,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            1684,
+            1760
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:48.300",
+            "end": "2026-01-28 00:02:55.900"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": -87.0,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            1633,
+            1683
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:43.200",
+            "end": "2026-01-28 00:02:48.200"
+          }
+        },
+        "comparison": {
+          "mean": -99.81441404915985,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            1684,
+            1760
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:48.300",
+            "end": "2026-01-28 00:02:55.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_NPRB",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 5.0,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            1633,
+            1683
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:43.200",
+            "end": "2026-01-28 00:02:48.200"
+          }
+        },
+        "comparison": {
+          "mean": 7.250550184186451,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            1684,
+            1760
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:48.300",
+            "end": "2026-01-28 00:02:55.900"
+          }
+        }
+      },
+      {
+        "channel": "RX_Bytes",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 208.7843137254902,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            1633,
+            1683
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:43.200",
+            "end": "2026-01-28 00:02:48.200"
+          }
+        },
+        "comparison": {
+          "mean": 116.1038961038961,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            1684,
+            1760
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:48.300",
+            "end": "2026-01-28 00:02:55.900"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_DL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0037019607843137253,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            1633,
+            1683
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:43.200",
+            "end": "2026-01-28 00:02:48.200"
+          }
+        },
+        "comparison": {
+          "mean": 0.006632065558263051,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            1684,
+            1760
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:48.300",
+            "end": "2026-01-28 00:02:55.900"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_UL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.025913725490196077,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            1633,
+            1683
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:43.200",
+            "end": "2026-01-28 00:02:48.200"
+          }
+        },
+        "comparison": {
+          "mean": 0.04373011757780058,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            1684,
+            1760
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:48.300",
+            "end": "2026-01-28 00:02:55.900"
+          }
+        }
+      },
+      {
+        "channel": "DL_NumberOfPackets",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.09803921568627451,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            1633,
+            1683
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:43.200",
+            "end": "2026-01-28 00:02:48.200"
+          }
+        },
+        "comparison": {
+          "mean": 0.0,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            1684,
+            1760
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:48.300",
+            "end": "2026-01-28 00:02:55.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_NumberOfPackets",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.13725490196078433,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            1633,
+            1683
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:43.200",
+            "end": "2026-01-28 00:02:48.200"
+          }
+        },
+        "comparison": {
+          "mean": 0.0,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            1684,
+            1760
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:02:48.300",
+            "end": "2026-01-28 00:02:55.900"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_010_questions",
+    "scenario_id": "telecomts-8f3838af972511f0903f2a5480d6c77df8be12f11ab0036af8229a0f2a2f8ce0",
+    "membership": "test",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, UL_SNR decreased; RSRP decreased; UL_NPRB increased; RX_Bytes decreased; PRB_Utilization_DL increased; PRB_Utilization_UL increased; DL_NumberOfPackets decreased; UL_NumberOfPackets decreased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, UL_SNR changed from 21.51 to 7.764; RSRP changed from -87 to -101.5; UL_NPRB changed from 5 to 6.977; RX_Bytes changed from 211.2 to 107.9; PRB_Utilization_DL changed from 0.004465 to 0.00934; PRB_Utilization_UL changed from 0.0236 to 0.03443; DL_NumberOfPackets changed from 0.09459 to 0; UL_NumberOfPackets changed from 0.09459 to 0. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_A/YouTube/raw/metrics.csv",
+      "sha256": "a03078fbfaac5147e92500f380331788c92a303c7ca5a5fbb79060a20bb7dd23",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "UL_SNR",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 21.50554054054054,
+          "valid_count": 74,
+          "raw_rows_inclusive": [
+            8545,
+            8618
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:14.400",
+            "end": "2026-01-28 00:14:21.700"
+          }
+        },
+        "comparison": {
+          "mean": 7.7639804005925,
+          "valid_count": 54,
+          "raw_rows_inclusive": [
+            8619,
+            8672
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:21.800",
+            "end": "2026-01-28 00:14:27.100"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": -87.0,
+          "valid_count": 74,
+          "raw_rows_inclusive": [
+            8545,
+            8618
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:14.400",
+            "end": "2026-01-28 00:14:21.700"
+          }
+        },
+        "comparison": {
+          "mean": -101.53772010354768,
+          "valid_count": 54,
+          "raw_rows_inclusive": [
+            8619,
+            8672
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:21.800",
+            "end": "2026-01-28 00:14:27.100"
+          }
+        }
+      },
+      {
+        "channel": "UL_NPRB",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 5.0,
+          "valid_count": 74,
+          "raw_rows_inclusive": [
+            8545,
+            8618
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:14.400",
+            "end": "2026-01-28 00:14:21.700"
+          }
+        },
+        "comparison": {
+          "mean": 6.976654766762037,
+          "valid_count": 54,
+          "raw_rows_inclusive": [
+            8619,
+            8672
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:21.800",
+            "end": "2026-01-28 00:14:27.100"
+          }
+        }
+      },
+      {
+        "channel": "RX_Bytes",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 211.1891891891892,
+          "valid_count": 74,
+          "raw_rows_inclusive": [
+            8545,
+            8618
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:14.400",
+            "end": "2026-01-28 00:14:21.700"
+          }
+        },
+        "comparison": {
+          "mean": 107.94444444444444,
+          "valid_count": 54,
+          "raw_rows_inclusive": [
+            8619,
+            8672
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:21.800",
+            "end": "2026-01-28 00:14:27.100"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_DL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.004464864864864864,
+          "valid_count": 74,
+          "raw_rows_inclusive": [
+            8545,
+            8618
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:14.400",
+            "end": "2026-01-28 00:14:21.700"
+          }
+        },
+        "comparison": {
+          "mean": 0.009339902579582728,
+          "valid_count": 54,
+          "raw_rows_inclusive": [
+            8619,
+            8672
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:21.800",
+            "end": "2026-01-28 00:14:27.100"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_UL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0236,
+          "valid_count": 74,
+          "raw_rows_inclusive": [
+            8545,
+            8618
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:14.400",
+            "end": "2026-01-28 00:14:21.700"
+          }
+        },
+        "comparison": {
+          "mean": 0.0344314807598028,
+          "valid_count": 54,
+          "raw_rows_inclusive": [
+            8619,
+            8672
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:21.800",
+            "end": "2026-01-28 00:14:27.100"
+          }
+        }
+      },
+      {
+        "channel": "DL_NumberOfPackets",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0945945945945946,
+          "valid_count": 74,
+          "raw_rows_inclusive": [
+            8545,
+            8618
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:14.400",
+            "end": "2026-01-28 00:14:21.700"
+          }
+        },
+        "comparison": {
+          "mean": 0.0,
+          "valid_count": 54,
+          "raw_rows_inclusive": [
+            8619,
+            8672
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:21.800",
+            "end": "2026-01-28 00:14:27.100"
+          }
+        }
+      },
+      {
+        "channel": "UL_NumberOfPackets",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0945945945945946,
+          "valid_count": 74,
+          "raw_rows_inclusive": [
+            8545,
+            8618
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:14.400",
+            "end": "2026-01-28 00:14:21.700"
+          }
+        },
+        "comparison": {
+          "mean": 0.0,
+          "valid_count": 54,
+          "raw_rows_inclusive": [
+            8619,
+            8672
+          ],
+          "time_range": {
+            "start": "2026-01-28 00:14:21.800",
+            "end": "2026-01-28 00:14:27.100"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_011_questions",
+    "scenario_id": "telecomts-315d93f3ea5ab054268d482755084bdfcc398c90c369b0770894aea2c67d1eea",
+    "membership": "test",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, PRB_Utilization_DL increased; PRB_Utilization_UL increased; UL_NumberOfPackets increased; Estimated_UL_Buffer increased; RSRP increased; UL_SNR increased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, PRB_Utilization_DL changed from 0.00802 to 0.8525; PRB_Utilization_UL changed from 0.0309 to 0.7988; UL_NumberOfPackets changed from 0.2857 to 14.19; Estimated_UL_Buffer changed from 0.7582 to 18.87; RSRP changed from -110.7 to -110.4; UL_SNR changed from 18.53 to 19.32. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_B/YouTube/raw/metrics.csv",
+      "sha256": "67d8499e6dd7091590c19ddb84fff045963aa37cc5345af794c4ab56f528bdc1",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "PRB_Utilization_DL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.008019715508987871,
+          "valid_count": 84,
+          "raw_rows_inclusive": [
+            161,
+            244
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:16.000",
+            "end": "2027-07-07 00:00:24.300"
+          }
+        },
+        "comparison": {
+          "mean": 0.85250363048017,
+          "valid_count": 39,
+          "raw_rows_inclusive": [
+            245,
+            283
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:24.400",
+            "end": "2027-07-07 00:00:28.200"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_UL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.03090217018237005,
+          "valid_count": 84,
+          "raw_rows_inclusive": [
+            161,
+            244
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:16.000",
+            "end": "2027-07-07 00:00:24.300"
+          }
+        },
+        "comparison": {
+          "mean": 0.7988345672153755,
+          "valid_count": 39,
+          "raw_rows_inclusive": [
+            245,
+            283
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:24.400",
+            "end": "2027-07-07 00:00:28.200"
+          }
+        }
+      },
+      {
+        "channel": "UL_NumberOfPackets",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.2857142857142857,
+          "valid_count": 84,
+          "raw_rows_inclusive": [
+            161,
+            244
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:16.000",
+            "end": "2027-07-07 00:00:24.300"
+          }
+        },
+        "comparison": {
+          "mean": 14.190776786380525,
+          "valid_count": 39,
+          "raw_rows_inclusive": [
+            245,
+            283
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:24.400",
+            "end": "2027-07-07 00:00:28.200"
+          }
+        }
+      },
+      {
+        "channel": "Estimated_UL_Buffer",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.7582142857142857,
+          "valid_count": 84,
+          "raw_rows_inclusive": [
+            161,
+            244
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:16.000",
+            "end": "2027-07-07 00:00:24.300"
+          }
+        },
+        "comparison": {
+          "mean": 18.8716205313854,
+          "valid_count": 39,
+          "raw_rows_inclusive": [
+            245,
+            283
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:24.400",
+            "end": "2027-07-07 00:00:28.200"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": -110.74232145084518,
+          "valid_count": 84,
+          "raw_rows_inclusive": [
+            161,
+            244
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:16.000",
+            "end": "2027-07-07 00:00:24.300"
+          }
+        },
+        "comparison": {
+          "mean": -110.44941742725528,
+          "valid_count": 39,
+          "raw_rows_inclusive": [
+            245,
+            283
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:24.400",
+            "end": "2027-07-07 00:00:28.200"
+          }
+        }
+      },
+      {
+        "channel": "UL_SNR",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 18.534739007729495,
+          "valid_count": 84,
+          "raw_rows_inclusive": [
+            161,
+            244
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:16.000",
+            "end": "2027-07-07 00:00:24.300"
+          }
+        },
+        "comparison": {
+          "mean": 19.316511621085724,
+          "valid_count": 39,
+          "raw_rows_inclusive": [
+            245,
+            283
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:00:24.400",
+            "end": "2027-07-07 00:00:28.200"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  },
+  {
+    "id": "rca_012_questions",
+    "scenario_id": "telecomts-866959b53f6d54ac7f403ce05692b6e2f215a842c6b405060f7172b87839edc7",
+    "membership": "test",
+    "text_origin": "kpi_derived",
+    "review_status": "approved",
+    "independent_text_evidence": false,
+    "purpose": "Candidate questions for existing held-out RCA cases; exclude from SLM training.",
+    "qualitative_question": "Compared with the earlier interval, PRB_Utilization_DL increased; PRB_Utilization_UL increased; UL_NPRB increased; DL_NumberOfPackets increased; UL_NumberOfPackets increased; RSRP decreased; UL_SNR decreased. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "numeric_question": "Compared with the earlier interval, PRB_Utilization_DL changed from 0.004627 to 1.533; PRB_Utilization_UL changed from 0.02036 to 1.18; UL_NPRB changed from 5 to 6.023; DL_NumberOfPackets changed from 0.07843 to 16.65; UL_NumberOfPackets changed from 0.07843 to 15.65; RSRP changed from -106 to -106.2; UL_SNR changed from 21.67 to 21.07. Units are unverified. Which possible causes fit these observations, which specification passages support them, and what remains uncertain?",
+    "source": {
+      "path": "data/telecomts/raw/anomalous/synthetic/Zone_B/YouTube/raw/metrics.csv",
+      "sha256": "67d8499e6dd7091590c19ddb84fff045963aa37cc5345af794c4ab56f528bdc1",
+      "interval_selection": "Existing golden-case intervals; not independently detected event boundaries."
+    },
+    "measurements": [
+      {
+        "channel": "PRB_Utilization_DL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.004627450980392156,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            3713,
+            3763
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:11.200",
+            "end": "2027-07-07 00:06:16.200"
+          }
+        },
+        "comparison": {
+          "mean": 1.5329210379196985,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            3764,
+            3840
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:16.300",
+            "end": "2027-07-07 00:06:23.900"
+          }
+        }
+      },
+      {
+        "channel": "PRB_Utilization_UL",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.02036078431372549,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            3713,
+            3763
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:11.200",
+            "end": "2027-07-07 00:06:16.200"
+          }
+        },
+        "comparison": {
+          "mean": 1.1800838796508895,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            3764,
+            3840
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:16.300",
+            "end": "2027-07-07 00:06:23.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_NPRB",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 5.0,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            3713,
+            3763
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:11.200",
+            "end": "2027-07-07 00:06:16.200"
+          }
+        },
+        "comparison": {
+          "mean": 6.023394852746868,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            3764,
+            3840
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:16.300",
+            "end": "2027-07-07 00:06:23.900"
+          }
+        }
+      },
+      {
+        "channel": "DL_NumberOfPackets",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0784313725490196,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            3713,
+            3763
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:11.200",
+            "end": "2027-07-07 00:06:16.200"
+          }
+        },
+        "comparison": {
+          "mean": 16.646202751341516,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            3764,
+            3840
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:16.300",
+            "end": "2027-07-07 00:06:23.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_NumberOfPackets",
+        "direction": "increased",
+        "unit": null,
+        "baseline": {
+          "mean": 0.0784313725490196,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            3713,
+            3763
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:11.200",
+            "end": "2027-07-07 00:06:16.200"
+          }
+        },
+        "comparison": {
+          "mean": 15.64641183020777,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            3764,
+            3840
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:16.300",
+            "end": "2027-07-07 00:06:23.900"
+          }
+        }
+      },
+      {
+        "channel": "RSRP",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": -106.0,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            3713,
+            3763
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:11.200",
+            "end": "2027-07-07 00:06:16.200"
+          }
+        },
+        "comparison": {
+          "mean": -106.1853149001536,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            3764,
+            3840
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:16.300",
+            "end": "2027-07-07 00:06:23.900"
+          }
+        }
+      },
+      {
+        "channel": "UL_SNR",
+        "direction": "decreased",
+        "unit": null,
+        "baseline": {
+          "mean": 21.668333333333333,
+          "valid_count": 51,
+          "raw_rows_inclusive": [
+            3713,
+            3763
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:11.200",
+            "end": "2027-07-07 00:06:16.200"
+          }
+        },
+        "comparison": {
+          "mean": 21.069155844155844,
+          "valid_count": 77,
+          "raw_rows_inclusive": [
+            3764,
+            3840
+          ],
+          "time_range": {
+            "start": "2027-07-07 00:06:16.300",
+            "end": "2027-07-07 00:06:23.900"
+          }
+        }
+      }
+    ],
+    "reviewer": "project owner",
+    "reviewed_on": "2026-11-05",
+    "review_scope": "Question wording and measured observations; no approval of independent text evidence or new RCA targets."
+  }
+]

@@ -34,7 +34,8 @@ def passage(rank, spec_id, clause):
 
 
 answerable_index = 0
-for item in golden.items:
+fixture_items = [item for item in golden.items if item.row.type == "spec_qa"]
+for item in fixture_items:
     filler = [("fixture-filler", f"0.{n}") for n in range(1, 11)]
     ranking = filler[:10]
     if item.reference.answerable:
@@ -66,7 +67,7 @@ directory.write_run(
         "identities": {"golden_release": golden.release["release_id"], "split": None},
         "settings": {"retrieval": {"collection": "fixture"}},
         "answers_captured": False,
-        "rows": {"total": len(golden.items)},
+        "rows": {"total": len(fixture_items)},
     }
 )
 print(golden.release["release_id"], len(golden.items))

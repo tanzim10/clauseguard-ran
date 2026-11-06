@@ -1,17 +1,20 @@
 {
-  "release_id": "cc1fe5490adcfaae",
+  "release_id": "058940da4c2c01b6",
   "files": {
     "annotations.jsonl": {
-      "sha256": "e90d2ca2ade81c3d1f96b3d03433a21d03a963f7a04aba3286cf3cdd36cff946",
-      "rows": 24
+      "sha256": "5aac16d0f7f9c938f6e6dbaf78390e6b658d5b55668f9a83bbfe8ab4551aac41",
+      "rows": 36
     },
     "rca.jsonl": {
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rows": 0
+      "sha256": "3310ea84cbf5c3cf331044c52b8bde89c1bcc8d7a19721a54240b604a268cdc4",
+      "rows": 12
     },
     "spec_qa.jsonl": {
       "sha256": "d174666788ec5886834e715c00cd7a33ce519f1dbb87d43179e6d1ad57cd5003",
       "rows": 24
+    },
+    "rca_policy.json": {
+      "sha256": "770e96cd374b8b0b5135d6c5c148db7591b1f2e00172c8c8a0167466636f07a6"
     }
   },
   "sources": {
@@ -77,24 +80,24 @@
         "sha256": "174c856f804c7af10310be03ecd9879e0c27998c26dea5282624df6fae6dc8b7"
       }
     ],
-    "scenario_release": null
+    "scenario_release": {
+      "release_id": "f3bd4d46bb04363adbecd0e3106767f179c560815b09fdf6309aaf013fc0b784",
+      "mode": "exploratory"
+    }
   },
   "counts": {
-    "approved": 24,
+    "approved": 36,
     "by_split": {
       "dev": {
-        "spec_qa": 19
+        "spec_qa": 19,
+        "rca": 5
       },
       "test": {
-        "spec_qa": 5
+        "spec_qa": 5,
+        "rca": 7
       }
     }
   },
-  "complete": false,
-  "incomplete": [
-    "approved rows: 24 of 30",
-    "approved RCA rows: 0 of 6",
-    "dev has no RCA rows",
-    "test has no RCA rows"
-  ]
+  "complete": true,
+  "incomplete": []
 }

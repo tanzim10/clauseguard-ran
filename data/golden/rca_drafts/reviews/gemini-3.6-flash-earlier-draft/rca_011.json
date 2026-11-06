@@ -1,9 +1,0 @@
-{
- "id": "rca_011",
- "provider": "gemini",
- "model": "gemini-3.6-flash",
- "prompt_sha256": "ada4b02d4789387a96b3b5ae24aaa9357c445854e41a674e4e3c047e121976f1",
- "row_sha256": "1f381295c6f406f61a8d5f229c758694cf57354685d7188b39b50728f0f31da2",
- "status": "failed",
- "error": "HTTP 429"
-}

@@ -17,7 +17,7 @@ from clauseguard.eval.annotations import (
     load_annotations,
     section_clause,
 )
-from clauseguard.eval.golden import GoldenLoadError, load_golden
+from clauseguard.eval.golden import GoldenLoadError, load_golden, load_rca
 
 PDF_SHA = "a" * 64
 DOCX_SHA = "b" * 64
@@ -460,14 +460,19 @@ def test_annotations_file_matches_manifest_and_golden_rows():
         manifest=load_manifest(REPO_ROOT / "data" / "corpus" / "manifest.csv"),
     )
 
-    assert check_against_golden(annotations, load_golden(GOLDEN_DIR / "spec_qa.jsonl")) == []
+    rows = [*load_golden(GOLDEN_DIR / "spec_qa.jsonl"), *load_rca(GOLDEN_DIR / "rca.jsonl")]
+    assert check_against_golden(annotations, rows) == []
 
 
 def test_every_golden_row_has_an_approved_annotation():
     annotations = load_annotations(GOLDEN_DIR / "annotations.jsonl")
-    golden_ids = [row.id for row in load_golden(GOLDEN_DIR / "spec_qa.jsonl")]
+    golden_ids = [
+        row.id for row in [
+            *load_golden(GOLDEN_DIR / "spec_qa.jsonl"), *load_rca(GOLDEN_DIR / "rca.jsonl")
+        ]
+    ]
 
     approved = {a.id for a in annotations if a.status == "approved"}
 
-    assert len(golden_ids) == 24
+    assert len(golden_ids) == 36
     assert approved == set(golden_ids)

@@ -39,6 +39,7 @@ RCA_FILE = "rca.jsonl"
 ANNOTATIONS_FILE = "annotations.jsonl"
 MANIFEST_FILE = "manifest.json"
 GOLDEN_FILES = (ANNOTATIONS_FILE, RCA_FILE, SPEC_QA_FILE)
+RCA_POLICY_FILE = "rca_policy.json"
 
 # The original seed questions were written while building the pipeline, so they stay in dev.
 SEED_IDS = frozenset(f"spec_qa_{n:03d}" for n in range(1, 13))
@@ -102,6 +103,35 @@ def evaluate_release(paths: ReleasePaths) -> ReleaseReport:
         return report
 
     scenarios: ScenarioMembership | None = None
+    policy = None
+    policy_path = paths.golden_dir / RCA_POLICY_FILE
+    if policy_path.exists():
+        try:
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            if (
+                policy["version"] != "1"
+                or policy["required_rca_cases"] != 12
+                or policy["recording_family_requirement"] != "waived_by_project_owner"
+                or not policy["approved_by"]
+                or not policy["approved_on"]
+                or policy["independence_verified"] is not False
+                or set(policy["cases"]) != {row.id for row in rca_rows}
+            ):
+                raise ValueError("invalid RCA policy or case membership")
+            for row in rca_rows:
+                case = policy["cases"][row.id]
+                if case["scenario_id"] != row.scenario_id:
+                    raise ValueError("RCA policy scenario identity differs")
+                configurations = case["configurations"]
+                if set(configurations) != {
+                    "kpi_text_base", "kpi_text_slm", "text_rag", "kpi_minimal_text_rag"
+                }:
+                    raise ValueError("RCA policy needs four configuration entries")
+                if row.inputs == "kpi_only" and configurations["text_rag"]["eligible"]:
+                    raise ValueError("text-only configuration requires approved incident text")
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            report.problems.append(f"{RCA_POLICY_FILE}: {exc}")
+            return report
     if rca_rows and (paths.scenario_release / "release.json").exists():
         try:
             scenarios = load_scenario_membership(paths.scenario_release)
@@ -109,11 +139,28 @@ def evaluate_release(paths: ReleasePaths) -> ReleaseReport:
             report.problems.append(f"scenario release {paths.scenario_release}: {exc}")
             return report
 
+    if policy is not None:
+        if scenarios is None:
+            scenarios = ScenarioMembership(
+                policy["source_release_id"], policy["source_mode"],
+                {case["scenario_id"]: case["membership"] for case in policy["cases"].values()},
+            )
+        elif scenarios.release_id != policy["source_release_id"] or any(
+            scenarios.membership.get(case["scenario_id"]) != case["membership"]
+            for case in policy["cases"].values()
+        ):
+            report.problems.append("RCA policy snapshot differs from the scenario release")
+            return report
+
     by_id = {annotation.id: annotation for annotation in annotations}
     report.problems += _row_problems(spec_rows, rca_rows, annotations, by_id)
     report.problems += _spec_family_problems(spec_rows, by_id)
-    report.problems += _rca_problems(rca_rows, by_id, scenarios, paths.scenario_release)
-    report.incomplete = _coverage_gaps(spec_rows, rca_rows, by_id)
+    report.problems += _rca_problems(
+        rca_rows, by_id, scenarios, paths.scenario_release, allow_exploratory=policy is not None
+    )
+    report.incomplete = _coverage_gaps(
+        spec_rows, rca_rows, by_id, minimum_rca=12 if policy is not None else MIN_APPROVED_RCA_ROWS
+    )
     report.manifest = _manifest(
         paths, corpus, annotations, spec_rows, rca_rows, by_id, scenarios, report
     )
@@ -142,7 +189,7 @@ def check_release(paths: ReleasePaths) -> ReleaseReport:
         return report
 
     expected = report.manifest
-    for name in GOLDEN_FILES:
+    for name in expected["files"]:
         if recorded.get("files", {}).get(name) != expected["files"][name]:
             report.problems.append(f"{name} does not match the release manifest; rebuild it")
     for key in ("sources", "counts", "complete", "incomplete", "release_id"):
@@ -229,12 +276,14 @@ def _rca_problems(
     by_id: dict[str, Annotation],
     scenarios: ScenarioMembership | None,
     release_dir: Path,
+    *,
+    allow_exploratory: bool = False,
 ) -> list[str]:
     if not rca_rows:
         return []
     if scenarios is None:
         return [f"{RCA_FILE} has rows but the scenario release {release_dir} is missing"]
-    if scenarios.mode != "scored":
+    if scenarios.mode != "scored" and not allow_exploratory:
         return [f"scenario release {scenarios.release_id} is {scenarios.mode!r}, not 'scored'"]
 
     problems = []
@@ -276,7 +325,8 @@ def _rca_problems(
 
 
 def _coverage_gaps(
-    spec_rows: list[GoldenEvalRow], rca_rows: list[RcaRow], by_id: dict[str, Annotation]
+    spec_rows: list[GoldenEvalRow], rca_rows: list[RcaRow], by_id: dict[str, Annotation],
+    *, minimum_rca: int = MIN_APPROVED_RCA_ROWS,
 ) -> list[str]:
     approved = [
         (row, by_id[row.id])
@@ -288,8 +338,8 @@ def _coverage_gaps(
     gaps = []
     if len(approved) < MIN_APPROVED_ROWS:
         gaps.append(f"approved rows: {len(approved)} of {MIN_APPROVED_ROWS}")
-    if rca_count < MIN_APPROVED_RCA_ROWS:
-        gaps.append(f"approved RCA rows: {rca_count} of {MIN_APPROVED_RCA_ROWS}")
+    if rca_count < minimum_rca:
+        gaps.append(f"approved RCA rows: {rca_count} of {minimum_rca}")
     for split in ("dev", "test"):
         in_split = [(row, a) for row, a in approved if a.membership == split]
         if not any(_is_ordinary(a) for _, a in in_split):
@@ -324,6 +374,9 @@ def _manifest(
         name: {"sha256": _sha256(paths.golden_dir / name), "rows": row_counts[name]}
         for name in GOLDEN_FILES
     }
+    policy_path = paths.golden_dir / RCA_POLICY_FILE
+    if policy_path.exists():
+        files[RCA_POLICY_FILE] = {"sha256": _sha256(policy_path)}
 
     cited = {locator.spec_id for a in annotations for g in a.evidence for locator in g.alternatives}
     cited |= {c.spec_id for row in [*spec_rows, *rca_rows] for c in row.expected_citations}

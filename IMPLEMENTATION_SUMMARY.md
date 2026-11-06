@@ -1113,6 +1113,33 @@ mechanism), and events whose measured change did not show the category's primary
 - A person must open each cited page and approve or reject each case (`review_packet.md`).
 - NVIDIA NIM keys could not be created from Bangladesh, so the review used OpenRouter, Groq and Gemini (OpenAI-compatible providers in the same CLI).
 
+## Task 4.3 — Apply GPT-OSS review edits — 2026-11-05
+
+### Delivered
+
+Populated the RCA file with 12 revised cases beside the 24 existing specification questions.
+The project owner approved all 12 cases and confirmed human citation review on 2026-11-05.
+The project owner waived recording-family verification for this release. Independence remains unverified.
+
+### Technical implementation
+
+- Added a repeatable script that applies bounded edits to the preserved drafts and saved GPT-OSS findings.
+- Preserved source labels, measurements, scenario identities, and split membership.
+- Removed downlink SS-SINR from required evidence for uplink SNR cases.
+- Recorded approved annotations and rebuilt the golden manifest with 36 approved rows.
+- Added a hashed release policy with per-case eligibility and the selected scenario membership snapshot.
+- Allowed the explicit family waiver for this release while preserving source mode and scenario split checks.
+- Kept draft research and scripts local and ignored, as requested.
+- Added 12 reviewed question records in indented JSON, with descriptive and numeric variants.
+- Preserved their KPI-derived origin, raw measurement links, development/test membership, and exclusion from SLM training.
+
+### Verification
+
+The loaders accepted 12 RCA rows and 36 annotations. Cross-reference checks found no problems.
+The focused golden tests passed: 104 tests. Source-value checks confirmed unchanged measurements and the 24 original specification annotations.
+The updated release passes strict checks under the approved waiver. The final focused suite passed 107 tests, and Ruff passed. Text-only RCA remains ineligible because approved incident text is absent.
+The full suite passed 519 tests. The reviewed JSON contains 12 records; its JSONL duplicate was removed before PR preparation.
+
 ## Adding a New Phase
 
 Append a focused phase using this structure:

@@ -1,0 +1,846 @@
+{
+  "version": "1",
+  "required_rca_cases": 12,
+  "recording_family_requirement": "waived_by_project_owner",
+  "approved_by": "project owner",
+  "approved_on": "2026-11-05",
+  "source_release_id": "f3bd4d46bb04363adbecd0e3106767f179c560815b09fdf6309aaf013fc0b784",
+  "source_mode": "exploratory",
+  "independence_verified": false,
+  "minimal_text_fields": [
+    "question"
+  ],
+  "minimal_question": "Explain the observed KPI changes using the supplied specification evidence.",
+  "four_configuration_comparison_ready": false,
+  "comparison_blocker": "No approved incident text exists for the text-only configuration.",
+  "cases": {
+    "rca_001": {
+      "scenario_id": "telecomts-61a3b56949b3d19375eb5d474a8728cc3640aa3e4c32f05bf5fa813ec7bc1af9",
+      "membership": {
+        "category_reason": "",
+        "category_target": 2,
+        "detection_target": 1,
+        "end_time": "2026-09-02 00:08:57.500",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-6aaa4378e87449bd2ac2d04e5cc5e62dffdfdc9050806e23083ee4640185a981",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "Co-Channel Interference (Severe)",
+        "scenario_id": "telecomts-61a3b56949b3d19375eb5d474a8728cc3640aa3e4c32f05bf5fa813ec7bc1af9",
+        "source_file": "anomalous/synthetic/Zone_A/Twitch/processed/chunked.jsonl",
+        "source_row": 11,
+        "split": "dev",
+        "start_time": "2026-09-02 00:08:44.800",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_002": {
+      "scenario_id": "telecomts-0ef60c5b2a02754e4e9af4a1f44a63aad5a76f53a9ea63f4d5ef48a9a4dc4e56",
+      "membership": {
+        "category_reason": "",
+        "category_target": 2,
+        "detection_target": 1,
+        "end_time": "2037-04-08 00:09:03.900",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-128a65d178ae86f23b074e237b0b7ac42fc3d9c9a7d374b107f69069e9a1d710",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "Co-Channel Interference (Severe)",
+        "scenario_id": "telecomts-0ef60c5b2a02754e4e9af4a1f44a63aad5a76f53a9ea63f4d5ef48a9a4dc4e56",
+        "source_file": "anomalous/synthetic/Zone_C/Twitch/processed/chunked.jsonl",
+        "source_row": 4,
+        "split": "dev",
+        "start_time": "2037-04-08 00:08:51.200",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_003": {
+      "scenario_id": "telecomts-8ac8201b86308141f6cd34339b2274de0e38edddb0bc749d447a0b2b38f26221",
+      "membership": {
+        "category_reason": "",
+        "category_target": 8,
+        "detection_target": 1,
+        "end_time": "2026-09-02 00:07:05.500",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-6aaa4378e87449bd2ac2d04e5cc5e62dffdfdc9050806e23083ee4640185a981",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "High Network Congestion (Gradual Buildup)",
+        "scenario_id": "telecomts-8ac8201b86308141f6cd34339b2274de0e38edddb0bc749d447a0b2b38f26221",
+        "source_file": "anomalous/synthetic/Zone_A/Twitch/processed/chunked.jsonl",
+        "source_row": 68,
+        "split": "dev",
+        "start_time": "2026-09-02 00:06:52.800",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_004": {
+      "scenario_id": "telecomts-b0685933f73c9be86af5b68aa71efe8f34487a9fc4a5dac1a84b67910b4a1283",
+      "membership": {
+        "category_reason": "",
+        "category_target": 9,
+        "detection_target": 1,
+        "end_time": "2026-09-02 00:01:35.900",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-6aaa4378e87449bd2ac2d04e5cc5e62dffdfdc9050806e23083ee4640185a981",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "High Network Congestion (Sudden Spike)",
+        "scenario_id": "telecomts-b0685933f73c9be86af5b68aa71efe8f34487a9fc4a5dac1a84b67910b4a1283",
+        "source_file": "anomalous/synthetic/Zone_A/Twitch/processed/chunked.jsonl",
+        "source_row": 97,
+        "split": "dev",
+        "start_time": "2026-09-02 00:01:23.200",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_005": {
+      "scenario_id": "telecomts-ec8abd176a3001dd9eebde990fe8fccb10d7f13daf9f87afe95e6462c6189032",
+      "membership": {
+        "category_reason": "",
+        "category_target": 9,
+        "detection_target": 1,
+        "end_time": "2026-09-02 00:06:33.500",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-6aaa4378e87449bd2ac2d04e5cc5e62dffdfdc9050806e23083ee4640185a981",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "High Network Congestion (Sudden Spike)",
+        "scenario_id": "telecomts-ec8abd176a3001dd9eebde990fe8fccb10d7f13daf9f87afe95e6462c6189032",
+        "source_file": "anomalous/synthetic/Zone_A/Twitch/processed/chunked.jsonl",
+        "source_row": 96,
+        "split": "dev",
+        "start_time": "2026-09-02 00:06:20.800",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_006": {
+      "scenario_id": "telecomts-27aa7e0653b962a96812e3c35b973596058dad2806a6a9d7c0782811fa01d3ea",
+      "membership": {
+        "category_reason": "",
+        "category_target": 6,
+        "detection_target": 1,
+        "end_time": "2026-01-28 00:07:08.700",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-eafe6e671551d71f8dfe46141dfed768e35d8c42cd1635144b888eb523cd13fa",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "Buffer Overflow (Gradual Buildup)",
+        "scenario_id": "telecomts-27aa7e0653b962a96812e3c35b973596058dad2806a6a9d7c0782811fa01d3ea",
+        "source_file": "anomalous/synthetic/Zone_A/YouTube/processed/chunked.jsonl",
+        "source_row": 95,
+        "split": "test",
+        "start_time": "2026-01-28 00:06:56.000",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_007": {
+      "scenario_id": "telecomts-e9d3c94262c9a437c27459583cc334db52da00d723867bced91417ba7593a8bb",
+      "membership": {
+        "category_reason": "",
+        "category_target": 6,
+        "detection_target": 1,
+        "end_time": "2027-07-07 00:14:39.900",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-e6c16ffb8df2ca8e08581ab6b3bf8360800c9ecca81bae8d2fb823809d8710f7",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "Buffer Overflow (Gradual Buildup)",
+        "scenario_id": "telecomts-e9d3c94262c9a437c27459583cc334db52da00d723867bced91417ba7593a8bb",
+        "source_file": "anomalous/synthetic/Zone_B/YouTube/processed/chunked.jsonl",
+        "source_row": 60,
+        "split": "test",
+        "start_time": "2027-07-07 00:14:27.200",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_008": {
+      "scenario_id": "telecomts-2510347a7fdef5a421825133cdaa33062d97a8919d92363decbb7c4fb5faca25",
+      "membership": {
+        "category_reason": "",
+        "category_target": 1,
+        "detection_target": 1,
+        "end_time": "2027-07-07 00:00:44.700",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-e6c16ffb8df2ca8e08581ab6b3bf8360800c9ecca81bae8d2fb823809d8710f7",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "Co-Channel Interference (Mild)",
+        "scenario_id": "telecomts-2510347a7fdef5a421825133cdaa33062d97a8919d92363decbb7c4fb5faca25",
+        "source_file": "anomalous/synthetic/Zone_B/YouTube/processed/chunked.jsonl",
+        "source_row": 44,
+        "split": "test",
+        "start_time": "2027-07-07 00:00:32.000",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_009": {
+      "scenario_id": "telecomts-a6f309dcd341b8d2436497a1c8a399d14f0dcfce3dabbe725e195c4eb862299e",
+      "membership": {
+        "category_reason": "",
+        "category_target": 2,
+        "detection_target": 1,
+        "end_time": "2026-01-28 00:02:55.900",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-eafe6e671551d71f8dfe46141dfed768e35d8c42cd1635144b888eb523cd13fa",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "Co-Channel Interference (Severe)",
+        "scenario_id": "telecomts-a6f309dcd341b8d2436497a1c8a399d14f0dcfce3dabbe725e195c4eb862299e",
+        "source_file": "anomalous/synthetic/Zone_A/YouTube/processed/chunked.jsonl",
+        "source_row": 4,
+        "split": "test",
+        "start_time": "2026-01-28 00:02:43.200",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_010": {
+      "scenario_id": "telecomts-8f3838af972511f0903f2a5480d6c77df8be12f11ab0036af8229a0f2a2f8ce0",
+      "membership": {
+        "category_reason": "",
+        "category_target": 2,
+        "detection_target": 1,
+        "end_time": "2026-01-28 00:14:27.100",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-eafe6e671551d71f8dfe46141dfed768e35d8c42cd1635144b888eb523cd13fa",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "Co-Channel Interference (Severe)",
+        "scenario_id": "telecomts-8f3838af972511f0903f2a5480d6c77df8be12f11ab0036af8229a0f2a2f8ce0",
+        "source_file": "anomalous/synthetic/Zone_A/YouTube/processed/chunked.jsonl",
+        "source_row": 81,
+        "split": "test",
+        "start_time": "2026-01-28 00:14:14.400",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_011": {
+      "scenario_id": "telecomts-315d93f3ea5ab054268d482755084bdfcc398c90c369b0770894aea2c67d1eea",
+      "membership": {
+        "category_reason": "",
+        "category_target": 8,
+        "detection_target": 1,
+        "end_time": "2027-07-07 00:00:28.700",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-e6c16ffb8df2ca8e08581ab6b3bf8360800c9ecca81bae8d2fb823809d8710f7",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "High Network Congestion (Gradual Buildup)",
+        "scenario_id": "telecomts-315d93f3ea5ab054268d482755084bdfcc398c90c369b0770894aea2c67d1eea",
+        "source_file": "anomalous/synthetic/Zone_B/YouTube/processed/chunked.jsonl",
+        "source_row": 59,
+        "split": "test",
+        "start_time": "2027-07-07 00:00:16.000",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    },
+    "rca_012": {
+      "scenario_id": "telecomts-866959b53f6d54ac7f403ce05692b6e2f215a842c6b405060f7172b87839edc7",
+      "membership": {
+        "category_reason": "",
+        "category_target": 8,
+        "detection_target": 1,
+        "end_time": "2027-07-07 00:06:23.900",
+        "evidence_status": "unresolved",
+        "excluded_channels": [
+          "DL_Protocol",
+          "UL_Protocol"
+        ],
+        "exclusion_reason": "",
+        "fault_label": "abnormal",
+        "group_id": "family-e6c16ffb8df2ca8e08581ab6b3bf8360800c9ecca81bae8d2fb823809d8710f7",
+        "kpi_reason": "",
+        "origin": "synthetic",
+        "raw_match": true,
+        "raw_reason": "",
+        "rca_label": "High Network Congestion (Gradual Buildup)",
+        "scenario_id": "telecomts-866959b53f6d54ac7f403ce05692b6e2f215a842c6b405060f7172b87839edc7",
+        "source_file": "anomalous/synthetic/Zone_B/YouTube/processed/chunked.jsonl",
+        "source_row": 36,
+        "split": "test",
+        "start_time": "2027-07-07 00:06:11.200",
+        "text_reasons": {
+          "category": "no_approved_text",
+          "detection": "no_approved_text"
+        },
+        "unknown_units": [
+          "DL_BLER",
+          "DL_MCS",
+          "DL_NumberOfPackets",
+          "DL_Protocol",
+          "Estimated_UL_Buffer",
+          "PRB_Utilization_DL",
+          "PRB_Utilization_UL",
+          "PRBs_DL_Current",
+          "PRBs_UL_Current",
+          "RSRP",
+          "RX_Bytes",
+          "TX_Bytes",
+          "UL_BLER",
+          "UL_MCS",
+          "UL_NPRB",
+          "UL_NumberOfPackets",
+          "UL_Protocol",
+          "UL_SNR"
+        ]
+      },
+      "configurations": {
+        "kpi_text_base": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "kpi_text_slm": {
+          "eligible": true,
+          "text_state": "missing"
+        },
+        "text_rag": {
+          "eligible": false,
+          "reason": "no_approved_text"
+        },
+        "kpi_minimal_text_rag": {
+          "eligible": true,
+          "text_state": "omitted_by_configuration"
+        }
+      }
+    }
+  }
+}

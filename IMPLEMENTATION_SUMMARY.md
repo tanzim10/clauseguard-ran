@@ -1115,6 +1115,8 @@ mechanism), and events whose measured change did not show the category's primary
 
 ## Task 4.3 — Apply GPT-OSS review edits — 2026-11-05
 
+**Pull request:** [#66](https://github.com/tanzim10/clauseguard-ran/pull/66)
+
 ### Delivered
 
 Populated the RCA file with 12 revised cases beside the 24 existing specification questions.

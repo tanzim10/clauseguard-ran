@@ -136,7 +136,11 @@ def _classify(deltas: dict[str, float]) -> str:
     down = any(d < 0 for d in deltas.values())
     if up and down:
         return "mixed"
-    return "improved" if up else "worsened" if down else "unchanged"
+    if up:
+        return "improved"
+    if down:
+        return "worsened"
+    return "unchanged"
 
 
 def _changed_outputs(old: RowRecord, new: RowRecord) -> list[str]:

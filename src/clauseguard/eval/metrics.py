@@ -194,12 +194,13 @@ def score_ranking(
                 duplicates += 1
             seen.add(clause)
         covered = sum(1 for group in reference.groups if group & found)
+        matching_slots = sum(1 for clause in top if clause in relevant)
         cutoffs[k] = CutoffScore(
             clause_recall=len(found) / len(relevant),
             group_coverage=covered / len(reference.groups),
             complete_reference_match=covered == len(reference.groups),
-            precision=sum(1 for clause in top if clause in relevant) / k,
-            matching_slots=sum(1 for clause in top if clause in relevant),
+            precision=matching_slots / k,
+            matching_slots=matching_slots,
             returned_slots=len(top),
             duplicate_slots=duplicates,
         )

@@ -21,6 +21,7 @@ remains outside its scope.
 - [Task 3.1 — Validated Experiment Data](#task-31--validated-experiment-data)
 - [Task 3.8 — Held-Out Evaluation of the KPI Baselines](#task-38--held-out-evaluation-of-the-kpi-baselines--2026-11-05)
 - [Task 3.9 — Frozen MantisV2 Baseline](#task-39--frozen-mantisv2-baseline--2026-10-28)
+- [Task 3.10 — Frozen Toto 2.0 Detection Baseline](#task-310--frozen-toto-20-detection-baseline--2026-11-05)
 - [Task 4.1 — RCA input and output contract](#task-41--rca-input-and-output-contract--2026-11-03)
 - [Task 4.3 — Draft RCA golden cases and independent model review](#task-43--draft-rca-golden-cases-and-independent-model-review--2026-11-04)
 - [Adding a New Phase](#adding-a-new-phase)
@@ -1221,6 +1222,78 @@ with `DYLD_FALLBACK_LIBRARY_PATH` pointing at scikit-learn's bundled `sklearn/.d
   a fresh untouched evaluation. All numbers stay provisional until recording families are verified.
 - The KPI/text matching-case analysis needs approved text (Task 3.7).
 - Mantis (Task 3.9) and Toto (Task 3.10) are separate issues and not in this report.
+
+## Task 3.10 — Frozen Toto 2.0 Detection Baseline — 2026-11-05
+
+**Focus:** [Issue #53](https://github.com/tanzim10/clauseguard-ran/issues/53) — test whether
+forecast errors from a frozen Toto 2.0 model add useful fault-detection evidence.
+
+**Status:** Complete on dev; provisional because recording reviews are unresolved. No test scores were run.
+
+**PR:** TBD
+
+### Delivered
+
+In simple words: Toto looks at the first 96 measurements of each window and predicts the last 32.
+If the prediction is far from what really happened, the window is flagged. A simple
+"repeat the last value" forecast is scored the same way as a reference.
+
+| Detector (dev, 6,590 windows) | Macro-F1 | Fault recall | False alarms | Missed faults | Failed |
+|---|---:|---:|---:|---:|---:|
+| Toto 2.0 22m | 0.561 | 0.156 | 222 | 227 | 0 |
+| Last value | 0.533 | 0.086 | 175 | 246 | 0 |
+| XGBoost (seed 42) | 0.882 | 0.691 | 26 | 83 | 0 |
+
+Toto beats the last-value reference but is far below XGBoost. It misses 88 of the 92 dev jamming
+windows: the fault covers the whole window, so the context already contains it and the forecast
+error stays small (the limitation the issue predicted). Of 269 dev faults, 222 have an injected
+interval reaching the forecast segment; Toto catches 33 of those.
+
+### Technical implementation
+
+- `kpi/toto.py`: pins `toto-2==2.0.0`, `Datadog/Toto-2.0-22m` revision
+  `685e4ae3e2be8d8998025e53dd98e7fdcb296a89` and `model.safetensors` SHA-256 `9cd503d8…`.
+  The loader checks the hash, the 21,915,584 parameters and the nine quantile levels, then
+  freezes every parameter.
+  - Inputs are `(batch, 16, 96)` in `NUMERIC_CHANNELS` order, `series_ids` zeros `(batch, 16)`,
+    `decode_block_size=None`, `horizon=32` (96 and 32 are whole 32-step patches; no padding).
+    The median (index 4 of `(9, batch, 16, 32)`) is used, and the shape is checked.
+  - Masked context values get a finite placeholder (last observation, else next, else 0); the
+    future 32 steps never reach the model. `has_missing_values=True` for every batch, so a
+    window's forecast never depends on whether a neighbour has gaps.
+  - Scales: population SD of observed values in normal training windows, 1 for a constant
+    channel. Score: mean over 16 channels of MAE on observed targets / scale. A channel with
+    no observed context or targets, or a non-finite forecast, is a failed prediction.
+  - Threshold: 101 quantiles of finite dev scores plus an all-normal endpoint (saved as
+    `null`); best dev macro-F1, then fewer false alarms, then higher threshold. `score >= threshold`.
+- `baselines/toto.py`: scales from 19,089 training windows, forecasts cached by checkpoint,
+  release, cohort, context, masks, channel order and inference settings. It checks repeat
+  predictions (identical) and batch isolation on 8 windows (max abs difference 0.125 on values
+  in the hundreds of thousands, within `rtol=1e-4`), and checks that weights are unchanged after
+  forecasting and threshold selection. Runs save scales, threshold, scores, observation masks, errors by
+  origin and forecast-segment coverage, then are compared with XGBoost on identical dev IDs. `predict`
+  replays a saved detector without refitting.
+- `cli/toto.py` (`train`, `predict`), `notebooks/toto_baseline.ipynb` (comparison, score
+  distributions with threshold, errors by origin, one forecast with the 10%-90% band for display).
+- `pyproject.toml`: optional `toto` extra with a `python_version >= '3.12'` marker; the main
+  package still supports 3.11. Install: `uv sync --python 3.12 --extra dev --extra baselines --extra toto`.
+
+### Verification
+
+- `uv run pytest tests/test_toto.py tests/test_toto_runner.py -q`: 10 passed with a fake
+  forecaster (input split, scales, masks and placeholders, score formula and failure reasons,
+  threshold rule and ties, forecast call arguments and shape check, cache reuse without the
+  model, replay, tampered detector, failed forecasts kept, weight drift).
+- Real run on CPU (M3 Pro): 70 s to forecast the 6,590 dev windows (119 s on a busier first
+  run), peak process memory 1.27 GB, model 21.9M parameters (87.7 MB weights). Replaying both
+  saved detectors on dev reproduced every prediction. The notebook ran all cells without errors.
+- Artifacts: `artifacts/experiments/toto-detection-2026-11-05/`, cache `artifacts/cache/toto/`.
+
+### Out of scope and follow-ups
+
+- Test scoring belongs to the frozen final evaluation, after the threshold is fixed.
+- Category prediction, fine-tuning, larger checkpoints and other horizons stay out of scope.
+
 
 
 ## Adding a New Phase

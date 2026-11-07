@@ -1230,7 +1230,7 @@ forecast errors from a frozen Toto 2.0 model add useful fault-detection evidence
 
 **Status:** Complete on dev; provisional because recording reviews are unresolved. No test scores were run.
 
-**PR:** TBD
+**PR:** [#68 — Add frozen Toto 2.0 forecast-error detection baseline](https://github.com/tanzim10/clauseguard-ran/pull/68)
 
 ### Delivered
 

@@ -1151,6 +1151,8 @@ reproducible test report for Random Forest, XGBoost and TimesNet, with settings 
 **Status:** KPI-only report complete and provisional. The KPI/text comparison is blocked
 because no text is approved (Task 3.7), so full Task 3 is not complete.
 
+**PR:** [#67 — Freeze Task 3 KPI protocol and report held-out baseline results](https://github.com/tanzim10/clauseguard-ran/pull/67)
+
 ### Delivered
 
 In simple words: one command writes down every choice made on development data (models,

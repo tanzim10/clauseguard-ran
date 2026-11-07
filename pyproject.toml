@@ -34,6 +34,10 @@ timesnet = [
 mantis = [
   "mantis-tsfm @ git+https://github.com/vfeofanov/mantis.git@23ecfe493830db177546ef159947de7d79a573bd",
 ]
+# Toto 2.0 requires Python 3.12+; the main package still supports 3.11.
+toto = [
+  "toto-2==2.0.0; python_version >= '3.12'",
+]
 analysis = [
   "pandas>=2.2.0",
   "matplotlib>=3.9.0",

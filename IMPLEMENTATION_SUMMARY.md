@@ -19,6 +19,7 @@ remains outside its scope.
 - [Phase 11 — Golden RCA Contract and Release Manifest](#phase-11--golden-rca-contract-and-release-manifest)
 - [Phase 12 — Golden Evaluation Runner](#phase-12--golden-evaluation-runner)
 - [Task 3.1 — Validated Experiment Data](#task-31--validated-experiment-data)
+- [Task 3.8 — Held-Out Evaluation of the KPI Baselines](#task-38--held-out-evaluation-of-the-kpi-baselines--2026-11-05)
 - [Task 3.9 — Frozen MantisV2 Baseline](#task-39--frozen-mantisv2-baseline--2026-10-28)
 - [Task 4.1 — RCA input and output contract](#task-41--rca-input-and-output-contract--2026-11-03)
 - [Task 4.3 — Draft RCA golden cases and independent model review](#task-43--draft-rca-golden-cases-and-independent-model-review--2026-11-04)
@@ -1141,6 +1142,84 @@ The loaders accepted 12 RCA rows and 36 annotations. Cross-reference checks foun
 The focused golden tests passed: 104 tests. Source-value checks confirmed unchanged measurements and the 24 original specification annotations.
 The updated release passes strict checks under the approved waiver. The final focused suite passed 107 tests, and Ruff passed. Text-only RCA remains ineligible because approved incident text is absent.
 The full suite passed 519 tests. The reviewed JSON contains 12 records; its JSONL duplicate was removed before PR preparation.
+
+## Task 3.8 — Held-Out Evaluation of the KPI Baselines — 2026-11-05
+
+**Focus:** [Issue #40](https://github.com/tanzim10/clauseguard-ran/issues/40) — one
+reproducible test report for Random Forest, XGBoost and TimesNet, with settings frozen on dev.
+
+**Status:** KPI-only report complete and provisional. The KPI/text comparison is blocked
+because no text is approved (Task 3.7), so full Task 3 is not complete.
+
+### Delivered
+
+In simple words: one command writes down every choice made on development data (models,
+settings, seeds, checkpoints, test cohorts, earlier test exposure, text status) and seals it
+with a hash. A second command then runs the saved checkpoints on test, never refitting
+anything, and builds CSV tables, a markdown report and a notebook with figures from the saved
+per-case predictions.
+
+| Task (test) | Random Forest | XGBoost | TimesNet | Reference |
+|---|---:|---:|---:|---:|
+| Detection macro-F1 (mean of 3 seeds) | 0.674 | **0.925** | 0.638 | 0.487 (all normal) |
+| Fault recall | 0.19-0.28 | 0.777 | 0.64-0.72 | 0 |
+| False alarms / 6,012 normal | 1 | 11 | 564-844 | 0 |
+| Category macro-F1 (216 windows) | 0.229 | **0.352** | 0.138 | |
+| Combined diagnosis macro-F1 | 0.202 | **0.322** | 0.211 | |
+
+- XGBoost is the strongest detector; TimesNet catches many faults but raises hundreds of false
+  alarms. Calling every window normal already gives 95.1% accuracy, so accuracy alone misleads.
+- Category scores collapse from dev to test (RF 0.569 → 0.229). The category test set has only
+  two recording groups, so this mostly measures recording shift, not model quality.
+- Doppler Shift (Severe) and High Network Congestion (Sudden Spike) test windows are missed by
+  every model. Random Forest misses 89 of 93 jamming windows; XGBoost misses 3.
+- Group confidence intervals are unavailable (5 detection groups, 2 category groups; 10 needed).
+- RF/XGBoost seed-42 numbers match the earlier Task 3.3/3.4 test figures, which confirms the replay.
+
+### Technical implementation
+
+- `baselines/final_evaluation.py`:
+  - `freeze_protocol` reuses the Task 3.6 dev comparison (same release, dev cohort and training
+    IDs required), records each selected seed's run and checkpoint hash, the dev comparator per
+    task (detection XGBoost, category Random Forest), the test cohort IDs, every earlier test-split
+    run found on disk, and the Task 3.7 text readiness. It refuses to overwrite a protocol, and
+    any later edit breaks its hash.
+  - `predict_test` checks the protocol hash, the test cohorts and every checkpoint, then calls each
+    model's existing `predict_saved_model`. Completed runs are reused, so the report regenerates
+    without model libraries.
+  - `build_tables`/`write_report`: detection, category, combined diagnosis
+    (`score_combined_diagnosis`, detector first, jamming only in detection), per-class, errors by
+    origin, seed summary, cost, a normal-majority reference, and `confusion.json`.
+    `matching_case_counts` (both correct / KPI only / text only / neither) is ready for when text exists.
+- `cli/final_evaluation.py`: `freeze` and `evaluate`. `notebooks/task3_final_evaluation.ipynb`
+  plots detection, per-class category F1 and the comparator's diagnosis confusion matrix.
+- `baselines/artifacts.py` fix: `load_run` compared saved and recomputed metrics exactly. Python
+  3.12 made float `sum()` compensated, so runs saved under 3.11 failed to reload under 3.12 by one
+  unit in the last place. Floats now compare with `rel_tol=1e-12`; file checksums still catch edits.
+
+Environment: test predictions ran on Python 3.11.15 with scikit-learn 1.9.1, XGBoost 3.2.0,
+torch 2.14.1 and numpy 2.4.6, the versions the checkpoints were trained with (the lock resolves
+XGBoost 3.4.1 on 3.12). TimesNet ran on CPU. A first attempt on Python 3.12 was stopped after it
+wrote one Random Forest test run; that run was deleted unread and the protocol was frozen again
+under 3.11 before any test score was viewed. On macOS without Homebrew `libomp`, XGBoost loads
+with `DYLD_FALLBACK_LIBRARY_PATH` pointing at scikit-learn's bundled `sklearn/.dylibs`.
+
+### Verification
+
+- `uv run pytest tests/test_final_evaluation.py tests/test_baseline_artifacts.py -q`: hand-worked
+  combined diagnosis (perfect, all-normal and all-alarm detectors), errors by origin, the four
+  correctness groups, failure accounting, changed checkpoints, protocol tampering, reuse of runs.
+- `make test` with all baseline extras: 512 passed, 1 skipped. Ruff passes on the new files.
+- Artifacts: `artifacts/experiments/task-3-8-final-evaluation-2026-11-05/` (protocol `458c1e61`,
+  18 test runs, `tables/*.csv`, `report.md`, `figures/`).
+
+### Out of scope and follow-ups
+
+- Prior test exposure: RF and XGBoost seed-42 test scores were seen in Tasks 3.3/3.4; this is not
+  a fresh untouched evaluation. All numbers stay provisional until recording families are verified.
+- The KPI/text matching-case analysis needs approved text (Task 3.7).
+- Mantis (Task 3.9) and Toto (Task 3.10) are separate issues and not in this report.
+
 
 ## Adding a New Phase
 

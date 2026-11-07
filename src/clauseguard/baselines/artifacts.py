@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -63,6 +64,23 @@ def write_experiment_run(path: Path, dataset: ScenarioDataset, metadata: RunMeta
                      bootstrap_replicates=bootstrap_replicates)
 
 
+def _same_metrics(saved: Any, recomputed: Any) -> bool:
+    """Exact match except floats, which may differ in the last bits across Python versions.
+
+    Python 3.12 made float `sum()` compensated, so a macro-F1 saved under 3.11 can differ by one
+    unit in the last place. File checksums still detect any edit to a saved run.
+    """
+    if isinstance(saved, dict) and isinstance(recomputed, dict):
+        return saved.keys() == recomputed.keys() and all(
+            _same_metrics(saved[key], recomputed[key]) for key in saved)
+    if isinstance(saved, list) and isinstance(recomputed, list):
+        return len(saved) == len(recomputed) and all(map(_same_metrics, saved, recomputed))
+    if (isinstance(saved, float) or isinstance(recomputed, float)) and all(
+            isinstance(v, int | float) and not isinstance(v, bool) for v in (saved, recomputed)):
+        return math.isclose(saved, recomputed, rel_tol=1e-12, abs_tol=1e-15)
+    return saved == recomputed
+
+
 def load_run(path: Path) -> dict[str, Any]:
     """Verify and rescore a run using only its saved per-case records."""
     path = Path(path)
@@ -79,7 +97,7 @@ def load_run(path: Path) -> dict[str, Any]:
     saved_metrics = json.loads(contents["metrics.json"])
     scoring = json.loads(contents["scoring.json"])
     recomputed = score_predictions(metadata.task, expected, groups, predictions, **scoring)
-    if saved_metrics != recomputed:
+    if not _same_metrics(saved_metrics, recomputed):
         raise ValueError("saved metrics do not match predictions")
     return {"metadata": metadata, "expected": expected, "groups": groups,
             "predictions": predictions, "metrics": recomputed}

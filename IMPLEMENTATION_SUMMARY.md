@@ -1302,7 +1302,7 @@ a small supervised Transformer over KPI patches learns useful temporal patterns.
 
 **Status:** Complete on dev; provisional because recording reviews are unresolved. No test scores were run.
 
-**PR:** TBD
+**PR:** [#69 — Add supervised PatchTST baseline for detection and categories](https://github.com/tanzim10/clauseguard-ran/pull/69)
 
 ### Delivered
 

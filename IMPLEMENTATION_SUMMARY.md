@@ -22,6 +22,7 @@ remains outside its scope.
 - [Task 3.8 — Held-Out Evaluation of the KPI Baselines](#task-38--held-out-evaluation-of-the-kpi-baselines--2026-11-05)
 - [Task 3.9 — Frozen MantisV2 Baseline](#task-39--frozen-mantisv2-baseline--2026-10-28)
 - [Task 3.10 — Frozen Toto 2.0 Detection Baseline](#task-310--frozen-toto-20-detection-baseline--2026-11-05)
+- [Task 3.11 — PatchTST Baseline](#task-311--patchtst-baseline--2026-11-06)
 - [Task 4.1 — RCA input and output contract](#task-41--rca-input-and-output-contract--2026-11-03)
 - [Task 4.3 — Draft RCA golden cases and independent model review](#task-43--draft-rca-golden-cases-and-independent-model-review--2026-11-04)
 - [Adding a New Phase](#adding-a-new-phase)
@@ -1294,6 +1295,81 @@ interval reaching the forecast segment; Toto catches 33 of those.
 - Test scoring belongs to the frozen final evaluation, after the threshold is fixed.
 - Category prediction, fine-tuning, larger checkpoints and other horizons stay out of scope.
 
+## Task 3.11 — PatchTST Baseline — 2026-11-06
+
+**Focus:** [Issue #54](https://github.com/tanzim10/clauseguard-ran/issues/54) — test whether
+a small supervised Transformer over KPI patches learns useful temporal patterns.
+
+**Status:** Complete on dev; provisional because recording reviews are unresolved. No test scores were run.
+
+**PR:** TBD
+
+### Delivered
+
+In simple words: each of the 16 KPI channels is cut into short overlapping pieces (patches).
+A small Transformer reads the patches of one channel at a time, and a final linear layer combines
+all 16 channels to label the window. Separate models are trained for detection and the ten
+fault categories, with four settings tried and the best one repeated with two more seeds.
+
+| Detection (dev, 6,590 windows) | Macro-F1 (3 seeds) | Accuracy | False alarms | Missed faults | Failed |
+|---|---:|---:|---:|---:|---:|
+| PatchTST | 0.807 ± 0.029 | 0.971–0.978 | 56 / 8 / 41 | 98 / 138 / 151 | 0 |
+| XGBoost | 0.882 ± 0.000 | 0.983 | 26 | 83 | 0 |
+| Random Forest | 0.661 ± 0.005 | 0.956–0.959 | 76–95 | 195–197 | 0 |
+| TimesNet | 0.616 ± 0.032 | 0.822–0.916 | 407–1,094 | 65–146 | 0 |
+
+PatchTST is second on detection: better than RF and TimesNet, below XGBoost. Its abnormal-class
+F1 is 0.628 (XGBoost 0.773, RF 0.344, TimesNet 0.301). On categories
+(177 dev windows) it reaches 0.159 ± 0.020 macro-F1, about the same as TimesNet (0.166) and far
+below RF (0.569) and XGBoost (0.518). Every category trial had its best dev loss in the first or
+second epoch, so the randomly initialized encoder overfits the 563 training windows, as the
+issue's limitations section expected. Classes 3, 4, 5 and 7 are never predicted correctly.
+
+### Technical implementation
+
+- `kpi/patchtst.py` adapts the classification path of yuqinie98/PatchTST
+  (`PatchTST_self_supervised`, commit `204c21ef…`, Apache 2.0; license in
+  `licenses/PatchTST-LICENSE`, changes listed in the module docstring). Upstream defaults kept:
+  residual attention, post-norm, learnable zero positional encoding, shared patch embedding, GELU.
+- Architecture from the issue: 2 layers, width 32, 4 heads, feed-forward 64, LayerNorm,
+  dropout 0.1, head dropout 0.1, attention dropout 0. Patch 8 / stride 4 gives 31 patches and
+  patch 16 / stride 8 gives 15; `create_patches` refuses any setting that does not cover all
+  128 steps. The head uses the last patch of each channel (16 × 32 = 512 features).
+  Parameters: 19,140–19,396 (detection), 23,244–23,500 (category).
+- Inputs reuse TimesNet's `WindowScaler` (train medians, means and population SDs, SD 1 for a
+  constant channel, `NUMERIC_CHANNELS` order) with no per-window normalization.
+- Training: AdamW (weight decay 1e-4), batch 32, gradient clip 1.0, balanced `N/(K·count)`
+  weighted-mean cross-entropy; early stop on unweighted dev cross-entropy (patience 10, cap 100)
+  and restore the best epoch. Grid patch {8, 16} × lr {1e-3, 3e-4} with seed 42, selected by
+  full-dev macro-F1 (ties keep grid order), then seeds 43/44. Both tasks selected patch 16, lr 1e-3.
+- `baselines/patchtst.py` checks release, training IDs, dev cohort and labels against the
+  XGBoost seed-42 run (shared `_reference`), never loads test during training, and writes the
+  same `selection.json` layout as TimesNet so `compare_experiments` works unchanged. Every
+  saved model is reloaded before the run is written and must give the same argmax and logits
+  within `rtol=1e-5, atol=1e-6`; the max difference is recorded (0.0 on all 12 runs).
+- `cli/patchtst.py`: `train`, `predict` (replay a checkpoint without refitting) and `compare`
+  (`--experiment NAME=DIR`). `notebooks/patchtst_baseline.ipynb` shows trials, training curves,
+  the comparison, per-class F1 for both tasks, the reload check, and a CLI `predict` replay of
+  the selected detection model on dev.
+- Run on CPU (bit-reproducible) with Python 3.11.15 and torch 2.14.1 to match the earlier
+  baselines: about 28 s per detection epoch at patch 16 (48 s at patch 8), under 1.5 s per
+  category epoch; about 1 ms per window for prediction; 1.29 GB peak RSS.
+
+### Verification
+
+- 10 new tests: patch coverage and count, grid order, output shapes, no attention between
+  channels, train-only scaling and channel order, weighted loss against a hand computation,
+  deterministic CPU training, reload/checksum, runner (4 settings, 3 seeds, dev only, scaler fit
+  on train), compare and CLI.
+- Full suite after merging the latest main (all extras, Python 3.12): 538 passed. Ruff passes on
+  all new files.
+- Replaying `detection/config-2-seed-42` on dev with `predict` reproduced all 6,590 predictions
+  and the same macro-F1 (0.8387).
+
+### Out of scope and follow-ups
+
+- Masked pretraining, external checkpoints, channel mixers, resampling, and wider searches (per the issue).
+- Test scoring belongs to the frozen final evaluation (Task 3.8), not to this PR.
 
 
 ## Adding a New Phase

@@ -1,6 +1,14 @@
+import json
+
 import pytest
 
-from clauseguard.baselines.artifacts import compare_runs, load_run, write_experiment_run, write_run
+from clauseguard.baselines.artifacts import (
+    _digest,
+    compare_runs,
+    load_run,
+    write_experiment_run,
+    write_run,
+)
 from clauseguard.baselines.contracts import CasePrediction, RunMetadata
 from clauseguard.baselines.data import experiment_cohort
 from clauseguard.cli.baseline_runs import main as run_cli
@@ -79,3 +87,29 @@ def test_run_rejects_corruption_and_comparison_requires_same_cohort(experiment_r
 def test_run_cli_reports_invalid_artifact(tmp_path, capsys):
     assert run_cli(["score", str(tmp_path / "missing")]) == 1
     assert "baseline score failed" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("delta, loads", [(1e-16, True), (1e-6, False)])
+def test_saved_metrics_allow_last_bit_float_differences_only(experiment_release, tmp_path,
+                                                             delta, loads):
+    cohort = experiment_cohort(experiment_release, split="train", task="category")
+    expected = {sid: experiment_release.splits["membership"][sid]["category_target"]
+                for sid in cohort.scenario_ids}
+    groups = {sid: experiment_release.splits["membership"][sid]["group_id"] for sid in expected}
+    predictions = [CasePrediction(scenario_id=sid, task="category", predicted_label=(target + 1) % 10)
+                   for sid, target in expected.items()]
+    metadata = RunMetadata(model="rf", task="category", cohort=cohort)
+    path = tmp_path / "run"
+    write_run(path, metadata, expected, groups, predictions, bootstrap_replicates=0)
+    # Simulate a run saved by another Python version, then reseal the checksums.
+    metrics = json.loads((path / "metrics.json").read_text())
+    metrics["macro_f1"] += delta
+    (path / "metrics.json").write_text(json.dumps(metrics, sort_keys=True, separators=(",", ":")))
+    integrity = json.loads((path / "integrity.json").read_text())
+    integrity["metrics.json"] = _digest((path / "metrics.json").read_bytes())
+    (path / "integrity.json").write_text(json.dumps(integrity))
+    if loads:
+        assert load_run(path)["metrics"]["macro_f1"] == pytest.approx(metrics["macro_f1"])
+    else:
+        with pytest.raises(ValueError, match="saved metrics do not match"):
+            load_run(path)

@@ -1499,7 +1499,7 @@ uv run python -m clauseguard.cli.detector_predictions reproduce --release-dir da
 the summarizer stub with deterministic, source-traceable evidence records for the RCA packet.
 
 
-**PR:** TBD
+**PR:** https://github.com/tanzim10/clauseguard-ran/pull/71
 
 **Status:** Complete for the available sources (TelecomTS, BubbleRAN, SpotLight); TeleLogs and
 5G core faults are recorded as unavailable. Depends on Task 4.2 detector predictions.

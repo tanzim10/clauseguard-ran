@@ -23,6 +23,7 @@ remains outside its scope.
 - [Task 3.9 — Frozen MantisV2 Baseline](#task-39--frozen-mantisv2-baseline--2026-10-28)
 - [Task 3.10 — Frozen Toto 2.0 Detection Baseline](#task-310--frozen-toto-20-detection-baseline--2026-11-05)
 - [Task 3.11 — PatchTST Baseline](#task-311--patchtst-baseline--2026-11-06)
+- [Mantis and PatchTST Test Macro-F1](#mantis-and-patchtst-test-macro-f1--2026-11-09)
 - [Task 4.1 — RCA input and output contract](#task-41--rca-input-and-output-contract--2026-11-03)
 - [Task 4.3 — Draft RCA golden cases and independent model review](#task-43--draft-rca-golden-cases-and-independent-model-review--2026-11-04)
 - [Task 4.2 — Detector predictions for RCA and SLM data](#task-42--detector-predictions-for-rca-and-slm-data--2026-11-09)
@@ -1673,6 +1674,35 @@ uv run python -m clauseguard.cli.retrieval_snapshots replay --manifest artifacts
 
 - Running the live snapshots needs `NVIDIA_API_KEY` and the Qdrant index.
 - Retrieval tuning, rerankers, prompt projections per configuration and generation stay in later tasks.
+
+## Mantis and PatchTST Test Macro-F1 — 2026-11-09
+
+**Focus:** Score the dev-selected Mantis and PatchTST models on the release test split.
+
+**Status:** Provisional. The release still has unverified recording independence.
+
+### Results
+
+| Task | Mantis | PatchTST | Test windows |
+|---|---:|---:|---:|
+| Detection macro-F1 | 0.884 | 0.765 | 6,321 |
+| Category macro-F1 | 0.251 | 0.099 | 216 |
+
+Mantis detection made 13 false alarms and missed 104 faults. PatchTST made 2 false alarms and
+missed 192 faults. The category set has only two recording groups, so its scores are unstable.
+Recording-group confidence intervals are unavailable because both tasks have fewer than ten groups.
+
+### Evaluation settings
+
+- Both models used release `f3bd4d46bb04363adbecd0e3106767f179c560815b09fdf6309aaf013fc0b784`.
+- Mantis used its dev-selected embedding head for detection and embedding-plus-statistics head for
+  categories. PatchTST used the dev-selected patch length 16 and learning rate `0.001`.
+- This report uses seed 42 for both models. PatchTST settings came from prior dev selection. Test
+  scores did not select a model, setting, threshold or preprocessing choice.
+- The release is exploratory. The Task 3.8 report already used this test split for Random Forest,
+  XGBoost and TimesNet. These added scores do not represent a fresh untouched test set.
+- Run artifacts are in `artifacts/experiments/patchtst-selected-test-2026-11-09/` and
+  `artifacts/experiments/mantis-patchtst-macro-f1-2026-11-09/`. The repo ignores these artifacts.
 
 ## Adding a New Phase
 

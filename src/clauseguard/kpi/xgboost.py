@@ -37,28 +37,44 @@ def _matrix(features, targets, *, labels, training):
     return matrix
 
 
+def _classifier(task, configuration, seed, **settings):
+    if configuration not in CONFIGURATIONS:
+        raise ValueError("configuration is outside the four-config search")
+    objective = "binary:logistic" if task == "detection" else "multi:softprob"
+    task_parameters = {"scale_pos_weight": 1} if task == "detection" else {"num_class": 10}
+    return XGBClassifier(
+        objective=objective, eval_metric="logloss" if task == "detection" else "mlogloss",
+        tree_method="hist", device="cpu", n_jobs=1, learning_rate=0.05, subsample=1,
+        colsample_bytree=1, random_state=seed, **configuration, **task_parameters, **settings,
+    )
+
+
 def fit_booster(train_features, train_targets, dev_features, dev_targets, *,
                 task, configuration, seed):
     """Fit with balanced training weights and unweighted dev loss for early stopping."""
     labels = _labels(task)
-    if configuration not in CONFIGURATIONS:
-        raise ValueError("configuration is outside the four-config search")
+    booster = _classifier(task, configuration, seed, n_estimators=500, callbacks=[
+        EarlyStopping(rounds=30, data_name="validation_0",
+                      metric_name="logloss" if task == "detection" else "mlogloss",
+                      maximize=False, save_best=True)])
     train = _matrix(train_features, train_targets, labels=labels, training=True)
     dev = _matrix(dev_features, dev_targets, labels=labels, training=False)
-    metric = "logloss" if task == "detection" else "mlogloss"
-    objective = "binary:logistic" if task == "detection" else "multi:softprob"
-    task_parameters = {"scale_pos_weight": 1} if task == "detection" else {"num_class": 10}
-    booster = XGBClassifier(
-        objective=objective, eval_metric=metric, tree_method="hist", device="cpu",
-        n_jobs=1, learning_rate=0.05, n_estimators=500, subsample=1,
-        colsample_bytree=1, random_state=seed, **configuration, **task_parameters,
-        callbacks=[EarlyStopping(rounds=30, data_name="validation_0", metric_name=metric,
-                                 maximize=False, save_best=True)],
-    )
     booster.fit(train, train_targets,
                 sample_weight=compute_sample_weight("balanced", train_targets),
                 eval_set=[(dev, dev_targets)], verbose=False)
     # Native UBJSON carries names so reload can check column order as well as count.
+    booster.get_booster().feature_names = list(ChannelMedianFeatures.feature_names_)
+    return booster
+
+
+def fit_fixed_rounds(train_features, train_targets, *, task, configuration, seed, rounds):
+    """Refit a frozen configuration for its recorded round count; no validation data is used."""
+    if not isinstance(rounds, int) or isinstance(rounds, bool) or rounds < 1:
+        raise ValueError("rounds must be a positive integer")
+    booster = _classifier(task, configuration, seed, n_estimators=rounds)
+    train = _matrix(train_features, train_targets, labels=_labels(task), training=True)
+    booster.fit(train, train_targets, sample_weight=compute_sample_weight("balanced", train_targets),
+                verbose=False)
     booster.get_booster().feature_names = list(ChannelMedianFeatures.feature_names_)
     return booster
 

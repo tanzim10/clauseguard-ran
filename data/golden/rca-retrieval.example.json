@@ -1,0 +1,281 @@
+{
+  "example_status": "Task 4.5 example. 'real_snapshot' is the saved output of the actual run for rca_001; 'fixture_snapshot' is FIXTURE data (toy corpus, hand-made ranking) that shows a completed snapshot and its replay; it is not a real retrieval run.",
+  "frozen_manifest_summary": {
+    "version": "rca-retrieval-manifest-v1",
+    "frozen_on": "2026-11-09",
+    "manifest_sha256": "fe854ad2b6abcab88038372983a47ba31db72b6a695099ee578636acb4bdbd52",
+    "embeddings": {
+      "dimensions": 2048,
+      "model": "nvidia/llama-nemotron-embed-vl-1b-v2",
+      "query_input_type": "query",
+      "revision": null,
+      "revision_note": "the provider does not expose a model revision; recorded as a reproducibility limit"
+    },
+    "query_builder": {
+      "rules": {
+        "detector": "the detector prediction label when its status is ok; otherwise omitted and recorded",
+        "excluded": "reference labels, expected conclusions, golden citations and review decisions have no field in the packet and cannot enter the query",
+        "kpi": "one line per channel with a mean record, in channel order: name, mean, minimum and maximum rounded to 4 significant digits",
+        "question": "the packet question, verbatim",
+        "text": "approved text records, verbatim, in evidence-ID order"
+      },
+      "version": "rca-query-v1"
+    },
+    "search": {
+      "filters": null,
+      "parameters": "Qdrant query_points defaults (approximate HNSW)",
+      "score_threshold": null,
+      "top_k": 8
+    },
+    "processing": {
+      "duplicates": "a repeated chunk ID keeps its first rank; later copies are recorded as filtered",
+      "excerpt": "the whole indexed chunk text is supplied; no shortening",
+      "ordering": "Qdrant rank order (descending score); ranks start at 1",
+      "scores": "ranking values only, never diagnosis probabilities"
+    },
+    "limits": [
+      "a fresh approximate search can rank differently; the snapshot preserves what was supplied",
+      "all four configurations reuse the same saved passages; because the query used the full packet, the passages can retain information from modalities that a configuration omits. Modality-specific queries are a separate experiment."
+    ],
+    "index": {
+      "collection": "oran_specs_nemotron_vl_2048",
+      "content": "the chunk inventory above, embedded as passages",
+      "distance": "Cosine",
+      "point_id": "uuid5(NAMESPACE_URL, chunk_id)",
+      "rebuild": "uv run python -m clauseguard.cli.index_corpus",
+      "status": {
+        "checked": false
+      }
+    },
+    "chunks": {
+      "chunk_size_tokens": 512,
+      "chunker": "clauseguard.corpus.chunker.chunk_document",
+      "count": 10715,
+      "inventory_sha256": "9f9eb03a81593fa30be0c33755aa0c878f6a365282b8bd8859311236a5f8f04f"
+    },
+    "corpus": {
+      "manifest_sha256": "90df96492f188070b78bcf3baea7b49c597050427793ace45cef39320e86e8bb",
+      "documents": 12
+    }
+  },
+  "real_snapshot": {
+    "case": {
+      "case_id": "telecomts-61a3b56949b3d19375eb5d474a8728cc3640aa3e4c32f05bf5fa813ec7bc1af9",
+      "dataset": "TelecomTS",
+      "packet_sha256": "fbaf7cddbaf1e1e50d25516a7600ebc5a05d10e97e669d0c26665f46255da3a9",
+      "scenario_id": "telecomts-61a3b56949b3d19375eb5d474a8728cc3640aa3e4c32f05bf5fa813ec7bc1af9"
+    },
+    "filtered": [],
+    "manifest_sha256": "fe854ad2b6abcab88038372983a47ba31db72b6a695099ee578636acb4bdbd52",
+    "passages": [],
+    "query": "In a 12.8-second KPI window from a single 5G NR cell, a change starts about 6.7 s in: uplink SNR went from about 21.4 to about 6.4; RSRP went from about -87.8 to about -98.1; uplink BLER went from about 0.087 to about 0.189. What is the most likely root cause, and which specification clauses support that explanation?\nObserved KPI statistics: DL_BLER: mean 0.001488, minimum 0, maximum 0.01179; DL_MCS: mean 7, minimum 7, maximum 7; DL_NumberOfPackets: mean 27.08, minimum 0, maximum 139.9; Estimated_UL_Buffer: mean 4640, minimum 35.84, maximum 2.399e+04; PRB_Utilization_DL: mean 4.511, minimum 0, maximum 17.26; PRB_Utilization_UL: mean 2.138, minimum 0.0472, maximum 10.75; PRBs_DL_Current: mean 1.888, minimum 0, maximum 9.3; PRBs_UL_Current: mean 0.3116, minimum 0.05, maximum 4.34; RSRP: mean -92.72, minimum -98.46, maximum -87; RX_Bytes: mean 578.1, minimum 71, maximum 8768; TX_Bytes: mean 6289, minimum 0, maximum 2.284e+04; UL_BLER: mean 0.1355, minimum 0.02804, maximum 0.3564; UL_MCS: mean 27, minimum 27, maximum 27; UL_NPRB: mean 10.94, minimum 5, maximum 40.41; UL_NumberOfPackets: mean 29.34, minimum 0, maximum 173.5; UL_SNR: mean 14.25, minimum 4.339, maximum 22.58\nDetector prediction (diagnosis): Co-Channel Interference (Severe)",
+    "query_inputs": {
+      "detector_prediction": {
+        "model_run_id": "detection-then-category-v1:xgboost/detection/config-3-seed-42@b4ad3cbd9eb8+random_forest/category/config-1-seed-42@051cf21f78cb",
+        "status": "ok",
+        "used": true
+      },
+      "kpi_evidence_ids": [
+        "K1",
+        "K2",
+        "K3",
+        "K4",
+        "K5",
+        "K6",
+        "K7",
+        "K8",
+        "K9",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K15",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K25",
+        "K26",
+        "K27",
+        "K28",
+        "K29",
+        "K30",
+        "K31",
+        "K32",
+        "K33",
+        "K34",
+        "K35",
+        "K36",
+        "K37",
+        "K38",
+        "K39",
+        "K40",
+        "K41",
+        "K42",
+        "K43",
+        "K44",
+        "K45",
+        "K46",
+        "K47",
+        "K48"
+      ],
+      "kpi_state": "included",
+      "template_version": "rca-query-v1",
+      "text_evidence_ids": [],
+      "text_state": "missing"
+    },
+    "reason": "SearchConfigurationError: NVIDIA_API_KEY is required for embeddings (ValueError('NVIDIA_API_KEY is required for embeddings'))",
+    "snapshot_id": "9d014be9da5952e0f715227568b3505f0e0d8e5525145a991c0569b2e111a509",
+    "stage": "configuration",
+    "state": "failed",
+    "timing": {
+      "mode": "live",
+      "retrieval_seconds": 1.645900192670524e-05
+    },
+    "version": "rca-retrieval-snapshot-v1"
+  },
+  "fixture_snapshot": {
+    "version": "rca-retrieval-snapshot-v1",
+    "manifest_sha256": "b59eba3d99d4e99185cb3d59fdce7c2868422cc24f8d6f9fc0b1b2777c77663b",
+    "case": {
+      "case_id": "rca_001",
+      "scenario_id": "telecomts-61a3b56949b3d19375eb5d474a8728cc3640aa3e4c32f05bf5fa813ec7bc1af9",
+      "dataset": "TelecomTS",
+      "packet_sha256": "fbaf7cddbaf1e1e50d25516a7600ebc5a05d10e97e669d0c26665f46255da3a9"
+    },
+    "query": "In a 12.8-second KPI window from a single 5G NR cell, a change starts about 6.7 s in: uplink SNR went from about 21.4 to about 6.4; RSRP went from about -87.8 to about -98.1; uplink BLER went from about 0.087 to about 0.189. What is the most likely root cause, and which specification clauses support that explanation?\nObserved KPI statistics: DL_BLER: mean 0.001488, minimum 0, maximum 0.01179; DL_MCS: mean 7, minimum 7, maximum 7; DL_NumberOfPackets: mean 27.08, minimum 0, maximum 139.9; Estimated_UL_Buffer: mean 4640, minimum 35.84, maximum 2.399e+04; PRB_Utilization_DL: mean 4.511, minimum 0, maximum 17.26; PRB_Utilization_UL: mean 2.138, minimum 0.0472, maximum 10.75; PRBs_DL_Current: mean 1.888, minimum 0, maximum 9.3; PRBs_UL_Current: mean 0.3116, minimum 0.05, maximum 4.34; RSRP: mean -92.72, minimum -98.46, maximum -87; RX_Bytes: mean 578.1, minimum 71, maximum 8768; TX_Bytes: mean 6289, minimum 0, maximum 2.284e+04; UL_BLER: mean 0.1355, minimum 0.02804, maximum 0.3564; UL_MCS: mean 27, minimum 27, maximum 27; UL_NPRB: mean 10.94, minimum 5, maximum 40.41; UL_NumberOfPackets: mean 29.34, minimum 0, maximum 173.5; UL_SNR: mean 14.25, minimum 4.339, maximum 22.58\nDetector prediction (diagnosis): Co-Channel Interference (Severe)",
+    "query_inputs": {
+      "template_version": "rca-query-v1",
+      "kpi_evidence_ids": [
+        "K1",
+        "K2",
+        "K3",
+        "K4",
+        "K5",
+        "K6",
+        "K7",
+        "K8",
+        "K9",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K15",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K25",
+        "K26",
+        "K27",
+        "K28",
+        "K29",
+        "K30",
+        "K31",
+        "K32",
+        "K33",
+        "K34",
+        "K35",
+        "K36",
+        "K37",
+        "K38",
+        "K39",
+        "K40",
+        "K41",
+        "K42",
+        "K43",
+        "K44",
+        "K45",
+        "K46",
+        "K47",
+        "K48"
+      ],
+      "text_evidence_ids": [],
+      "kpi_state": "included",
+      "text_state": "missing",
+      "detector_prediction": {
+        "used": true,
+        "status": "ok",
+        "model_run_id": "detection-then-category-v1:xgboost/detection/config-3-seed-42@b4ad3cbd9eb8+random_forest/category/config-1-seed-42@051cf21f78cb"
+      }
+    },
+    "state": "completed",
+    "stage": null,
+    "reason": null,
+    "passages": [
+      {
+        "rank": 1,
+        "score": 0.91,
+        "evidence_id": "S1",
+        "point_id": "28930eab-4ab4-5353-b270-8427a5b70c67",
+        "chunk_id": "FIXTURE-SPEC-B::1 Scope::0",
+        "document_id": "FIXTURE-SPEC-B",
+        "version": "0.0.0",
+        "clause": "1 Scope",
+        "source_file": "FIXTURE-SPEC-B.pdf",
+        "text": "1 Scope\n\nToy text about measurements.",
+        "content_sha256": "8a65af5d4b33b85d06d98018b80135b78ebb0dd79ec4055b0962f583e628c2b6"
+      },
+      {
+        "rank": 2,
+        "score": 0.42,
+        "evidence_id": "S2",
+        "point_id": "a7457a9b-b82e-5fd9-8a59-55ff60083402",
+        "chunk_id": "FIXTURE-SPEC-A::1 Scope::0",
+        "document_id": "FIXTURE-SPEC-A",
+        "version": "0.0.0",
+        "clause": "1 Scope",
+        "source_file": "FIXTURE-SPEC-A.pdf",
+        "text": "1 Scope\n\nToy text about scheduling.",
+        "content_sha256": "9983d19401f817f5ae020b68d588666835ef37106fc953c1205c59492e7abce2"
+      }
+    ],
+    "filtered": [],
+    "timing": {
+      "mode": "live",
+      "retrieval_seconds": 2.4040986318141222e-05
+    },
+    "snapshot_id": "836e6626220b49fe38aa9be150347f2fba283f93e3601d20677a81939713b4d0"
+  },
+  "fixture_replay": {
+    "specification_evidence": [
+      {
+        "evidence_id": "S1",
+        "chunk_id": "FIXTURE-SPEC-B::1 Scope::0",
+        "document_id": "FIXTURE-SPEC-B",
+        "version": "0.0.0",
+        "clause": "1 Scope",
+        "text": "1 Scope\n\nToy text about measurements.",
+        "content_sha256": "8a65af5d4b33b85d06d98018b80135b78ebb0dd79ec4055b0962f583e628c2b6"
+      },
+      {
+        "evidence_id": "S2",
+        "chunk_id": "FIXTURE-SPEC-A::1 Scope::0",
+        "document_id": "FIXTURE-SPEC-A",
+        "version": "0.0.0",
+        "clause": "1 Scope",
+        "text": "1 Scope\n\nToy text about scheduling.",
+        "content_sha256": "9983d19401f817f5ae020b68d588666835ef37106fc953c1205c59492e7abce2"
+      }
+    ],
+    "retrieval_status": "completed",
+    "timing_mode": "replay"
+  },
+  "reproduction": [
+    "uv run python -m clauseguard.cli.retrieval_snapshots freeze --frozen-on 2026-11-09 --output artifacts/rca/retrieval-manifest-2026-11-09.json",
+    "uv run python -m clauseguard.cli.retrieval_snapshots run --manifest artifacts/rca/retrieval-manifest-2026-11-09.json --packets artifacts/rca/evidence-2026-11-09/packets.jsonl --run-dir artifacts/rca/retrieval-<date>",
+    "uv run python -m clauseguard.cli.retrieval_snapshots replay --manifest artifacts/rca/retrieval-manifest-2026-11-09.json --packets artifacts/rca/evidence-2026-11-09/packets.jsonl --run-dir artifacts/rca/retrieval-<date> --output artifacts/rca/retrieval-<date>/packets.replayed.jsonl"
+  ]
+}

@@ -1382,7 +1382,7 @@ for the RCA cases and for SLM training candidates.
 **Status:** Complete; provisional because recording-family relationships are unresolved, so no
 prediction is eligible for a scored release or the approved training release.
 
-**PR:** TBD
+**PR:** [#70](https://github.com/tanzim10/clauseguard-ran/pull/70)
 
 ### Delivered
 

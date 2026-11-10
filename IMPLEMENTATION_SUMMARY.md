@@ -1588,7 +1588,7 @@ uv run python -m clauseguard.cli.build_evidence table --dataset bubbleran --csv 
 
 **Focus:** [Issue #60](https://github.com/tanzim10/clauseguard-ran/issues/60) — build queries from permitted inputs, freeze retrieval settings, save each case's exact passages, and replay them so both generators receive identical specification evidence.
 
-**PR:** TBD
+**PR:** https://github.com/tanzim10/clauseguard-ran/pull/72
 
 **Status:** Code, manifest and replay complete. The live snapshots for the 12 RCA cases still need
 an NVIDIA embedding key and the Qdrant index: on this machine the key is not set, so the run saved

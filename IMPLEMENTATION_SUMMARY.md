@@ -25,6 +25,7 @@ remains outside its scope.
 - [Task 3.11 — PatchTST Baseline](#task-311--patchtst-baseline--2026-11-06)
 - [Task 4.1 — RCA input and output contract](#task-41--rca-input-and-output-contract--2026-11-03)
 - [Task 4.3 — Draft RCA golden cases and independent model review](#task-43--draft-rca-golden-cases-and-independent-model-review--2026-11-04)
+- [Task 4.2 — Detector predictions for RCA and SLM data](#task-42--detector-predictions-for-rca-and-slm-data--2026-11-09)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -1371,6 +1372,125 @@ issue's limitations section expected. Classes 3, 4, 5 and 7 are never predicted 
 - Masked pretraining, external checkpoints, channel mixers, resampling, and wider searches (per the issue).
 - Test scoring belongs to the frozen final evaluation (Task 3.8), not to this PR.
 
+
+## Task 4.2 — Detector predictions for RCA and SLM data — 2026-11-09
+
+**Focus:** [Issue #57](https://github.com/tanzim10/clauseguard-ran/issues/57) — select
+a Task 3 detector, map its outputs into the Task 4.1 contract, and save reproducible predictions
+for the RCA cases and for SLM training candidates.
+
+**Status:** Complete; provisional because recording-family relationships are unresolved, so no
+prediction is eligible for a scored release or the approved training release.
+
+**PR:** TBD
+
+### Delivered
+
+In simple words: the RCA pipeline now has a fixed detector. Detection runs on every KPI window;
+when it says "abnormal", the category model names one of the ten synthetic faults. The choice
+of models is sealed in a hashed manifest, the 12 golden RCA cases have saved predictions, and
+every training window has a prediction from a model that never saw its recording.
+
+| Task | Selected (dev mean macro-F1) | Other candidates (dev) |
+|---|---|---|
+| Detection | XGBoost 0.882 (depth 6, child weight 5, seed 42, 127 rounds) | PatchTST 0.807, MantisV2 0.766, RF 0.661, TimesNet 0.616 |
+| Category | Random Forest 0.569 (depth 12, leaf 1, seed 42) | XGBoost 0.518, MantisV2 0.351, TimesNet 0.166, PatchTST 0.159 |
+
+- **12 golden RCA cases:** detection flags 8 as abnormal, so category runs on those 8. Diagnosis
+  predictions: Co-Channel Interference (Severe) 4, High Network Congestion (Gradual Buildup) 3,
+  Antenna Failure 1, normal 4. All 12 detection and all 8 category predictions are identical to
+  the saved Task 3 runs (5 dev cases against the selected dev runs, 7 test cases against the
+  Task 3.8 test runs). Scored against the release labels, detection catches 8 of 12 faults and
+  category agrees on 6 of 8.
+- **19,089 SLM training candidates:** 5 family folds over the 22 training families. Out of fold,
+  detection catches 354 of 563 synthetic faults and 0 of 94 jamming windows (the only jamming
+  family is never in its own fold's training data), with 2,805 false alarms on 18,432 normal
+  windows. These rates are far below the in-distribution dev scores, which is what an unseen
+  recording looks like.
+- **Text:** no case has text with RCA permission (`missing: no_approved_text` for all 19,101).
+
+### Technical implementation
+
+- `rca/detector.py`:
+  - `freeze_selection` reads each Task 3 candidate's `selection.json`, takes the highest mean dev
+    macro-F1 per task (ties keep candidate order), always uses the seed-42 run (the search seed,
+    so no seed is chosen by score), and seals the manifest with SHA-256. It records model
+    identity, checkpoint path and hash, preprocessing (channel and feature order, training
+    medians, versions), data identity (source revision, release, cohorts, training-ID hash),
+    training and development families, development use (XGBoost: early stopping and selection;
+    RF: selection), label mapping, readiness, 23 earlier test-split runs found on disk, the
+    five-dataset compatibility table and the text policy. A frozen selection is never overwritten.
+  - `to_detector_prediction` maps `CasePrediction` into `DetectorPrediction` with the resolved
+    label name, mapping version, run ID, KPI source modality and an uncalibrated confidence
+    (`predict_proba` of the predicted class; source and calibration status are saved beside it).
+    Failed calls stay `error`, unmappable outputs `invalid`, and absences keep a reason.
+  - `run_pipeline`: detection for every window, category only when detection is abnormal,
+    diagnosis `0` for normal and `category + 1` otherwise (the Task 3.8 mapping). Category
+    predictions stay predictions; unsupported faults such as jamming are never mapped to a cause.
+  - `load_head` rejects a different release, channel layout, label mapping or checkpoint hash.
+    Prediction records (`CaseRecord`) hold no label, target or split field.
+  - `rca_text_eligibility` requires explicit RCA permission; detection/category approval is not
+    enough, and diagnosis-derived or label-revealing text is excluded.
+- `rca/cross_fit.py`: families are ordered by origin (synthetic, real, normal) and family ID and
+  dealt round-robin into folds. Dev and test families (and every RCA case family) are reserved
+  and refused if they appear in training. Each fold refits the frozen configuration and its own
+  channel medians on the other folds only; XGBoost uses `fit_fixed_rounds` with the recorded
+  127 rounds and no validation data. A fold model that cannot be fitted is recorded as
+  unavailable and its predictions are `absent` with the reason. `check_separation` verifies
+  every prediction; `reproduce_cross_fit` reloads the saved fold checkpoints and compares.
+- `kpi/xgboost.py`: the classifier settings moved into a shared `_classifier`; `fit_fixed_rounds`
+  is new. A 127-round refit on the full training split reproduced the selected checkpoint's dev
+  predictions and probabilities exactly (largest difference 0.0); the RF refit did the same.
+- `rca/detector_report.py` and `cli/detector_predictions.py` (`freeze`, `predict`, `reproduce`)
+  write `rca_cases.jsonl`, `cross_fit/` (fold checkpoints, `folds.json`, `predictions.jsonl`),
+  `report.json` and `report.md`. Label agreement is computed only in the report's evaluation
+  section and never written into prediction records.
+
+Reproduction (Python 3.11 with scikit-learn 1.9.1 and XGBoost 3.2.0, the checkpoint versions):
+
+```bash
+uv run python -m clauseguard.cli.detector_predictions freeze --release-dir data/scenarios/release --allow-exploratory \
+  --candidate random_forest=artifacts/experiments/rf-all-data-provisional-2026-10-19 \
+  --candidate xgboost=artifacts/experiments/xgboost-full-data-2026-10-19 \
+  --candidate timesnet=artifacts/experiments/timesnet-v3-full \
+  --candidate patchtst=artifacts/experiments/patchtst-full-data-2026-11-05 \
+  --candidate mantis=artifacts/experiments/mantis-full-data-provisional-2026-10-28 \
+  --exposure-dir artifacts/experiments --frozen-on 2026-11-09 --output artifacts/rca/detector-selection-2026-11-09.json
+uv run python -m clauseguard.cli.detector_predictions predict --release-dir data/scenarios/release --allow-exploratory \
+  --selection artifacts/rca/detector-selection-2026-11-09.json --output-dir artifacts/rca/detector-predictions-2026-11-09
+uv run python -m clauseguard.cli.detector_predictions reproduce --release-dir data/scenarios/release --allow-exploratory \
+  --selection artifacts/rca/detector-selection-2026-11-09.json --output-dir artifacts/rca/detector-predictions-2026-11-09
+```
+
+### Dataset compatibility
+
+| Dataset | Detector predictions |
+|---|---|
+| TelecomTS | Implemented against the checked release and its checkpoints |
+| BubbleRAN | Absent: MAC KPIs at 1 Hz, cumulative counters and unverified units; no reviewed channel mapping |
+| SpotLight | Absent: radio and platform streams with unverified alignment; no compatible window |
+| TeleLogs | Absent: no compatible detector or KPI input; files not available locally |
+| 5G core faults | Absent: text-only cases |
+
+### Verification
+
+- `uv run pytest tests/test_detector_predictions.py -q` (14 tests): label mappings for each task,
+  adapter failures, category only after abnormal detection, error vs invalid vs absent,
+  unavailable fold models, dataset table against the contract's five sources, no reference
+  fields in records, RCA text permission, deterministic folds, dev-based selection and sealing,
+  incompatible release/channels/mapping/checkpoint, saved-run agreement, family separation and
+  fold medians, reproduction and tampering, and the CLI.
+- Real data: selection `4f184db8…`; `reproduce` reloaded every checkpoint and matched all 12 RCA
+  case records and all 19,089 out-of-fold records exactly; the separation check found no
+  held-out or reserved family in any fold's training data.
+- Artifacts (local, not committed): `artifacts/rca/detector-selection-2026-11-09.json` and
+  `artifacts/rca/detector-predictions-2026-11-09/` (report, predictions, fold checkpoints).
+
+### Out of scope and follow-ups
+
+- The 5 dev golden cases come from the families XGBoost used for early stopping and both models
+  used for selection; the report marks them. Earlier test exposure is listed in the manifest.
+- New detector searches, evidence summaries, retrieval and SLM example approval stay in later tasks.
 
 ## Adding a New Phase
 

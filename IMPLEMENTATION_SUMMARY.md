@@ -26,6 +26,7 @@ remains outside its scope.
 - [Task 4.1 — RCA input and output contract](#task-41--rca-input-and-output-contract--2026-11-03)
 - [Task 4.3 — Draft RCA golden cases and independent model review](#task-43--draft-rca-golden-cases-and-independent-model-review--2026-11-04)
 - [Task 4.2 — Detector predictions for RCA and SLM data](#task-42--detector-predictions-for-rca-and-slm-data--2026-11-09)
+- [Task 4.4 — Traceable evidence records](#task-44--traceable-evidence-records--2026-11-09)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -1491,6 +1492,96 @@ uv run python -m clauseguard.cli.detector_predictions reproduce --release-dir da
 - The 5 dev golden cases come from the families XGBoost used for early stopping and both models
   used for selection; the report marks them. Earlier test exposure is listed in the manifest.
 - New detector searches, evidence summaries, retrieval and SLM example approval stay in later tasks.
+
+## Task 4.4 — Traceable evidence records — 2026-11-09
+
+**Focus:** [Issue #59](https://github.com/tanzim10/clauseguard-ran/issues/59) — replace
+the summarizer stub with deterministic, source-traceable evidence records for the RCA packet.
+
+
+**PR:** TBD
+
+**Status:** Complete for the available sources (TelecomTS, BubbleRAN, SpotLight); TeleLogs and
+5G core faults are recorded as unavailable. Depends on Task 4.2 detector predictions.
+
+### Delivered
+
+In simple words: every number the RCA model will see is now computed the same way every time and
+points back to its exact source (file, row, channel, revision and file hash). Anything that cannot
+be measured safely is kept out with a written reason instead of being guessed.
+
+- The 12 golden RCA windows produce 12 `EvidencePacket`s with 576 KPI records (16 channels ×
+  mean, minimum, maximum) and the Task 4.2 diagnosis prediction. The 2 categorical channels per
+  window are rejected with a reason (24 records). No unit, baseline or text is claimed: TelecomTS
+  has no verified units, no baseline is verified, and no text has RCA permission.
+- An independent recomputation from the raw `metrics.csv` files matched all 576 values (largest
+  difference 2.7e-12; tolerance 1e-9, the release's raw-match bound). Rebuilding gave the same
+  packet hash (`0840acc3…`).
+- `data/golden/rca-evidence.example.json`: one real packet (rca_001), its audit records and
+  rejections, plus BubbleRAN and SpotLight rejection examples (reasons only; their values are not
+  published because reuse terms are unverified) and the reproduction commands.
+
+### Technical implementation
+
+- `rca/summarizer.py` (`kpi-stats-v1`): mean (`math.fsum`), minimum and maximum of observed values,
+  each needing at least one finite value. Missing means absent (null or empty); zero is a value;
+  non-finite numbers are excluded and counted. Extrema record the first position holding the value.
+  Categorical channels, identifier fields, non-numeric values and empty intervals are rejected.
+  Cumulative counters are rejected (`counter_semantics_unverified`) with their reset positions,
+  because deltas or rates need verified semantics. `check_timestamps` rejects duplicate and
+  out-of-order timestamps and reports gaps longer than 1.5 nominal periods.
+- `rca/evidence.py`: `EvidenceRegistry` assigns `K`/`T`/`S` prompt IDs, maps each to one
+  persistent ID, returns the same ID for a repeated fact and refuses duplicate IDs or a conflicting
+  record for the same source. Each record has an `EvidenceAudit` (source revision, artifact hash,
+  location, calculation settings, rules, extremum time, content hash); `check_audits` detects a
+  changed record. `add_scalar` keeps scalar measurements without an invented sample range or time.
+  `add_specification` stores the exact supplied text and, for a shortened excerpt, its span and
+  the original chunk hash. `attach_baseline` links a baseline only when verified and compatible
+  (same channel, statistic, unit and calculation; an earlier interval must use a fixed rule and end
+  before the incident; verified normal needs a reviewer and evidence); `relative_change` is
+  undefined for a zero baseline.
+- `rca/sources.py`:
+  - TelecomTS reads only `kpi_window`, provenance and the text review. Sample times follow
+    `start_time + index / rate` (verified against raw files by the release), timezone unknown,
+    source strings kept for the window bounds. Text enters only with RCA permission.
+  - BubbleRAN: one UE on one gNB over consecutive 1 s rows, UTC Unix timestamps. `*_aggr_*`,
+    HARQ and error counters are rejected as unverified counters; identifiers are excluded. The
+    `persistent_anomaly` label column is excluded without reading its values.
+  - SpotLight: one stream at a time (radio or platform; never combined without verified
+    alignment). A repeated header row marks a capture boundary that a window may not cross. The
+    `anomaly` label column is excluded. Timestamps keep their nanosecond source strings.
+  - TeleLogs and 5G core faults return `unavailable` records.
+- `cli/build_evidence.py`: `telecomts` (packets, audits, rejections and a hashed manifest, with
+  optional Task 4.2 predictions), `verify-raw` (independent recomputation) and `table`
+  (BubbleRAN or SpotLight window).
+
+Reproduction:
+
+```bash
+uv run python -m clauseguard.cli.build_evidence telecomts --release-dir data/scenarios/release --allow-exploratory \
+  --detector-predictions artifacts/rca/detector-predictions-2026-11-09/rca_cases.jsonl --output-dir artifacts/rca/evidence-2026-11-09
+uv run python -m clauseguard.cli.build_evidence verify-raw --release-dir data/scenarios/release --allow-exploratory \
+  --output-dir artifacts/rca/evidence-2026-11-09
+uv run python -m clauseguard.cli.build_evidence table --dataset bubbleran --csv data/bubbleran/raw/anomalous_data.csv --start 100 --end 159
+```
+
+### Verification
+
+- `uv run pytest tests/test_rca_evidence.py -q` (19 tests): statistics and extremum positions,
+  zero vs missing vs non-finite, rejected channel kinds, counter resets, timestamp rules, ID
+  assignment and conflicts, audit tampering, scalar records, specification spans, baseline rules
+  and zero baselines, TelecomTS reference fields (labels, description, anomaly, QnA) absent from
+  packets, eligible text, BubbleRAN and SpotLight label exclusion, capture boundaries and time
+  gaps, the CLI with a raw-file check, and the published example against the contract.
+- Real files: BubbleRAN windows from both CSVs gave 231 KPI records each, with 20 counters and the
+  label column rejected; a SpotLight radio window gave 36 records and a window across the repeated
+  header was refused.
+
+### Out of scope and follow-ups
+
+- Retrieval execution and specification excerpts per case belong to Task 4.5.
+- Verified units, counter semantics, BubbleRAN clean-data baselines and SpotLight stream
+  alignment need source review before they can be used.
 
 ## Adding a New Phase
 

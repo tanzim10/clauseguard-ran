@@ -1,0 +1,42 @@
+{
+  "case": {
+    "case_id": "rca_fx_003",
+    "dataset": "FIXTURE",
+    "packet_sha256": "bd9ff1f2194a4424baa249caa9195ee2a2af64dee2701bff9fbb4d8446cb2727",
+    "scenario_id": "fixture-rca_fx_003"
+  },
+  "filtered": [],
+  "manifest_sha256": "4e51ea2a41889da222cc2a0ca03d93be8142b4f5ad0bbfca9f99dc6d1a15036c",
+  "passages": [],
+  "query": "FIXTURE: Why do uploads fail at the cell edge?\nObserved KPI statistics: UL_BLER: mean 0.135, minimum 0.08, maximum 0.19; UL_SNR: mean 13.93, minimum 6.4, maximum 21.4\nFIXTURE operator note: users near the cell edge report failed uploads.\nDetector prediction (diagnosis): normal",
+  "query_inputs": {
+    "detector_prediction": {
+      "model_run_id": "fixture-detector",
+      "status": "ok",
+      "used": true
+    },
+    "kpi_evidence_ids": [
+      "K4",
+      "K5",
+      "K6",
+      "K1",
+      "K2",
+      "K3"
+    ],
+    "kpi_state": "included",
+    "template_version": "rca-query-v1",
+    "text_evidence_ids": [
+      "T1"
+    ],
+    "text_state": "included"
+  },
+  "reason": "SearchConfigurationError: NVIDIA_API_KEY is required for embeddings (ValueError('NVIDIA_API_KEY is required for embeddings'))",
+  "snapshot_id": "a37b37a2a1a317fec85655e2363ce7843d82ddbf47c947ef9e34a9a4ee578e9e",
+  "stage": "configuration",
+  "state": "failed",
+  "timing": {
+    "mode": "live",
+    "retrieval_seconds": 6.166999810375273e-06
+  },
+  "version": "rca-retrieval-snapshot-v1"
+}

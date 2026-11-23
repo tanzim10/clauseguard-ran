@@ -1,4 +1,4 @@
-"""NVIDIA NIM chat client routing for grounded-query generation."""
+"""NVIDIA NIM chat client routing for grounded-query and RCA generation."""
 
 from __future__ import annotations
 
@@ -7,9 +7,10 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from typing import Any
+from typing import Any, Literal
 
 from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
+from pydantic import BaseModel, ConfigDict, Field
 
 from clauseguard.config import Settings, get_settings
 
@@ -20,14 +21,45 @@ GROUNDED_QUERY_MODELS = (
     "google/diffusiongemma-26b-a4b-it",
 )
 MODELS_WITHOUT_JSON_MODE = frozenset({"google/diffusiongemma-26b-a4b-it"})
+COMPLETION_TASKS = ("rca",)
+
+
+class GenerationAttempt(BaseModel):
+    """One call to one model; error classes only, never provider messages or credentials."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    model: str
+    outcome: Literal["ok", "transient_error", "error", "cooling_down", "empty_output"]
+    error_class: str | None = None
+    seconds: float = Field(ge=0)
+
+
+class GenerationResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    content: str
+    requested_model: str
+    served_model: str | None = None
+    attempts: list[GenerationAttempt]
+    usage: dict[str, Any] | None = None
 
 
 class GenerationUnavailable(RuntimeError):
     """Raised when generation cannot be served without exposing provider details."""
 
+    attempts: tuple[GenerationAttempt, ...] = ()
+
 
 class MalformedGenerationOutput(RuntimeError):
     """Raised when the provider returns no usable message content."""
+
+    attempts: tuple[GenerationAttempt, ...] = ()
+
+
+def _tag(error: RuntimeError, attempts: list[GenerationAttempt]) -> RuntimeError:
+    error.attempts = tuple(attempts)
+    return error
 
 
 ClientFactory = Callable[[Settings], Any]
@@ -89,6 +121,45 @@ class LLMRouter:
         """Generate once per eligible model, failing over only on transient errors."""
         if task != "grounded_query":
             raise GenerationUnavailable("unsupported generation task")
+        messages = [{"role": "user", "content": prompt}]
+        return self._complete(messages, self.models, failover=True, params={}).content
+
+    def complete(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        task: str = "rca",
+        models: tuple[str, ...] | None = None,
+        failover: bool = True,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        max_tokens: int | None = None,
+        seed: int | None = None,
+        timeout: float | None = None,
+    ) -> GenerationResult:
+        """Chat completion that reports every attempt and the model that answered.
+
+        With ``failover=False`` exactly one model is called and no other model may substitute
+        for it, which scored comparisons require. Unset generation settings are not sent.
+        """
+        if task not in COMPLETION_TASKS:
+            raise GenerationUnavailable("unsupported generation task")
+        models = self.models if models is None else models
+        if not failover and len(models) != 1:
+            raise ValueError("a fixed-model call needs exactly one model")
+        params = {"temperature": temperature, "top_p": top_p, "max_tokens": max_tokens, "seed": seed,
+                  "timeout": timeout}
+        return self._complete(messages, models, failover=failover,
+                              params={key: value for key, value in params.items() if value is not None})
+
+    def _complete(
+        self,
+        messages: list[dict[str, str]],
+        models: tuple[str, ...],
+        *,
+        failover: bool,
+        params: dict[str, Any],
+    ) -> GenerationResult:
         settings = self.settings or get_settings()
         if not settings.nvidia_api_key.strip() and self.client_factory is _build_nvidia_client:
             raise GenerationUnavailable("generation service is not configured")
@@ -101,42 +172,66 @@ class LLMRouter:
             except Exception as exc:
                 raise GenerationUnavailable("generation service is not configured") from exc
 
-        for model in self.models:
+        attempts: list[GenerationAttempt] = []
+
+        def record(model: str, outcome: str, started: float, error: Exception | None = None) -> None:
+            attempts.append(GenerationAttempt(
+                model=model, outcome=outcome, error_class=type(error).__name__ if error else None,
+                seconds=max(0.0, time.perf_counter() - started)))
+
+        for model in models:
+            started = time.perf_counter()
             if self._is_cooling_down(model):
+                record(model, "cooling_down", started)
+                if not failover:
+                    raise _tag(GenerationUnavailable("fixed generation model is unavailable"), attempts)
                 continue
             try:
-                request = {
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                }
+                request = {"model": model, "messages": messages, **params}
                 if model not in MODELS_WITHOUT_JSON_MODE:
                     request["response_format"] = {"type": "json_object"}
                 completion = self._client.chat.completions.create(**request)
-            except (APITimeoutError, APIConnectionError):
+            except (APITimeoutError, APIConnectionError) as exc:
+                record(model, "transient_error", started, exc)
                 self._cool_down(model, settings.nvidia_cooldown_seconds)
+                if not failover:
+                    raise _tag(GenerationUnavailable("fixed generation model is unavailable"), attempts) from exc
                 continue
             except APIStatusError as exc:
                 if exc.status_code not in {429, 502, 503, 504}:
-                    raise GenerationUnavailable("generation service is unavailable") from exc
+                    record(model, "error", started, exc)
+                    raise _tag(GenerationUnavailable("generation service is unavailable"), attempts) from exc
+                record(model, "transient_error", started, exc)
                 delay = _retry_after_seconds(exc)
                 self._cool_down(
                     model,
                     settings.nvidia_cooldown_seconds if delay is None else delay,
                 )
+                if not failover:
+                    raise _tag(GenerationUnavailable("fixed generation model is unavailable"), attempts) from exc
                 continue
             except Exception as exc:
-                raise GenerationUnavailable("generation service is unavailable") from exc
+                record(model, "error", started, exc)
+                raise _tag(GenerationUnavailable("generation service is unavailable"), attempts) from exc
 
             try:
                 content = completion.choices[0].message.content
             except (AttributeError, IndexError, TypeError) as exc:
-                raise MalformedGenerationOutput from exc
+                record(model, "empty_output", started, exc)
+                raise _tag(MalformedGenerationOutput(), attempts) from exc
             if not isinstance(content, str) or not content.strip():
-                raise MalformedGenerationOutput
-            return content
+                record(model, "empty_output", started)
+                raise _tag(MalformedGenerationOutput(), attempts)
+            record(model, "ok", started)
+            served = getattr(completion, "model", None)
+            usage = getattr(completion, "usage", None)
+            return GenerationResult(
+                content=content, requested_model=model,
+                served_model=served if isinstance(served, str) else None, attempts=attempts,
+                usage=usage.model_dump() if hasattr(usage, "model_dump") else None)
 
         # Both exhausted models and models still in cooldown are unavailable.
-        raise GenerationUnavailable("all configured generation models are unavailable")
+        raise _tag(GenerationUnavailable("all configured generation models are unavailable"), attempts)
 
     def _is_cooling_down(self, model: str) -> bool:
         with self._lock:

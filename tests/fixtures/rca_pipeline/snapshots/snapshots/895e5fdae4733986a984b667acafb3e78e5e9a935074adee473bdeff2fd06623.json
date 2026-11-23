@@ -1,0 +1,69 @@
+{
+  "case": {
+    "case_id": "rca_fx_004",
+    "dataset": "FIXTURE",
+    "packet_sha256": "07d750c7a1fe233f97fcb8b4d9972d28ca692a61de2407e4a3f36b05c577f845",
+    "scenario_id": "fixture-rca_fx_004"
+  },
+  "filtered": [],
+  "manifest_sha256": "4e51ea2a41889da222cc2a0ca03d93be8142b4f5ad0bbfca9f99dc6d1a15036c",
+  "passages": [
+    {
+      "chunk_id": "FIXTURE-SPEC-A::1 Scope::0",
+      "clause": "1 Scope",
+      "content_sha256": "864fc2d952c160323ad6b14f90e23cb92d9ae182d7556d7e2061f90dd2972c73",
+      "document_id": "FIXTURE-SPEC-A",
+      "evidence_id": "S1",
+      "point_id": "a7457a9b-b82e-5fd9-8a59-55ff60083402",
+      "rank": 1,
+      "score": 0.9,
+      "source_file": "FIXTURE-SPEC-A.pdf",
+      "text": "1 Scope\n\nFIXTURE text. Uplink SNR falls when co-channel interference raises the noise floor at the receiver.",
+      "version": "0.0.0"
+    },
+    {
+      "chunk_id": "FIXTURE-SPEC-B::1 Scope::0",
+      "clause": "1 Scope",
+      "content_sha256": "cc83830811dcb8f5f1a68826f1f505a393f32ff2f2e28124e06ca5e1fdbf9ecf",
+      "document_id": "FIXTURE-SPEC-B",
+      "evidence_id": "S2",
+      "point_id": "28930eab-4ab4-5353-b270-8427a5b70c67",
+      "rank": 2,
+      "score": 0.7,
+      "source_file": "FIXTURE-SPEC-B.pdf",
+      "text": "1 Scope\n\nFIXTURE text. Antenna faults reduce received power on every link of the cell.",
+      "version": "0.0.0"
+    }
+  ],
+  "query": "FIXTURE: Why do uploads fail at the cell edge?\nObserved KPI statistics: UL_BLER: mean 0.135, minimum 0.08, maximum 0.19; UL_SNR: mean 13.93, minimum 6.4, maximum 21.4\nFIXTURE operator note: users near the cell edge report failed uploads.\nDetector prediction (diagnosis): normal",
+  "query_inputs": {
+    "detector_prediction": {
+      "model_run_id": "fixture-detector",
+      "status": "ok",
+      "used": true
+    },
+    "kpi_evidence_ids": [
+      "K4",
+      "K5",
+      "K6",
+      "K1",
+      "K2",
+      "K3"
+    ],
+    "kpi_state": "included",
+    "template_version": "rca-query-v1",
+    "text_evidence_ids": [
+      "T1"
+    ],
+    "text_state": "included"
+  },
+  "reason": null,
+  "snapshot_id": "895e5fdae4733986a984b667acafb3e78e5e9a935074adee473bdeff2fd06623",
+  "stage": null,
+  "state": "completed",
+  "timing": {
+    "mode": "live",
+    "retrieval_seconds": 8.000002708286047e-06
+  },
+  "version": "rca-retrieval-snapshot-v1"
+}

@@ -1,0 +1,33 @@
+{
+  "manifest_sha256": "4e51ea2a41889da222cc2a0ca03d93be8142b4f5ad0bbfca9f99dc6d1a15036c",
+  "snapshots": [
+    {
+      "scenario_id": "fixture-rca_fx_001",
+      "snapshot": "275d96f5e69cca17884448313cd84ec5e453915837e87993a0fef5a4dcc24e58.json",
+      "state": "completed",
+      "stage": null,
+      "passages": 2
+    },
+    {
+      "scenario_id": "fixture-rca_fx_002",
+      "snapshot": "cd22e55319ad7ee8e1eee541955b82d4ec2f3fd414872c01ef59b89483313d60.json",
+      "state": "empty",
+      "stage": null,
+      "passages": 0
+    },
+    {
+      "scenario_id": "fixture-rca_fx_003",
+      "snapshot": "a37b37a2a1a317fec85655e2363ce7843d82ddbf47c947ef9e34a9a4ee578e9e.json",
+      "state": "failed",
+      "stage": "configuration",
+      "passages": 0
+    },
+    {
+      "scenario_id": "fixture-rca_fx_004",
+      "snapshot": "895e5fdae4733986a984b667acafb3e78e5e9a935074adee473bdeff2fd06623.json",
+      "state": "completed",
+      "stage": null,
+      "passages": 2
+    }
+  ]
+}

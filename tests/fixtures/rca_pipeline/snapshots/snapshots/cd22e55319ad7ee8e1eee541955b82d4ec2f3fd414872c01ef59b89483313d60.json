@@ -1,0 +1,42 @@
+{
+  "case": {
+    "case_id": "rca_fx_002",
+    "dataset": "FIXTURE",
+    "packet_sha256": "7b55f8f6dab81f5e5d149d0293fd3d047bf3b756bb2d7bb4979bde9ddd93f923",
+    "scenario_id": "fixture-rca_fx_002"
+  },
+  "filtered": [],
+  "manifest_sha256": "4e51ea2a41889da222cc2a0ca03d93be8142b4f5ad0bbfca9f99dc6d1a15036c",
+  "passages": [],
+  "query": "FIXTURE: Why do uploads fail at the cell edge?\nObserved KPI statistics: UL_BLER: mean 0.135, minimum 0.08, maximum 0.19; UL_SNR: mean 13.93, minimum 6.4, maximum 21.4\nFIXTURE operator note: users near the cell edge report failed uploads.\nDetector prediction (diagnosis): normal",
+  "query_inputs": {
+    "detector_prediction": {
+      "model_run_id": "fixture-detector",
+      "status": "ok",
+      "used": true
+    },
+    "kpi_evidence_ids": [
+      "K4",
+      "K5",
+      "K6",
+      "K1",
+      "K2",
+      "K3"
+    ],
+    "kpi_state": "included",
+    "template_version": "rca-query-v1",
+    "text_evidence_ids": [
+      "T1"
+    ],
+    "text_state": "included"
+  },
+  "reason": null,
+  "snapshot_id": "cd22e55319ad7ee8e1eee541955b82d4ec2f3fd414872c01ef59b89483313d60",
+  "stage": null,
+  "state": "empty",
+  "timing": {
+    "mode": "live",
+    "retrieval_seconds": 2.0000006770715117e-06
+  },
+  "version": "rca-retrieval-snapshot-v1"
+}

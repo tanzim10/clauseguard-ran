@@ -186,3 +186,89 @@ def test_router_supports_only_grounded_query_profile() -> None:
         _router(completions).generate("prompt", task="other")
 
     assert completions.calls == []
+
+
+MESSAGES = [{"role": "system", "content": "rules"}, {"role": "user", "content": "packet"}]
+
+
+def _served(content: str = '{"status":"abstained"}', model: str | None = None, usage=None):
+    response = _response(content)
+    response.model = model
+    response.usage = usage
+    return response
+
+
+def test_rca_fixed_model_never_substitutes_and_records_the_attempt() -> None:
+    completions = FakeCompletions([_status_error(503), _served()])
+    router = _router(completions)
+
+    with pytest.raises(GenerationUnavailable) as error:
+        router.complete(MESSAGES, task="rca", models=("model-a",), failover=False)
+
+    assert [call["model"] for call in completions.calls] == ["model-a"]
+    assert [(a.model, a.outcome, a.error_class) for a in error.value.attempts] == [
+        ("model-a", "transient_error", "APIStatusError")]
+
+
+def test_rca_fixed_model_rejects_more_than_one_model() -> None:
+    with pytest.raises(ValueError, match="one model"):
+        _router(FakeCompletions([])).complete(MESSAGES, models=("a", "b"), failover=False)
+
+
+def test_rca_passes_messages_and_generation_settings_and_reports_identity() -> None:
+    usage = SimpleNamespace(model_dump=lambda: {"prompt_tokens": 10, "completion_tokens": 3})
+    completions = FakeCompletions([_served(model="model-a-2026", usage=usage)])
+    result = _router(completions).complete(
+        MESSAGES, task="rca", models=("model-a",), failover=False,
+        temperature=0.0, top_p=1.0, max_tokens=512, seed=7)
+
+    call = completions.calls[0]
+    assert call["messages"] == MESSAGES and call["response_format"] == {"type": "json_object"}
+    assert (call["temperature"], call["top_p"], call["max_tokens"], call["seed"]) == (0.0, 1.0, 512, 7)
+    assert result.content == '{"status":"abstained"}'
+    assert (result.requested_model, result.served_model) == ("model-a", "model-a-2026")
+    assert result.usage == {"prompt_tokens": 10, "completion_tokens": 3}
+    assert [(a.model, a.outcome) for a in result.attempts] == [("model-a", "ok")]
+
+
+def test_rca_exploratory_failover_records_every_attempt() -> None:
+    timeout = APITimeoutError(request=httpx.Request("POST", "https://example.test"))
+    completions = FakeCompletions([timeout, _served(model="model-b")])
+    result = _router(completions).complete(MESSAGES, task="rca", failover=True)
+
+    assert result.requested_model == "model-b"
+    assert [(a.model, a.outcome, a.error_class) for a in result.attempts] == [
+        ("model-a", "transient_error", "APITimeoutError"), ("model-b", "ok", None)]
+    assert "temperature" not in completions.calls[0]
+
+
+def test_rca_empty_output_keeps_attempts_and_hides_provider_details() -> None:
+    completions = FakeCompletions([_served(" ")])
+    with pytest.raises(MalformedGenerationOutput) as error:
+        _router(completions).complete(MESSAGES, models=("model-a",), failover=False)
+    assert [(a.model, a.outcome) for a in error.value.attempts] == [("model-a", "empty_output")]
+
+    completions = FakeCompletions([_status_error(401)])
+    with pytest.raises(GenerationUnavailable) as error:
+        _router(completions).complete(MESSAGES, models=("model-a",), failover=False)
+    assert "private provider detail" not in str(error.value)
+    assert "test-key" not in repr([a.model_dump() for a in error.value.attempts])
+
+
+def test_rca_task_is_not_available_through_grounded_generate_and_vice_versa() -> None:
+    completions = FakeCompletions([])
+    with pytest.raises(GenerationUnavailable):
+        _router(completions).generate("prompt", task="rca")
+    with pytest.raises(GenerationUnavailable):
+        _router(completions).complete(MESSAGES, task="other")
+    assert completions.calls == []
+
+
+def test_rca_timeout_is_per_request_and_grounded_query_keeps_the_client_timeout() -> None:
+    completions = FakeCompletions([_served(), _response()])
+    router = _router(completions)
+    router.complete(MESSAGES, task="rca", models=("model-a",), failover=False, timeout=240.0)
+    router.generate("grounded prompt")
+
+    assert completions.calls[0]["timeout"] == 240.0
+    assert "timeout" not in completions.calls[1]

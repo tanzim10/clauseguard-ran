@@ -4,7 +4,7 @@ from clauseguard.config import Settings
 def test_retrieval_defaults_define_one_vector_contract() -> None:
     settings = Settings(_env_file=None)
 
-    assert settings.nvidia_embedding_model == "nvidia/llama-nemotron-embed-vl-1b-v2"
+    assert settings.nvidia_embedding_model == "nvidia/nemotron-3-embed-1b"
     assert settings.embedding_dimensions == 2048
     assert settings.embedding_batch_size == 128
     assert settings.qdrant_collection == "oran_specs_nemotron_vl_2048"

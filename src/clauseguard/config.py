@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     qdrant_distance: str = "Cosine"
     qdrant_upsert_batch_size: int = 128
 
-    nvidia_embedding_model: str = "nvidia/llama-nemotron-embed-vl-1b-v2"
+    nvidia_embedding_model: str = "nvidia/nemotron-3-embed-1b"
     embedding_dimensions: int = 2048
     embedding_batch_size: int = 128
     openai_chat_model: str = "gpt-4o-mini"
@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     groq_api_key: str = ""
     openrouter_api_key: str = ""
+
+    # Task 4.7 RCA generation. The scored base model is a lead decision; the budget is a
+    # character placeholder until the SLM tokenizer is pinned (see rca/pipeline.py).
+    rca_model_id: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
+    rca_context_budget_chars: int = Field(default=60_000, ge=1)
+    # Reasoning models took 23-137 s per case in live runs; grounded_query keeps nvidia_timeout_seconds.
+    rca_timeout_seconds: float = Field(default=240.0, gt=0)
+    rca_max_tokens: int = Field(default=16384, ge=1)
 
     chunk_size_tokens: int = 512
     retrieval_top_k: int = 8

@@ -1687,7 +1687,7 @@ built but `ineligible` until its CC BY-SA 4.0 terms are cleared for training, an
 are built from the local sample but `ineligible` because it has no licence. TeleLogs and 5G core
 faults are inventory entries with blockers (not local). No target answers are created (Task 4.9).
 
-**PR:** TBD
+**PR:** [#77 — Build the SLM candidate pool with inventory and verified manifest](https://github.com/tanzim10/clauseguard-ran/pull/77)
 
 ### Delivered
 

@@ -1686,7 +1686,7 @@ from a re-frozen manifest. The multiple-cause contract amendment is
 drafted for the lead and #32's owner; until it is approved, the extra #63 rules run as pipeline
 checks and the approved `rca-v1` schema is unchanged.
 
-**PR:** TBD
+**PR:** [#78 — Add the cited base LLM pipeline for RCA](https://github.com/tanzim10/clauseguard-ran/pull/78)
 
 ### Delivered
 

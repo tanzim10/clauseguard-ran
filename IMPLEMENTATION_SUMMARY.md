@@ -28,6 +28,7 @@ remains outside its scope.
 - [Task 4.2 — Detector predictions for RCA and SLM data](#task-42--detector-predictions-for-rca-and-slm-data--2026-11-09)
 - [Task 4.4 — Traceable evidence records](#task-44--traceable-evidence-records--2026-11-09)
 - [Task 4.5 — Frozen retrieval and specification snapshots](#task-45--frozen-retrieval-and-specification-snapshots--2026-11-09)
+- [Task 4.6 — SLM candidate pool, manifest and gap report](#task-46--slm-candidate-pool-manifest-and-gap-report--2026-11-17)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -1673,6 +1674,153 @@ uv run python -m clauseguard.cli.retrieval_snapshots replay --manifest artifacts
 
 - Running the live snapshots needs `NVIDIA_API_KEY` and the Qdrant index.
 - Retrieval tuning, rerankers, prompt projections per configuration and generation stay in later tasks.
+
+## Task 4.6 — SLM candidate pool, manifest and gap report — 2026-11-17
+
+**Focus:** [Issue #61](https://github.com/tanzim10/clauseguard-ran/issues/61) — inventory the five
+planned sources, reserve evaluation data, and build traceable SLM training candidates with separate
+references, explicit eligibility, a versioned manifest, an initial batch and a gap report.
+
+**Status:** Complete for the available sources. Every admissible candidate is `exploratory`, not
+`eligible_pilot`, because all TelecomTS recording families are unresolved. BubbleRAN candidates are
+built but `ineligible` until its CC BY-SA 4.0 terms are cleared for training, and SpotLight candidates
+are built from the local sample but `ineligible` because it has no licence. TeleLogs and 5G core
+faults are inventory entries with blockers (not local). No target answers are created (Task 4.9).
+
+**PR:** [#77 — Build the SLM candidate pool with inventory and verified manifest](https://github.com/tanzim10/clauseguard-ran/pull/77)
+
+### Delivered
+
+In simple words: every training window now has a record that says where it came from, what the
+model would see, which detector output goes with it, which recording and fault event it belongs to,
+and whether it may be used, with the reasons. The labels and existing answers sit in a separate file
+that never reaches a prompt. Golden cases, their recordings and every golden question, paraphrase and
+answer are reserved before any candidate is admitted.
+
+Real run (`artifacts/rca/candidates-2026-11-17-r3/`, release `aa2e758a…`, local and gitignored):
+
+| Source | Rows | Families | Events | Status |
+|---|---|---|---|---|
+| TelecomTS (train split) | 19,089 | 22 | 78 (60 synthetic, 2 jamming, 16 normal) | `exploratory` (families unresolved) |
+| BubbleRAN | 86 grid windows | 1 | 76 (5 interference episodes) | `ineligible` (terms pending) |
+| SpotLight (sample) | 109 grid windows (77 radio, 32 platform) | 1 | 109 | `ineligible` (no licence) |
+| TeleLogs, 5G core faults | 0 | — | — | blocked in the inventory (not local) |
+
+- Labels: 672 `labelled_fault` rows (67 events), 18,503 `labelled_normal`, 109 `ambiguous`
+  (SpotLight: anomaly type not stated, label-time alignment unverified); every cause list has at
+  most one cause. All 19,284 candidates are KPI-only; there is no text-only, combined or settings
+  candidate. Detector predictions: 19,089 available (diagnosis head), 195 recorded absences.
+- Grouped split over admissible TelecomTS families: 1 of 5 synthetic, 0 of 1 jamming and 3 of 16
+  normal families go to validation (12,667 train and 6,422 validation rows).
+- Reservations: 11 development and test families, 12 golden scenarios, 120 golden texts (questions,
+  answers, conclusions and the 24 paraphrases) and two declared TeleLogs test reservations. No
+  candidate is in a reserved family or scenario. No candidate carries text, so the text check ran on
+  the question templates only; they match no golden text.
+- Duplicates: no exact observation duplicates and no quarantined candidates. 13 groups of events
+  share raw rows across different labels; they stay separate events inside one family.
+- Batch: 25 of at most 30 TelecomTS candidates from 9 families, one per event: 2 per synthetic
+  cause (20), 2 jamming and 3 normal windows (21 train, 4 validation). The default share asks for
+  half detector corrections per stratum; 17 of 25 are corrections because several strata have no
+  agreeing event (the out-of-fold detector catches no jamming window). BubbleRAN's quota stays empty
+  while its terms are pending; SpotLight has no quota because it is ineligible.
+- Source fields, units, observation/reference split, taxonomy and grouping per source:
+  `data/candidates/source-fields.md` (TeleLogs and 5G core faults marked card-based and unverified).
+
+### Technical implementation
+
+- `rca/candidates.py` (`rca-candidate-v1`, Pydantic, `extra="forbid"`): `SourceInventory`,
+  `CandidateRecord` (identity, modality states including a candidate-only `settings` state,
+  observation link with packet and observation hashes, prediction reference with all three detector
+  heads, grouping with `event_id`, taxonomy, eligibility, versions), `CandidateReference` (source
+  labels as lists, a cause list, `label_status` ∈ labelled_fault / labelled_normal / unlabelled /
+  ambiguous so an empty cause list is never ambiguous, annotation, source response and its hash),
+  `Eligibility` (`eligible_pilot`, `exploratory`, `ineligible`, `quarantined`, with
+  `{check_id, version, status, reasons}` checks) and `CandidateManifest`. A candidate starts
+  `ineligible` until its checks run.
+- `rca/candidate_pool.py`:
+  - `build_reservations` checks the golden files against `data/golden/manifest.json`, reserves the
+    golden scenarios, `reserved_families()` (dev and test families plus golden-case families) and
+    normalized golden texts, matched exactly or by character 5-gram Jaccard ≥ 0.8 (not tuned).
+  - `build_inventory` records identifier, revision, licence, access, redistribution, training use,
+    local file hashes (TelecomTS from its acquisition record) and blockers for all five sources.
+  - `CandidateConfig` holds every open decision with a documented default: packet head `diagnosis`
+    (as in the Task 4.4 packets), one fixed question per modality (KPI uses the `rca_policy.json`
+    minimal question), 60-row BubbleRAN grid at stride 60, pending terms → `ineligible`, 20%
+    validation families, batch quotas and seeds.
+  - `telecomts_candidates` builds train-split windows only, through `telecomts_evidence` and
+    `EvidenceRegistry.packet` with `retrieval_status: not_run`, the out-of-fold Task 4.2 prediction
+    (file hash checked against `folds.json`) and no baseline. Labels, anomaly bounds and the names of
+    reference text fields go into `CandidateReference`; the reference text itself is not copied.
+  - `bubbleran_candidates` cuts label-blind grid windows inside one capture segment (a segment ends
+    at a time gap, timestamp reset or UE/gNB change) and builds them through `bubbleran_evidence`.
+    The detector prediction is the documented absence. `persistent_anomaly` is read only into the
+    reference; a window with any anomalous row is `labelled_fault` with its row count.
+  - `spotlight_candidates` cuts label-blind 100-row windows inside one capture of one stream (radio
+    or platform, never joined; a repeated header starts a capture) through `spotlight_evidence`.
+    The in-file `anomaly` column and the overlap with `label` intervals (computed assuming the naive
+    timestamps are UTC) go to references; every window is `ambiguous`. One family covers the sample
+    experiment. Both table sources share `_table_packet` and `_table_candidate`.
+- `rca/candidate_release.py`: events (overlapping windows of one source file with the same labels),
+  exact and near-duplicate checks with quarantine for unresolved cross-group matches, eligibility
+  checks (`not_reserved`, `terms_cleared`, `observations_built`, `family_resolved`, `event_grouped`,
+  `duplicates_resolved`, `prediction_reference`; the most restrictive outcome wins), the grouped
+  family split per (source, origin) stratum, the seeded batch (`batch_correction_share`, default 0.5,
+  mixes detector corrections with agreements in each stratum, filling a short side from the other),
+  counts (rows, families and events
+  reported separately by source, family, modality, packet prediction, cause count, label status,
+  eligibility and split),
+  the gap report, export and `verify_release`. Export rebuilds every batch packet and refuses one
+  whose hash differs from its candidate; packets are written only for the batch.
+- `cli/build_candidates.py`: `inventory`, `reserve`, `build` (writes the whole release) and `verify`
+  (file hashes, release ID, reservation hash, one-to-one references, taxonomy agreement, no reserved
+  data admitted, no family in both splits, one window per event in the batch, batch packets valid as
+  `EvidencePacket` and matching their candidates).
+
+Reproduction:
+
+```bash
+uv run python -m clauseguard.cli.build_candidates inventory
+uv run python -m clauseguard.cli.build_candidates build --release-dir data/scenarios/release --allow-exploratory \
+  --predictions artifacts/rca/detector-predictions-2026-11-09/cross_fit/predictions.jsonl \
+  --created-on <date> --output-dir artifacts/rca/candidates-<date>
+uv run python -m clauseguard.cli.build_candidates verify --output-dir artifacts/rca/candidates-<date>
+```
+
+`--acquisition`, `--bubbleran-dir` and `--spotlight-dir` default to `data/telecomts/acquisition.json`,
+`data/bubbleran/raw` and `data/spotlight/raw`. Pass `--config <json>` to change any `CandidateConfig`
+default; the resolved configuration is saved in `config.json` and the manifest. Release folders
+`artifacts/rca/candidates-*/` are gitignored.
+
+### Contract updates needed in #56
+
+`data/candidates/contract-updates.md` lists eight changes with reasons and code evidence: cause lists
+in golden references, the output for normal windows, `label_status` kept as reference metadata,
+a settings evidence type, the packet prediction head, a taxonomy for `final_fault_categories`,
+filling `reuse_terms`, and a baseline rule for training packets.
+
+### Verification
+
+- `uv run pytest tests/test_rca_candidates.py -q` (34 tests): schema rules (unknown fields, hashes,
+  label status vs causes, eligibility states, prediction absence), references refused by
+  `EvidencePacket`, reservations and golden-file tampering, the inventory, TelecomTS candidates
+  (train only, rebuilt packet hash, no reference fields in packets, configurable head,
+  prediction-file hash), events and duplicate quarantine, eligibility under family, terms, reserved
+  and quarantined conditions, deterministic grouped splits, the BubbleRAN and SpotLight grids
+  (label-blind, never across a gap or a repeated header), multiple-cause lists, source taxonomies
+  and the four label states surviving export (synthetic fixtures), the correction/agreement batch
+  mix, export and tampering, and the CLI.
+- Real data: every TelecomTS and BubbleRAN candidate and reference line of the earlier build
+  reappears byte-identical in the rebuild, as do the 17 batch packets both batches share; `verify` passed on `candidates-2026-11-17-r3` (19,284 candidates, 25 batch
+  packets, 10 files).
+
+### Out of scope and follow-ups
+
+- Target answers, teacher and judge runs and the training export stay in Task 4.9.
+- Retrieval snapshots for candidates need `NVIDIA_API_KEY` and the Qdrant index (Task 4.5).
+- TeleLogs and 5G core faults adapters wait for access and identity decisions; SpotLight candidates
+  wait for a licence.
+- Resolving or waiving TelecomTS recording families for training is the lead's decision; until then
+  no candidate can be `eligible_pilot`.
 
 ## Adding a New Phase
 

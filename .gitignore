@@ -54,6 +54,7 @@ artifacts/telecomts_release_eda/**
 artifacts/experiments/**
 artifacts/cache/**
 artifacts/eval/*/
+artifacts/rca/candidates-*/
 models/*
 !models/.gitkeep
 docs/*
@@ -79,3 +80,4 @@ logs/
 # UI (later)
 src/ui/node_modules/
 src/ui/dist/
+.gstack/

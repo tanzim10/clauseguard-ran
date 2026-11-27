@@ -61,7 +61,7 @@ def test_embed_texts_batches_requests_and_preserves_input_order() -> None:
 
     assert result == [[1.0], [2.0], [3.0]]
     assert [call["input"] for call in client.embeddings.calls] == [["a", "b"], ["c"]]
-    assert all(call["model"] == "nvidia/llama-nemotron-embed-vl-1b-v2" for call in client.embeddings.calls)
+    assert all(call["model"] == "nvidia/nemotron-3-embed-1b" for call in client.embeddings.calls)
     assert all(call["extra_body"] == {"input_type": "passage"} for call in client.embeddings.calls)
     assert all(call["encoding_format"] == "float" for call in client.embeddings.calls)
 

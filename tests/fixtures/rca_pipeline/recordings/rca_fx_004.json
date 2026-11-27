@@ -1,0 +1,7 @@
+{
+  "content": "{\"status\": \"abstained\", \"final_fault_categories\": [], \"claims\": [], \"uncertainty_reasons\": [\"the supplied passages describe interference and antenna faults; the evidence cannot separate them\"], \"abstention_reason\": \"conflicting_evidence\"}",
+  "fixture_note": "FIXTURE: hand-written raw output recorded for this exact prompt; not a model response",
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "prompt_sha256": "7067990e2527656b0083f4f080899a1f54d99dbbdf1e4974891ba20aa5bcd64e",
+  "prompt_version": "rca-prompt-v2"
+}

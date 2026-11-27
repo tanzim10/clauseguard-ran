@@ -1,0 +1,7 @@
+{
+  "content": "{\"status\": \"answered\", \"final_fault_categories\": [{\"category\": \"Co-Channel Interference (Severe)\", \"claim_ids\": [\"C1\", \"C2\", \"C3\", \"C4\"]}], \"claims\": [{\"claim_id\": \"C1\", \"text\": \"UL_SNR has a minimum of 6.4 and a mean of 13.93 in this window.\", \"claim_type\": \"observation\", \"evidence_ids\": [\"K2\", \"K1\"]}, {\"claim_id\": \"C2\", \"text\": \"UL_BLER reaches a maximum of 0.19.\", \"claim_type\": \"observation\", \"evidence_ids\": [\"K6\"]}, {\"claim_id\": \"C3\", \"text\": \"Co-channel interference raises the receiver noise floor, which lowers uplink SNR and raises the uplink block error rate.\", \"claim_type\": \"mechanism\", \"evidence_ids\": [\"S1\"]}, {\"claim_id\": \"C4\", \"text\": \"An UL_SNR minimum of 6.4 together with failed uploads at the cell edge is consistent with uplink co-channel interference.\", \"claim_type\": \"diagnostic_inference\", \"evidence_ids\": [\"K2\", \"T1\", \"S1\"]}], \"uncertainty_reasons\": [\"KPI units are unknown\", \"no verified baseline, so no change is claimed\", \"the detector predicted normal\"], \"abstention_reason\": null}",
+  "fixture_note": "FIXTURE: hand-written raw output recorded for this exact prompt; not a model response",
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "prompt_sha256": "889acc0aba1b3e343a588e7734198730f33f9825a0cf12cbe20b3837c472aa12",
+  "prompt_version": "rca-prompt-v2"
+}

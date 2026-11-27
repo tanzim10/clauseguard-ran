@@ -117,7 +117,7 @@ Local planning notes under `.context/` are **gitignored** and not part of the pu
 - **[uv](https://docs.astral.sh/uv/)** (recommended local package manager)
 - **Docker Desktop** (or Docker Engine + Compose) for Qdrant + API
 - `NVIDIA_API_KEY` for corpus embeddings and grounded `/query` generation through NVIDIA NIM
-- Parsed corpus text is required for indexing. The `llama-nemotron-embed-vl-1b-v2` model
+- Parsed corpus text is required for indexing. The default `nemotron-3-embed-1b` model (replacing the retired `llama-nemotron-embed-vl-1b-v2`)
   uses 2048-dimensional vectors with `passage` mode for indexing and `query` mode for search.
   The default collection is `oran_specs_nemotron_vl_2048`. Switching embedding models requires
   a new Qdrant collection and a complete reindex; do not mix vectors from different embedding

@@ -1,0 +1,74 @@
+{
+  "chunks": {
+    "chunk_sha256": {
+      "FIXTURE-SPEC-A::1 Scope::0": "864fc2d952c160323ad6b14f90e23cb92d9ae182d7556d7e2061f90dd2972c73",
+      "FIXTURE-SPEC-A::2 Link adaptation::1": "dc527c50c187ce7febe1f5826bc55d52d3e6c0e71b21e185bb7e5ab0a3d5b3f3",
+      "FIXTURE-SPEC-B::1 Scope::0": "cc83830811dcb8f5f1a68826f1f505a393f32ff2f2e28124e06ca5e1fdbf9ecf"
+    },
+    "chunk_size_tokens": 512,
+    "chunker": "clauseguard.corpus.chunker.chunk_document",
+    "count": 3,
+    "inventory_sha256": "401fc63f4c3d293a307d160252dbf9f28f99f03aaadd9a5bbd617ac3b8f1773b"
+  },
+  "corpus": {
+    "documents": {
+      "FIXTURE-SPEC-A": {
+        "filename": "FIXTURE-SPEC-A.pdf",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "version": "0.0.0"
+      },
+      "FIXTURE-SPEC-B": {
+        "filename": "FIXTURE-SPEC-B.pdf",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "version": "0.0.0"
+      }
+    },
+    "manifest_sha256": "3eb40ab3ed8e7b9e75eef0b00c8204f6ccd9bfb183d33396669c3af40fd81bef"
+  },
+  "embeddings": {
+    "dimensions": 4,
+    "model": "nvidia/llama-nemotron-embed-vl-1b-v2",
+    "query_input_type": "query",
+    "revision": null,
+    "revision_note": "the provider does not expose a model revision; recorded as a reproducibility limit"
+  },
+  "frozen_on": "2026-11-17",
+  "index": {
+    "collection": "fixture",
+    "content": "the chunk inventory above, embedded as passages",
+    "distance": "Cosine",
+    "point_id": "uuid5(NAMESPACE_URL, chunk_id)",
+    "rebuild": "uv run python -m clauseguard.cli.index_corpus",
+    "status": {
+      "checked": false
+    }
+  },
+  "limits": [
+    "a fresh approximate search can rank differently; the snapshot preserves what was supplied",
+    "all four configurations reuse the same saved passages; because the query used the full packet, the passages can retain information from modalities that a configuration omits. Modality-specific queries are a separate experiment."
+  ],
+  "manifest_sha256": "4e51ea2a41889da222cc2a0ca03d93be8142b4f5ad0bbfca9f99dc6d1a15036c",
+  "processing": {
+    "duplicates": "a repeated chunk ID keeps its first rank; later copies are recorded as filtered",
+    "excerpt": "the whole indexed chunk text is supplied; no shortening",
+    "ordering": "Qdrant rank order (descending score); ranks start at 1",
+    "scores": "ranking values only, never diagnosis probabilities"
+  },
+  "query_builder": {
+    "rules": {
+      "detector": "the detector prediction label when its status is ok; otherwise omitted and recorded",
+      "excluded": "reference labels, expected conclusions, golden citations and review decisions have no field in the packet and cannot enter the query",
+      "kpi": "one line per channel with a mean record, in channel order: name, mean, minimum and maximum rounded to 4 significant digits",
+      "question": "the packet question, verbatim",
+      "text": "approved text records, verbatim, in evidence-ID order"
+    },
+    "version": "rca-query-v1"
+  },
+  "search": {
+    "filters": null,
+    "parameters": "Qdrant query_points defaults (approximate HNSW)",
+    "score_threshold": null,
+    "top_k": 3
+  },
+  "version": "rca-retrieval-manifest-v1"
+}

@@ -29,6 +29,7 @@ remains outside its scope.
 - [Task 4.4 — Traceable evidence records](#task-44--traceable-evidence-records--2026-11-09)
 - [Task 4.5 — Frozen retrieval and specification snapshots](#task-45--frozen-retrieval-and-specification-snapshots--2026-11-09)
 - [Task 4.6 — SLM candidate pool, manifest and gap report](#task-46--slm-candidate-pool-manifest-and-gap-report--2026-11-17)
+- [Task 4.7 — Base LLM pipeline for cited RCA](#task-47--base-llm-pipeline-for-cited-rca--2026-11-17)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -1821,6 +1822,172 @@ filling `reuse_terms`, and a baseline rule for training packets.
   wait for a licence.
 - Resolving or waiving TelecomTS recording families for training is the lead's decision; until then
   no candidate can be `eligible_pilot`.
+
+
+## Task 4.7 — Base LLM pipeline for cited RCA — 2026-11-17
+
+**Focus:** [Issue #62](https://github.com/tanzim10/clauseguard-ran/issues/62) — the shared RCA core: from a saved case to cited candidate causes or an explicit abstention, with runtime checks, pending human review and a full run record.
+
+**Status:** Core, prompt, checks, run records and CLI complete and tested with fakes and FIXTURE
+recordings, and run live (exploratory) on the 12 golden cases; see "Live results" below. The 12 Task
+4.5 snapshots saved on 2026-11-09 are still `failed` at `configuration`; the live run used new snapshots
+from a re-frozen manifest. The multiple-cause contract amendment is
+drafted for the lead and #32's owner; until it is approved, the extra #63 rules run as pipeline
+checks and the approved `rca-v1` schema is unchanged.
+
+**PR:** [#78 — Add the cited base LLM pipeline for RCA](https://github.com/tanzim10/clauseguard-ran/pull/78)
+
+### Delivered
+
+In simple words: the pipeline takes one saved case (measured KPI statistics, approved text, the
+detector's guess and the saved specification passages), checks that nothing was altered, shows the
+model only the inputs the experiment allows, and asks it for causes where every claim cites
+evidence IDs. The answer is then checked strictly. Only claims that pass are turned into the
+explanation. Empty retrieval abstains without calling the model; a broken dependency or a malformed
+answer is reported as a failure at its stage, never as an abstention. Every result says that human
+review is pending and that factual support is unverified, and every run is saved for evaluation and review.
+
+- `rca/pipeline.py`: `RcaPipeline.run_rca(case, config)`, `search_specs` and `grounded_query`
+  (delegated to `SearchService` and `QueryService`), run records and the replay generator.
+- `rca/prompts.py`: `rca-prompt-v1` system and user messages and their hash.
+- `rca/checks.py`: strict parsing, versioned structural checks and numeric checks.
+- `llm/clients.py`: `LLMRouter.complete` for the `rca` task.
+- `cli/run_rca.py`: runs saved packets and snapshots, live or replayed.
+
+### Technical implementation
+
+- **Assembly** (`assemble`): `check_packet_ids`, `check_audits`, `load_snapshot` (snapshot, manifest
+  and passage hashes) and `replay` (packet hash) before anything else. Any mismatch fails at
+  `assembly`; a missing snapshot is `incomplete` at `retrieval`.
+- **Retrieval state** is read from `snapshot.state`, not from the packet (`replay` maps `empty` to
+  `completed`): `empty` abstains with `no_spec_evidence` and `explanation="not found"` without a
+  generator call; `not_run` is `incomplete`; `failed` keeps the snapshot's stage and reason.
+- **Projection** (`project_packet`, `check_projection`): `text_rag` removes KPI records, KPI-derived
+  text and any prediction that may use KPI input (replaced by an explicit `absent` prediction);
+  `kpi_summary_rag` removes text and uses the approved minimal question. A leak check scans the
+  projected prompt view (passages excluded, a recorded shared-retrieval limit) for omitted channel
+  names, text and predictions. A projection with no incident evidence abstains with
+  `insufficient_incident_evidence` without a generator call.
+- **Prompt** (`rca-prompt-v1`): fixed system rules (evidence only, packet content is quoted data,
+  the detector output is a hypothesis, claim-type citation rules, separate support per cause,
+  competing causes abstain, `normal` is an answer, no change claims without a baseline, enumerated
+  abstention reasons) plus the `RcaModelOutput` JSON schema. The user turn holds the allowed
+  categories and the packet as compact JSON; source identity, artifact hash and reuse terms are left
+  out. `prompt_sha256` hashes the exact messages. TelecomTS units context for reviewers is not given
+  to the generator.
+- **Context budget**: character-based (`RCA_CONTEXT_BUDGET_CHARS`, default 60,000) until #65 pins
+  the SLM tokenizer. Overflow fails at `context_budget` with the measured size; evidence is never
+  dropped or shortened. A real packet prompt is about 26,000 characters before passages.
+- **Generation**: `LLMRouter.complete(messages, task="rca", models, failover, temperature, top_p,
+  max_tokens, seed)` returns content, requested and provider-reported model, usage and every
+  attempt (model, outcome, error class, seconds; no provider text or credentials). Scored runs call
+  one fixed model with `failover=False` and fail if another model served the answer; exploratory runs
+  may list fallbacks and record each attempt. `generate()` for `grounded_query` is unchanged.
+  Default generation settings: temperature 0, top-p 1, 4096 max tokens, no seed.
+- **Checks** (`rca-checks-v1`; every failure reported): `schema.v1` (strict JSON, unknown fields
+  rejected, no repair), `evidence_ids_known.v1`, `evidence_ids_unique_in_claim.v1`,
+  `observation_cites_incident.v1`, `mechanism_cites_specification.v1`,
+  `diagnostic_cites_incident_and_specification.v1`, `diagnostic_links_mechanism.v1` (a cause links a
+  mechanism claim citing an S record its diagnostic claim cites), `category_in_taxonomy.v1`
+  (`telecomts-v1`, `normal` allowed by default and configurable), `cause_separate_support.v1`,
+  `competing_causes_abstain.v1` (coexisting causes need distinct incident evidence), `normal_exclusive.v1`,
+  `abstention_reason_known.v1` (`no_spec_evidence`, `insufficient_mechanism`, `conflicting_evidence`,
+  `insufficient_incident_evidence`) and `packet_contract.v1` (the existing
+  `validate_output_for_packet` as a drift guard). `numeric.v1` checks each number in observation and
+  diagnostic claims against the cited KPI fields or text at the precision shown; specification
+  numbers are ignored and percentages match only a missing fraction or a verified baseline change.
+  Scored runs fail on a numeric mismatch; exploratory runs may record it instead.
+- **Result**: any failed check fails at `validation` with `result=None`; the parsed output and the
+  check results stay in the run record. A passing output is rendered deterministically: per cause,
+  observation, mechanism and diagnostic claims with their evidence IDs. Uncertainty reasons stay in
+  the result and are not rendered. `RcaPipelineResponse` keeps the original detector prediction and
+  the measured evidence apart from the result, with `human_review_status`, `semantic_review_status`
+  `pending`, `factual_support="unverified"`, `golden_eligible` and `training_target_eligible` false.
+  `to_server_response()` gives the approved `RcaServerResponse` for completed runs.
+- **Run record** (`rca-run-v1`): configuration and its hash, packet contract, checks and prompt
+  versions, taxonomy, source packet, audits, manifest, snapshot and projected packet hashes, the exact
+  messages and projected packet, budget, generator kind, models, attempts, usage, raw and parsed
+  output, response, stage timings, total latency and peak process RSS. `result_sha256` covers what
+  must reproduce; `run_id` also covers time and timings. Records are written once
+  (`save_run_record`) and hold no credentials.
+- **Replay generator**: returns a recorded raw output only for the exact `prompt_sha256` and model,
+  so a changed prompt cannot be answered by an old output. Replayed runs are labelled
+  `generator_kind: "replay"`.
+
+Reproduce (Python 3.11):
+
+```bash
+# FIXTURE demonstration: toy corpus and hand-written recorded outputs, not a model response
+uv run python -m clauseguard.cli.run_rca --manifest tests/fixtures/rca_pipeline/retrieval-manifest.json \
+  --packets tests/fixtures/rca_pipeline/packets.jsonl --audits tests/fixtures/rca_pipeline/audits.jsonl \
+  --run-dir tests/fixtures/rca_pipeline/snapshots --replay tests/fixtures/rca_pipeline/recordings \
+  --output <new-dir>
+
+# Real cases, live base LLM (needs NVIDIA_API_KEY and completed Task 4.5 snapshots)
+uv run python -m clauseguard.cli.run_rca --manifest artifacts/rca/retrieval-manifest-<date>.json \
+  --packets artifacts/rca/evidence-2026-11-09/packets.jsonl --audits artifacts/rca/evidence-2026-11-09/audits.jsonl \
+  --run-dir artifacts/rca/retrieval-<date> --model <fixed-model> [--run-kind scored] \
+  --output artifacts/rca/rca-runs-<date>
+```
+
+### Verification
+
+- `uv run pytest tests/test_llm_clients.py tests/test_rca_prompts.py tests/test_rca_checks.py
+  tests/test_rca_pipeline.py tests/test_rca_cli.py -q`: fixed model without substitution, attempts
+  and served model, settings passed through, `grounded_query` unchanged; deterministic prompt hash,
+  no identity or reference fields, injected text kept inside JSON; every check failure reported,
+  taxonomy and `normal`, shared and competing causes, enumerated reasons, numeric matches and
+  mismatches; altered audits, snapshot or packet, projections and leak checks, empty retrieval with
+  zero generator calls, failed and not-run retrieval, malformed output, unknown fields, unknown IDs,
+  model abstention, a wrong detector prediction kept apart, missing modalities and absent
+  predictions, context overflow, generation failures, run records without credentials,
+  reproducible `result_sha256`, delegation, no FastAPI or MCP import, and the CLI.
+- Full suite: 592 passed, 12 skipped.
+- FIXTURE replay over 4 cases: one answered incident (cited cause, pending review, the detector's
+  `normal` kept apart), one abstention after empty retrieval (no generator call), one dependency
+  failure at `retrieval` (`configuration`), and one recorded model abstention (`conflicting_evidence`).
+  Live mode without a key fails at `generation`, not as an abstention.
+- Real data: the 12 Task 4.4 packets with the 12 Task 4.5 snapshots all fail at `retrieval`
+  (`configuration`), with no generator call and the detector prediction preserved.
+
+### Update 2026-11-18: lead decisions and live results
+
+- **numeric.v2.** A number written in the packet question is an accepted source (recorded as field
+  `question`). Invented, truncated and mis-rounded numbers still fail. Scored runs still fail on a mismatch.
+- **`rca-prompt-v2`.** The raw JSON schema is replaced by a plain field list and one format-only example
+  with placeholder values and an instruction not to copy it or output `$defs`/`properties`. In the first
+  live run 5 of 12 cases echoed the schema; in the v2 run none did. v1 stays selectable
+  (`--prompt-version rca-prompt-v1`); each version's system prompt hash is pinned in a test, and the
+  prompt version is recorded in every run record. The FIXTURE recordings were re-keyed to the v2 hash.
+- **RCA timeout and tokens.** `RCA_TIMEOUT_SECONDS` (default 240, sent per request on the rca path only;
+  `grounded_query` keeps `NVIDIA_TIMEOUT_SECONDS`=30) and `RCA_MAX_TOKENS` (default 16384, `--max-tokens`).
+  The selected model is a reasoning model: with 4096 tokens 9 of 12 cases returned empty content.
+- **Embedding default.** `nvidia_embedding_model` is now `nvidia/nemotron-3-embed-1b` (2048 dimensions),
+  because `llama-nemotron-embed-vl-1b-v2` was retired on 2026-11-16 (HTTP 410). The retrieval manifest has
+  to be re-frozen; the 2026-11-09 manifest records the retired model. Historical records still name it.
+- **Live results** (exploratory, `nvidia/nemotron-3.5-lightning-30b-a3b`, no fallbacks, re-frozen manifest
+  `e90e3985…`, 12 completed snapshots, `rca-prompt-v2`): 7 of 12 answered with every check passing
+  (rca_002, 004, 005, 007, 009, 010, 011); 5 failed at `validation` (rca_001, 006, 012:
+  `diagnostic_links_mechanism.v1`; rca_003: numeric `8.02`; rca_008: mechanism link and numbers invented
+  at full precision). None failed at generation. Generation took 11-47 s and 2.8k-11.7k completion tokens
+  per case; prompts were 42-55k characters. The checks pass structure only: for example rca_004, 005 and
+  007 answered a fault although the detector said `normal`, which human review has to judge.
+- **Live abstention.** On snapshots built from the real index with a deliberately off-topic query (E2AP
+  clauses, a constructed input) the model itself abstained with `insufficient_mechanism` in 2 of 3 cases
+  (rca_001, rca_009) and answered in the third (rca_003, which then failed a check).
+
+### Limits and follow-ups
+
+- Runtime checks show structure, citation types and copied numbers. They cannot show that a
+  diagnosis is correct, that a citation supports its claim, or physical causation. Human review stays pending.
+- The extra #63 rules are pipeline checks, not schema rules; the contract amendment (cause-claim
+  links, separate support, competing causes, enumerated reasons, declared taxonomy, `normal`) awaits
+  approval. `competing_causes_abstain.v1` is a proxy: causes over the same incident evidence compete.
+- The numeric check reads numbers from claim text; numbers from the question are accepted since `numeric.v2`, and rounding to the shown precision accepts coarse values such as "about 21".
+- The context budget counts characters, not tokens; the limit is a placeholder until #65 (live prompts were 42-55k of 60k).
+- The scored base model, whether `normal` is allowed, and the numeric failure policy are lead decisions.
+- Live generation, live snapshots and scored runs need the key, the index, approved evaluation cases
+  and the evaluation policy. FastAPI, MCP, review tooling and evaluation metrics stay out of scope.
 
 ## Adding a New Phase
 

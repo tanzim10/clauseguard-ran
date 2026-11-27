@@ -2061,7 +2061,7 @@ Citation and cause-link coverage are 1.000 for every generator (the pipeline che
 
 **Status:** Release `release-final` built: 50 rows (40 train, 10 validation), TelecomTS only, status `sample_approved`. Ten sampled rows were reviewed and approved on 2026-11-25. BubbleRAN, SpotLight, TeleLogs and 5G core faults are not in this version.
 
-**PR:** TBD
+**PR:** https://github.com/tanzim10/clauseguard-ran/pull/84
 
 ### Delivered
 

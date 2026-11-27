@@ -34,6 +34,7 @@ from clauseguard.rca.candidates import (
     Eligibility,
     EligibilityStatus,
     FileEntry,
+    LeadDecisions,
     SourceInventory,
 )
 from clauseguard.rca.contracts import EvidencePacket
@@ -168,7 +169,7 @@ def _status(statuses: Iterable[EligibilityStatus]) -> EligibilityStatus:
 
 
 def _eligibility(candidate: CandidateRecord, terms: SourceInventory, reservations: Reservations,
-                 dedup: Mapping, config: CandidateConfig) -> Eligibility:
+                 dedup: Mapping, config: CandidateConfig, decisions: LeadDecisions | None = None) -> Eligibility:
     cid = candidate.identity.candidate_id
     checks, statuses, blockers, exclusions = [], [], [], []
 
@@ -192,9 +193,14 @@ def _eligibility(candidate: CandidateRecord, terms: SourceInventory, reservation
           blocker=f"training_terms_{terms.training_use}")
     check("observations_built", "ineligible" if candidate.observations.packet_status != "built" else None,
           [candidate.observations.not_built_reason or "packet not built"], exclude=True)
-    check("family_resolved", "exploratory" if candidate.grouping.group_status != "verified" else None,
+    waiver = decisions.of_kind("family_waiver", candidate.identity.source_dataset) if decisions else None
+    unresolved = candidate.grouping.group_status != "verified"
+    waived = (f"recording family {candidate.grouping.group_status}; waived by lead decision "
+              f"{waiver.decision_id} ({waiver.decided_by}, {waiver.decided_on}; {waiver.scope})"
+              if unresolved and waiver else None)
+    check("family_resolved", "exploratory" if unresolved and not waiver else None,
           [f"recording family {candidate.grouping.group_id} is {candidate.grouping.group_status}"],
-          blocker="recording_family_unresolved")
+          passed_reasons=[waived] if waived else [], blocker="recording_family_unresolved")
     check("event_grouped", "ineligible" if candidate.grouping.event_id is None else None,
           ["no event assigned"], exclude=True)
     quarantined = dedup["quarantined"].get(cid, [])
@@ -207,12 +213,14 @@ def _eligibility(candidate: CandidateRecord, terms: SourceInventory, reservation
 
 
 def evaluate_eligibility(built: Sequence[BuiltCandidate], *, inventory: Mapping[str, SourceInventory],
-                         reservations: Reservations, dedup: Mapping, config: CandidateConfig) -> list[BuiltCandidate]:
+                         reservations: Reservations, dedup: Mapping, config: CandidateConfig,
+                         decisions: LeadDecisions | None = None) -> list[BuiltCandidate]:
     """Run every admission check; the most restrictive outcome sets the candidate status."""
     out = []
     for item in built:
         candidate = item.candidate
-        eligibility = _eligibility(candidate, inventory[candidate.identity.source_dataset], reservations, dedup, config)
+        eligibility = _eligibility(candidate, inventory[candidate.identity.source_dataset], reservations, dedup,
+                                   config, decisions)
         out.append(item._replace(candidate=candidate.model_copy(update={"eligibility": eligibility})))
     return out
 
@@ -346,6 +354,7 @@ def select_batch(built: Sequence[BuiltCandidate], config: CandidateConfig) -> tu
 
 FILES = ("inventory.json", "reservations.json", "config.json", "candidates.jsonl", "references.jsonl",
          "dedup_report.json", "splits.json", "batch.jsonl", "packets.jsonl", "gap_report.md")
+OPTIONAL_FILES = ("decisions.json",)  # releases built before lead decisions were recorded lack it
 CONTRACT_VERSIONS = {"packet": "rca-v1", "candidate": CANDIDATE_VERSION, "reference": REFERENCE_VERSION,
                      "adapter": ADAPTER_VERSION, "calculation": CALCULATION_VERSION, "grouping": GROUPING_VERSION,
                      "dedup": DEDUP_VERSION, "eligibility_checks": CHECK_VERSION}
@@ -472,7 +481,7 @@ def export_release(output_dir: Path, *, built: Sequence[BuiltCandidate], invento
                    reservations: Reservations, dedup: Mapping, split_summary: Mapping, batch_rows: Sequence[Mapping],
                    shortfalls: Mapping, config: CandidateConfig,
                    rebuild_packet: Callable[[CandidateRecord], EvidencePacket], prediction_files: Mapping[str, str],
-                   created_on: str) -> CandidateManifest:
+                   created_on: str, decisions: LeadDecisions | None = None) -> CandidateManifest:
     """Write every release file; batch packets are rebuilt and must match their recorded hashes."""
     output_dir = Path(output_dir)
     if output_dir.exists():
@@ -490,7 +499,8 @@ def export_release(output_dir: Path, *, built: Sequence[BuiltCandidate], invento
     for name, value in (("inventory.json", [s.model_dump(mode="json") for s in inventory]),
                         ("reservations.json", reservations.model_dump(mode="json")),
                         ("config.json", config.model_dump(mode="json")), ("dedup_report.json", dedup),
-                        ("splits.json", split_summary)):
+                        ("splits.json", split_summary),
+                        ("decisions.json", (decisions or LeadDecisions()).model_dump(mode="json"))):
         files[name] = FileEntry(sha256=write_json(output_dir / name, value))
     for name, rows in (("candidates.jsonl", [i.candidate.model_dump(mode="json") for i in built]),
                        ("references.jsonl", [i.reference.model_dump(mode="json") for i in built]),
@@ -524,7 +534,7 @@ def verify_release(output_dir: Path) -> dict:
     """Recheck hashes, reference separation, packets, reservations, splits and the batch."""
     output_dir = Path(output_dir)
     manifest = CandidateManifest.model_validate_json((output_dir / "manifest.json").read_bytes())
-    if set(manifest.files) != set(FILES):
+    if not set(FILES) <= set(manifest.files) <= set(FILES) | set(OPTIONAL_FILES):
         raise ValueError("release files differ from the expected set")
     for name, entry in manifest.files.items():
         if hashlib.sha256((output_dir / name).read_bytes()).hexdigest() != entry.sha256:

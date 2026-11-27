@@ -47,7 +47,7 @@ def _status_error(status: int, retry_after: str | None = None) -> APIStatusError
 def _router(completions: FakeCompletions, *, models=("model-a", "model-b"), clock=None):
     client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
     return LLMRouter(
-        Settings(nvidia_api_key="test-key", nvidia_cooldown_seconds=30),
+        Settings(nvidia_api_key="test-key", nvidia_fallback_api_keys="", nvidia_cooldown_seconds=30),
         client_factory=lambda settings: client,
         models=models,
         **({"clock": clock} if clock else {}),
@@ -272,3 +272,47 @@ def test_rca_timeout_is_per_request_and_grounded_query_keeps_the_client_timeout(
 
     assert completions.calls[0]["timeout"] == 240.0
     assert "timeout" not in completions.calls[1]
+
+
+def _keyed_router(per_key: dict[str, FakeCompletions], *, models=("model-a",)):
+    return LLMRouter(
+        Settings(nvidia_api_key="k1", nvidia_fallback_api_keys="k2, k3,k1,", nvidia_cooldown_seconds=30),
+        client_factory=lambda settings: SimpleNamespace(
+            chat=SimpleNamespace(completions=per_key[settings.nvidia_api_key])),
+        models=models,
+    )
+
+
+def test_nvidia_api_keys_orders_primary_first_and_drops_blanks_and_duplicates() -> None:
+    from clauseguard.config import nvidia_api_keys
+
+    settings = Settings(nvidia_api_key="k1", nvidia_fallback_api_keys=" k2,,k1, k3 ")
+    assert nvidia_api_keys(settings) == ["k1", "k2", "k3"]
+
+
+def test_fixed_model_retries_the_same_model_on_the_next_key() -> None:
+    keys = {"k1": FakeCompletions([_status_error(429)]), "k2": FakeCompletions([APITimeoutError(
+        request=httpx.Request("POST", "https://example.test"))]), "k3": FakeCompletions([_served()])}
+    result = _keyed_router(keys).complete([{"role": "user", "content": "x"}], models=("model-a",),
+                                          failover=False)
+
+    assert result.requested_model == "model-a"
+    assert [(a.key_slot, a.outcome) for a in result.attempts] == [
+        (0, "transient_error"), (1, "transient_error"), (2, "ok")]
+    assert all(c.calls[0]["model"] == "model-a" for c in keys.values())
+    dumped = result.model_dump_json()
+    assert not any(f'"{key}"' in dumped for key in ("k1", "k2", "k3"))
+
+
+def test_fixed_model_fails_only_after_every_key_is_exhausted() -> None:
+    keys = {k: FakeCompletions([_status_error(503)]) for k in ("k1", "k2", "k3")}
+    with pytest.raises(GenerationUnavailable) as raised:
+        _keyed_router(keys).complete([{"role": "user", "content": "x"}], models=("model-a",), failover=False)
+    assert [a.key_slot for a in raised.value.attempts] == [0, 1, 2]
+
+
+def test_authentication_error_on_one_key_is_not_retried_on_other_keys() -> None:
+    keys = {"k1": FakeCompletions([_status_error(401)]), "k2": FakeCompletions([]), "k3": FakeCompletions([])}
+    with pytest.raises(GenerationUnavailable):
+        _keyed_router(keys).complete([{"role": "user", "content": "x"}], models=("model-a",), failover=False)
+    assert keys["k2"].calls == [] and keys["k3"].calls == []

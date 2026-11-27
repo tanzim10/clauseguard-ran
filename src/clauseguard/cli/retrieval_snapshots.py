@@ -32,6 +32,7 @@ def main(argv=None):
     freeze.add_argument("--corpus-manifest", type=Path, default=Path("data/corpus/manifest.csv"))
     freeze.add_argument("--parsed-dir", type=Path)
     freeze.add_argument("--top-k", type=int)
+    freeze.add_argument("--query-version", default="rca-query-v1", choices=("rca-query-v1", "rca-query-v2", "rca-query-v3"))
     freeze.add_argument("--frozen-on", required=True)
     freeze.add_argument("--output", type=Path, required=True)
     run = commands.add_parser("run", help="retrieve once per evidence packet and save snapshots")
@@ -51,7 +52,8 @@ def main(argv=None):
             result = retrieval.freeze_manifest(
                 settings=settings, manifest_path=args.corpus_manifest,
                 parsed_dir=args.parsed_dir or Path(settings.parsed_corpus_dir),
-                top_k=args.top_k or settings.retrieval_top_k, output=args.output, frozen_on=args.frozen_on)
+                top_k=args.top_k or settings.retrieval_top_k, output=args.output, frozen_on=args.frozen_on,
+                query_version=args.query_version)
             result = {key: result[key] for key in ("manifest_sha256", "search", "embeddings")} | {
                 "chunks": result["chunks"]["count"], "chunk_inventory_sha256": result["chunks"]["inventory_sha256"]}
         elif args.command == "run":

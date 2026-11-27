@@ -42,6 +42,10 @@ class RunView:
     resources: dict[str, Any]
     detector_label: str | None
     superseded: tuple[str, ...] = ()
+    uncertainty_reasons: tuple[str, ...] = ()
+    structural_checks: tuple[dict[str, Any], ...] = ()
+    numeric_checks: tuple[dict[str, Any], ...] = ()
+    parsed_output: dict[str, Any] | None = None
 
     @property
     def complete(self) -> bool:
@@ -100,6 +104,10 @@ def view_from_record(record: dict[str, Any]) -> RunView:
             usage=record.get("usage") or {},
             resources=record.get("resources") or {},
             detector_label=prediction.get("predicted_label"),
+            uncertainty_reasons=tuple(parsed.get("uncertainty_reasons", [])),
+            structural_checks=tuple(response.get("structural_checks") or []),
+            numeric_checks=tuple(response.get("numeric_checks") or []),
+            parsed_output=record["parsed_output"],
         )
     except (KeyError, AttributeError, TypeError) as exc:
         raise RunRecordError(f"malformed run record: {exc!r}") from exc

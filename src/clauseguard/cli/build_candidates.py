@@ -17,6 +17,12 @@ def _bubbleran_family(paths: list[Path]) -> str:
     return f"BubbleRAN:ran_ue_id={ue}:e2node_nb_id={gnb}"
 
 
+def _decisions(path: Path | None):
+    from clauseguard.rca.candidates import LeadDecisions
+
+    return LeadDecisions.model_validate_json(path.read_bytes()) if path else LeadDecisions()
+
+
 def build(args) -> dict:
     from clauseguard.datasets.scenarios import ScenarioDataset
     from clauseguard.datasets.window_overlap import load_window_spans
@@ -28,8 +34,9 @@ def build(args) -> dict:
     config = (pool.CandidateConfig.model_validate_json(args.config.read_bytes()) if args.config
               else pool.CandidateConfig())
     dataset = ScenarioDataset(args.release_dir, allow_exploratory=args.allow_exploratory)
+    decisions = _decisions(args.decisions)
     inventory = pool.build_inventory(telecomts_acquisition=args.acquisition, bubbleran_dir=args.bubbleran_dir,
-                                     spotlight_dir=args.spotlight_dir)
+                                     spotlight_dir=args.spotlight_dir, decisions=decisions)
     reservations = pool.build_reservations(dataset, args.golden_dir)
     folds = args.folds or args.predictions.parent / "folds.json"
     cases, predictions_sha256 = pool.load_predictions(args.predictions, folds, release_id=dataset.release_id)
@@ -46,27 +53,20 @@ def build(args) -> dict:
                                            family_id=f"SpotLight:experiment:{revision}")
     dedup = release.duplicate_checks(built, reservations, config, shared_row_events=shared)
     built = release.evaluate_eligibility(built, inventory={s.dataset: s for s in inventory},
-                                         reservations=reservations, dedup=dedup, config=config)
+                                         reservations=reservations, dedup=dedup, config=config,
+                                         decisions=decisions)
     built, split_summary = release.assign_splits(built, config)
     rows, shortfalls = release.select_batch(built, config)
-    membership = dataset.splits["membership"]
     csv_paths = {"BubbleRAN": {p.name: p for p in bubbleran}, "SpotLight": {p.name: p for p in spotlight}}
 
     def rebuild(candidate):
-        source, location = candidate.identity.source_dataset, candidate.identity.source_location
-        if source == "TelecomTS":
-            sid = candidate.identity.source_record_id
-            prediction = getattr(cases[sid], config.packet_head).prediction if sid in cases else None
-            return pool.telecomts_packet(dataset.load_scenario(sid), membership[sid], prediction, config)[0]
-        path = csv_paths[source][location["file"]]
-        if source == "SpotLight":
-            return pool.spotlight_packet(path, location["start_time"], location["end_time"], config)[0]
-        return pool.bubbleran_packet(path, location["first_row"], location["last_row"], config)[0]
+        return pool.rebuild_packet(candidate, dataset=dataset, cases=cases, csv_paths=csv_paths, config=config)[0]
 
     manifest = release.export_release(
         args.output_dir, built=built, inventory=inventory, reservations=reservations, dedup=dedup,
         split_summary=split_summary, batch_rows=rows, shortfalls=shortfalls, config=config, rebuild_packet=rebuild,
-        prediction_files={"cross_fit_predictions": predictions_sha256}, created_on=args.created_on)
+        prediction_files={"cross_fit_predictions": predictions_sha256}, created_on=args.created_on,
+        decisions=decisions)
     dataset.check_source()
     counts = manifest.counts
     return {"candidate_release_id": manifest.candidate_release_id, "candidates": counts["total"],
@@ -86,6 +86,8 @@ def main(argv=None):
         command.add_argument("--acquisition", type=Path, default=Path("data/telecomts/acquisition.json"))
         command.add_argument("--bubbleran-dir", type=Path, default=Path("data/bubbleran/raw"))
         command.add_argument("--spotlight-dir", type=Path, default=Path("data/spotlight/raw"))
+        command.add_argument("--decisions", type=Path,
+                             help="recorded lead decisions (data/candidates/decisions.json); none by default")
     for command in (reserve, build_cmd):
         command.add_argument("--release-dir", type=Path, required=True)
         command.add_argument("--allow-exploratory", action="store_true")
@@ -104,7 +106,8 @@ def main(argv=None):
 
             result = [s.model_dump(mode="json", exclude={"local_files"}) | {"local_files": len(s.local_files)}
                       for s in build_inventory(telecomts_acquisition=args.acquisition,
-                                               bubbleran_dir=args.bubbleran_dir, spotlight_dir=args.spotlight_dir)]
+                                               bubbleran_dir=args.bubbleran_dir, spotlight_dir=args.spotlight_dir,
+                                               decisions=_decisions(args.decisions))]
         elif args.command == "reserve":
             from clauseguard.datasets.scenarios import ScenarioDataset
             from clauseguard.rca.candidate_pool import build_reservations, write_json

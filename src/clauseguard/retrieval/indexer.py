@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import time
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from openai import APIConnectionError, APIStatusError, UnprocessableEntityError
 
 from clauseguard.config import Settings, get_settings
 from clauseguard.corpus.chunker import chunk_document
@@ -19,6 +23,55 @@ class IndexSummary:
 
     documents: int
     chunks: int
+    rejected_chunk_ids: tuple[str, ...] = field(default_factory=tuple)
+
+_TRANSIENT_ATTEMPTS = 5
+_TRANSIENT_WAIT_SECONDS = 20.0
+
+
+def _embed_with_retry(embed: Callable[[list[str]], list[list[float]]], texts: list[str],
+                      sleep: Callable[[float], None]) -> list[list[float]]:
+    """Retry connection errors and 5xx responses; other errors propagate."""
+    for attempt in range(_TRANSIENT_ATTEMPTS):
+        try:
+            return embed(texts)
+        except (APIConnectionError, APIStatusError) as error:
+            transient = isinstance(error, APIConnectionError) or (error.status_code or 0) >= 500
+            if not transient or attempt == _TRANSIENT_ATTEMPTS - 1:
+                raise
+            sleep(_TRANSIENT_WAIT_SECONDS * (attempt + 1))
+    raise AssertionError("unreachable")
+
+
+def embed_screened(chunks: Sequence[dict[str, Any]], embed: Callable[[list[str]], list[list[float]]],
+                   *, batch_size: int, sleep: Callable[[float], None] = time.sleep,
+                   ) -> tuple[list[dict[str, Any]], list[list[float]], list[str]]:
+    """Embed chunks, dropping only those the provider rejects (HTTP 422 content screening).
+
+    A rejected batch is halved until the single rejected chunks are found, so one flagged
+    passage does not fail the whole index. Rejected chunk IDs are returned for the record.
+    """
+    kept: list[dict[str, Any]] = []
+    vectors: list[list[float]] = []
+    rejected: list[str] = []
+
+    def run(batch: list[dict[str, Any]]) -> None:
+        try:
+            out = _embed_with_retry(embed, [c["text"] for c in batch], sleep)
+        except UnprocessableEntityError:
+            if len(batch) == 1:
+                rejected.append(batch[0]["id"])
+                return
+            middle = len(batch) // 2
+            run(batch[:middle])
+            run(batch[middle:])
+            return
+        kept.extend(batch)
+        vectors.extend(out)
+
+    for start in range(0, len(chunks), batch_size):
+        run(list(chunks[start:start + batch_size]))
+    return kept, vectors, rejected
 
 
 def _default_manifest(settings: Settings) -> Path:
@@ -70,11 +123,11 @@ def index_corpus(
             )
         )
 
-    embeddings = embed_texts(
-        [chunk["text"] for chunk in chunks],
-        client=embedding_client,
-        settings=resolved_settings,
-        input_type="passage",
+    chunks, embeddings, rejected = embed_screened(
+        chunks,
+        lambda texts: embed_texts(texts, client=embedding_client, settings=resolved_settings,
+                                  input_type="passage"),
+        batch_size=resolved_settings.embedding_batch_size,
     )
     target_collection = collection or resolved_settings.qdrant_collection
     ensure_collection(target_collection, client=qdrant_client, settings=resolved_settings)
@@ -85,4 +138,4 @@ def index_corpus(
         client=qdrant_client,
         settings=resolved_settings,
     )
-    return IndexSummary(documents=len(rows), chunks=len(chunks))
+    return IndexSummary(documents=len(rows), chunks=len(chunks), rejected_chunk_ids=tuple(rejected))

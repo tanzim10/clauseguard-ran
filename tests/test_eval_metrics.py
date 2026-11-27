@@ -227,7 +227,7 @@ def test_clause_of_reads_chunker_section_headings():
     )
     sections = [
         chunk["metadata"]["section"]
-        for chunk in chunk_document(text, spec_id="S", source_file="s.pdf")
+        for chunk in chunk_document(text, spec_id="S", source_file="s.pdf", version="v1")
     ]
 
     assert [clause_of(section) for section in sections] == [None, "5.1.1.3.1", "5.1"]

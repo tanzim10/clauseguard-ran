@@ -1,0 +1,52 @@
+{
+  "report_version": "training-sources-v1",
+  "candidate_release_id": "19c6e51a99c1010bb9d7feb4ae0131049de31d43f01bbfe749edff0d1da1d712",
+  "sources": {
+    "TelecomTS": {
+      "status": "included",
+      "training_terms": "MIT; recording families waived for training (lead-2026-11-24-telecomts-family-waiver)",
+      "eligible_events": 78,
+      "selected": "62 fault events (60 synthetic, 2 real jamming) across 11 causes, plus normal events at 3 in 25",
+      "evidence": "KPI-only windows (128 samples); no approved incident text",
+      "baseline": "same_zone_application_normal for synthetic and stationary normal windows; jammer and mobile captures have no baseline",
+      "gaps": [
+        "no approved text, so no text-only or KPI+text examples",
+        "every label has one cause, so no multiple-cause examples"
+      ]
+    },
+    "BubbleRAN": {
+      "status": "excluded_from_this_version",
+      "training_terms": "CC BY-SA 4.0 cleared for academic training; family waived (lead-2026-11-24-bubbleran-family-waiver)",
+      "eligible_events": 76,
+      "reason": "prompts are about 202k characters against the 90k context budget (77 channels x 3 statistics); issue #75 rejects over-limit rows unless rebuilt evidence passes review again",
+      "next_step": "shrink the evidence (for example means only, no MCS distribution bins) and re-review"
+    },
+    "SpotLight": {
+      "status": "excluded",
+      "reason": "no licence is published for the repository or its data; not covered by the 2026-11-24 terms decision",
+      "eligible_events": 0
+    },
+    "TeleLogs": {
+      "status": "deferred",
+      "training_terms": "cleared for academic training (lead-2026-11-24-training-terms-academic); keep local, never redistribute",
+      "reason": "gated access not yet accepted and no rca-v1 adapter; deferred to a later version by the source-mix choice for issue #75 on 2026-11-24",
+      "eligible_events": 0
+    },
+    "5G core faults": {
+      "status": "deferred",
+      "identifier": "https://huggingface.co/datasets/greenwich157/telco-5G-core-faults",
+      "training_terms": "Apache-2.0, cleared for academic training",
+      "reason": "no rca-v1 adapter yet; 790 of 1,323 inputs state the cause and outputs are remediation steps, not RCA; deferred to a later version by the source-mix choice for issue #75 on 2026-11-24",
+      "eligible_events": 0
+    }
+  },
+  "example_coverage": {
+    "kpi_only": "yes",
+    "text_only": "no eligible source in this version",
+    "single_cause": "yes",
+    "multiple_cause": "no eligible case (no multi-cause labels)",
+    "normal": "yes, at 3 in 25",
+    "abstentions": "allowed only when the judge finds them justified; the label-guided teacher answers when the KPI records support the label",
+    "detector_corrections": "the selection mixes cases where the out-of-fold detector disagrees with the label; the teacher hint never names the detector"
+  }
+}

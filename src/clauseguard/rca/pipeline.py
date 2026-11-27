@@ -87,6 +87,28 @@ class RcaCase(BaseModel):
     audits: list[EvidenceAudit]
     snapshot_path: Path | None
     manifest: dict[str, Any]
+    # Task 4.9 label-guided teacher: the source label, shown to the teacher only, never in the student prompt.
+    teacher_label: str | None = None
+
+
+TEACHER_HINT_VERSION = "rca-teacher-hint-v2"
+
+
+def teacher_hint(label: str) -> str:
+    """Teacher-only note naming the confirmed source label; the student's messages never contain it."""
+    if label == "normal":
+        return ("Teacher note: the source dataset confirms this case is normal operation with no fault. Answer with "
+                "the category normal, supported by KPI records (and their baselines where given) that show no "
+                "abnormal change. Quote numbers exactly as the records show them. Do not mention this note or the "
+                "dataset label.")
+    return (f"Teacher note: the source dataset confirms the fault category of this case is {label!r}; treat it as "
+            "the answer to explain, not a hypothesis. Explain it only with the supplied evidence: observation "
+            "claims cite KPI records (compare with their baselines where given), mechanism claims cite "
+            "specification passages, which may describe the general mechanism family of this category (for "
+            "example uplink interference for an interference category) rather than its exact name, and a "
+            "diagnostic claim links them. Quote numbers exactly as the records show them; do not compute "
+            "differences, ratios or percentages. Do not mention this note or the dataset label. Abstain only if "
+            "the KPI records contradict this category or show no change at all.")
 
 
 def assemble(case: RcaCase) -> tuple[EvidencePacket, RetrievalSnapshot, dict[str, Any]]:
@@ -197,6 +219,28 @@ class GenerationSettings(BaseModel):
     timeout_seconds: float | None = Field(default=240.0, gt=0)
 
 
+REVISION_FEEDBACK_VERSION = "rca-revision-feedback-v1"
+
+
+def revision_feedback(structural: list[CheckResult], numeric: list[NumericCheckResult],
+                      error: Exception | None) -> str:
+    """Fixed, label-free feedback naming each failed runtime check."""
+    lines = ["Your JSON failed these checks. Return a corrected RcaModelOutput JSON object only."]
+    if error is not None:
+        lines.append(f"- schema: {error}")
+    for check in structural:
+        if check.status == "failed" and check.check_id != "schema.v1":
+            lines.append(f"- {check.check_id}: {check.detail or 'failed'}"
+                         + (f" ({check.subject})" if check.subject else ""))
+    for result in numeric:
+        if result.status == "failed":
+            tokens = ", ".join(n.token for n in result.numbers if n.status == "unmatched")
+            lines.append(f"- numeric.v2: claim {result.claim_id} quotes numbers its cited records do not show: "
+                         f"{tokens}. Quote values exactly as the cited records show them; do not compute "
+                         "differences, ratios or percentages.")
+    return "\n".join(lines)
+
+
 class ExperimentConfig(BaseModel):
     """Fixed before a run and hashed into its record."""
 
@@ -212,11 +256,15 @@ class ExperimentConfig(BaseModel):
     prompt_version: Literal["rca-prompt-v1", "rca-prompt-v2"] = PROMPT_VERSION
     numeric_policy: Literal["fail", "record"] = "fail"
     minimal_question: str | None = None
+    # Task 4.9 teacher drafts: after failed runtime checks the same model may revise once with fixed feedback.
+    revisions: int = Field(default=0, ge=0, le=1)
+    label_guided: bool = False
 
     @model_validator(mode="after")
     def check_rules(self) -> ExperimentConfig:
-        if self.run_kind == "scored" and (self.fallback_models or self.numeric_policy != "fail"):
-            raise ValueError("scored runs use one fixed model and fail on numeric mismatches")
+        if self.run_kind == "scored" and (self.fallback_models or self.numeric_policy != "fail" or self.revisions
+                                          or self.label_guided):
+            raise ValueError("scored runs use one fixed model, fail on numeric mismatches and never revise")
         if self.model_id in self.fallback_models:
             raise ValueError("fallback models must differ from the selected model")
         if self.configuration == "kpi_summary_rag" and not self.minimal_question:
@@ -224,7 +272,9 @@ class ExperimentConfig(BaseModel):
         return self
 
     def sha256(self) -> str:
-        return _digest(self.model_dump(mode="json"))
+        # Configs without revisions hash as before, so earlier run records keep their config hash.
+        unset = {name for name in ("revisions", "label_guided") if not getattr(self, name)}
+        return _digest(self.model_dump(mode="json", exclude=unset or None))
 
 
 class Generator(Protocol):
@@ -338,6 +388,9 @@ class RcaRunRecord(BaseModel):
     usage: dict[str, Any] | None = None
     raw_output: str | None = None
     parsed_output: RcaModelOutput | None = None
+    # Task 4.9: the failed first draft, its checks, the feedback sent and the attempts of that call.
+    teacher_hint: dict[str, Any] | None = None
+    revisions: list[dict[str, Any]] = Field(default_factory=list)
     response: RcaPipelineResponse
     timings: dict[str, float | None]
     resources: dict[str, Any]
@@ -480,24 +533,31 @@ class RcaPipeline:
             raise PipelineFailure("context_budget", f"prompt has {budget.measured} characters; the limit is "
                                                     f"{budget.limit}; no evidence was dropped")
 
-        generated = self._generate(messages, config, record, timings)
-
-        started = self.clock()
-        try:
-            output = parse_model_output(generated.content)
-        except OutputParseError as exc:
-            response["structural_checks"] = [CheckResult(check_id="schema.v1", status="failed", detail=str(exc))]
-            self._timed(timings, "validation", started)
-            raise PipelineFailure("validation", f"output does not match the RCA schema: {exc}") from exc
+        sent = messages
+        if config.label_guided:
+            if case.teacher_label is None:
+                raise PipelineFailure("assembly", "label-guided run without a teacher label for this case")
+            hint = teacher_hint(case.teacher_label)
+            record["teacher_hint"] = {"version": TEACHER_HINT_VERSION, "text": hint}
+            sent = [*messages, {"role": "user", "content": hint}]
+        generated = self._generate(sent, config, record, timings)
+        output, structural, numeric, failed, error = self._validate(generated.content, projected, config,
+                                                                    response, timings)
+        if failed and config.revisions:
+            # One revision: the original prompt, the failed draft and fixed feedback; the draft is kept.
+            feedback = revision_feedback(structural, numeric, error)
+            record["revisions"] = [{"raw_output": generated.content, "failed_checks": failed,
+                                    "attempts": [a.model_dump(mode="json") for a in record.get("attempts", [])],
+                                    "feedback": feedback, "feedback_version": REVISION_FEEDBACK_VERSION}]
+            turn = [*sent, {"role": "assistant", "content": generated.content},
+                    {"role": "user", "content": feedback}]
+            generated = self._generate(turn, config, record, timings)
+            output, structural, numeric, failed, error = self._validate(generated.content, projected, config,
+                                                                        response, timings)
+            record["revisions"][0]["revised_failed_checks"] = failed
+        if error is not None:
+            raise PipelineFailure("validation", f"output does not match the RCA schema: {error}")
         record["parsed_output"] = output
-        structural = [CheckResult(check_id="schema.v1", status="passed"),
-                      *structural_checks(output, projected, config.taxonomy)]
-        numeric = numeric_checks(output, projected)
-        response.update(structural_checks=structural, numeric_checks=numeric)
-        self._timed(timings, "validation", started)
-        failed = sorted({check.check_id for check in structural if check.status == "failed"})
-        if config.numeric_policy == "fail" and any(item.status == "failed" for item in numeric):
-            failed.append("numeric.v2")
         if failed:
             raise PipelineFailure("validation", f"runtime checks failed: {failed}")
 
@@ -508,6 +568,27 @@ class RcaPipeline:
                         resolved_evidence={eid: evidence[eid] for claim in output.claims
                                            for eid in claim.evidence_ids})
         self._timed(timings, "render", started)
+
+    def _validate(self, content: str, projected: EvidencePacket, config: ExperimentConfig,
+                  response: dict[str, Any], timings: dict[str, float | None]):
+        """Parse and check one draft; returns (output, structural, numeric, failed IDs, parse error)."""
+        started = self.clock()
+        try:
+            output = parse_model_output(content)
+        except OutputParseError as exc:
+            structural = [CheckResult(check_id="schema.v1", status="failed", detail=str(exc))]
+            response.update(structural_checks=structural, numeric_checks=[])
+            self._timed(timings, "validation", started)
+            return None, structural, [], ["schema.v1"], exc
+        structural = [CheckResult(check_id="schema.v1", status="passed"),
+                      *structural_checks(output, projected, config.taxonomy)]
+        numeric = numeric_checks(output, projected)
+        response.update(structural_checks=structural, numeric_checks=numeric)
+        self._timed(timings, "validation", started)
+        failed = sorted({check.check_id for check in structural if check.status == "failed"})
+        if config.numeric_policy == "fail" and any(item.status == "failed" for item in numeric):
+            failed.append("numeric.v2")
+        return output, structural, numeric, failed, None
 
     def _generate(self, messages: list[dict[str, str]], config: ExperimentConfig, record: dict[str, Any],
                   timings: dict[str, float | None]) -> GenerationResult:

@@ -127,3 +127,52 @@ def test_index_corpus_fails_before_embedding_when_parsed_file_is_missing(tmp_pat
 
     assert embedding_client.calls == []
     assert qdrant_client.upserts == []
+
+
+def _api_error(status: int) -> Exception:
+    import httpx
+    from openai import APIStatusError, InternalServerError, UnprocessableEntityError
+
+    response = httpx.Response(status, request=httpx.Request("POST", "http://embed"))
+    cls = {422: UnprocessableEntityError, 502: InternalServerError}.get(status, APIStatusError)
+    return cls("error", response=response, body=None)
+
+
+def test_embed_screened_drops_only_rejected_chunks_and_keeps_order() -> None:
+    from clauseguard.retrieval.indexer import embed_screened
+
+    chunks = [{"id": f"c{i}", "text": f"t{i}"} for i in range(5)]
+
+    def embed(texts: list[str]) -> list[list[float]]:
+        if "t3" in texts:
+            raise _api_error(422)
+        return [[float(t[1:])] for t in texts]
+
+    kept, vectors, rejected = embed_screened(chunks, embed, batch_size=4, sleep=lambda _: None)
+
+    assert [c["id"] for c in kept] == ["c0", "c1", "c2", "c4"]
+    assert vectors == [[0.0], [1.0], [2.0], [4.0]]
+    assert rejected == ["c3"]
+
+
+def test_embed_screened_retries_transient_errors_then_raises_others() -> None:
+    from clauseguard.retrieval.indexer import embed_screened
+
+    calls = {"n": 0}
+
+    def flaky(texts: list[str]) -> list[list[float]]:
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise _api_error(502)
+        return [[1.0] for _ in texts]
+
+    kept, _, rejected = embed_screened([{"id": "a", "text": "x"}], flaky, batch_size=8, sleep=lambda _: None)
+    assert [c["id"] for c in kept] == ["a"] and rejected == [] and calls["n"] == 3
+
+    def forbidden(texts: list[str]) -> list[list[float]]:
+        raise _api_error(401)
+
+    from openai import APIStatusError
+
+    with pytest.raises(APIStatusError):
+        embed_screened([{"id": "a", "text": "x"}], forbidden, batch_size=8, sleep=lambda _: None)

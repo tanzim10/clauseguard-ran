@@ -121,3 +121,18 @@ def test_rca_timeout_and_token_defaults_are_rca_specific(tmp_path, monkeypatch):
     assert run_rca.main(_args(other, "--case", "rca_fx_002", "--max-tokens", "8000")) == 0
     generation = _runs(other)[1]["config"]["generation"]
     assert (generation["max_tokens"], generation["timeout_seconds"]) == (8000, 90.0)
+
+
+def test_top_p_is_recorded_in_the_run_config(tmp_path, capsys):
+    output = tmp_path / "runs"
+    assert run_rca.main(_args(output, "--replay", str(FIXTURES / "recordings"), "--top-p", "0.95")) == 0
+    _, index = _runs(output)
+    assert index["config"]["generation"]["top_p"] == 0.95
+
+
+def test_taxonomy_option_selects_a_source_taxonomy(tmp_path, capsys):
+    output = tmp_path / "runs"
+    assert run_rca.main(_args(output, "--replay", str(FIXTURES / "recordings"), "--taxonomy", "bubbleran-pi-v1")) == 0
+    _, index = _runs(output)
+    assert index["config"]["taxonomy"]["taxonomy_id"] == "bubbleran-pi-v1"
+    assert index["config"]["taxonomy"]["labels"] == ["persistent_interference"]

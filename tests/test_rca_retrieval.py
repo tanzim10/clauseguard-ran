@@ -143,7 +143,7 @@ def test_empty_not_run_and_failed_searches_stay_distinct(corpus, monkeypatch):
         failed = retrieval.snapshot_case(_packet(), corpus.manifest, _service(corpus, [point]), case_id="c")
         assert (failed.state, failed.stage) == ("failed", "source_identity") and message in failed.reason
     calls = []
-    monkeypatch.setattr(retrieval, "build_query", lambda packet: ("  ", {"template_version": "x"}))
+    monkeypatch.setattr(retrieval, "build_query", lambda packet, version="rca-query-v1": ("  ", {"template_version": "x"}))
     skipped = retrieval.snapshot_case(_packet(), corpus.manifest, _service(corpus, [], calls), case_id="c")
     assert (skipped.state, skipped.stage, skipped.query, calls) == ("not_run", "query", None, [])
 
@@ -220,3 +220,38 @@ def test_published_example_snapshots_keep_their_sealed_ids():
     assert [s["chunk_id"] for s in example["fixture_replay"]["specification_evidence"]] == [
         p["chunk_id"] for p in fixture["passages"]]
     assert "chunk_sha256" not in example["frozen_manifest_summary"]["chunks"]
+
+
+def test_query_v2_drops_kpi_statistics_but_keeps_question_and_detector():
+    query, inputs = retrieval.build_query(_packet(), "rca-query-v2")
+    assert query.splitlines() == ["Why did uplink SNR fall?",
+                                  "Detector prediction (diagnosis): Co-Channel Interference (Severe)"]
+    assert inputs["template_version"] == "rca-query-v2" and inputs["kpi_evidence_ids"] == []
+    assert retrieval.build_query(_packet())[1]["template_version"] == "rca-query-v1"
+    with pytest.raises(retrieval.SnapshotError, match="unknown query version"):
+        retrieval.build_query(_packet(), "rca-query-v9")
+
+
+def test_query_v3_names_the_largest_baseline_changes_and_nothing_without_a_baseline():
+    from clauseguard.rca.evidence import BaselineVerification
+
+    plain, inputs = retrieval.build_query(_packet(), "rca-query-v3")
+    assert "baseline" not in plain and inputs["kpi_evidence_ids"] == []
+
+    registry = EvidenceRegistry()
+    other = SOURCE.model_copy(update={"case_id": "normal-window"})
+    rule = BaselineVerification(kind="verified_normal", interval_rule="same zone", status="verified",
+                                verified_by="review", evidence="normal recording")
+    for channel, incident, base in (("UL_SNR", [6.0, 6.4], [21.0, 21.4]), ("RSRP", [-98.0, -98.2], [-98.0, -98.1])):
+        stats = {s.statistic: s for s in summarize_channel(channel, incident, semantics="reported_value")[0]}
+        bases = {s.statistic: s for s in summarize_channel(channel, base, semantics="reported_value")[0]}
+        made = registry.add_kpi(stats["mean"], source=SOURCE, location={"row": 1})
+        linked = registry.add_kpi(bases["mean"], source=other, location={"row": 2})
+        registry.attach_baseline(made.evidence_id, linked.evidence_id, rule)
+    packet = registry.packet(source=SOURCE, question="Explain the observed KPI changes.", kpi_state="included",
+                             text_state="missing", retrieval_status="not_run")
+    query, inputs = retrieval.build_query(packet, "rca-query-v3")
+    lines = query.splitlines()
+    assert lines[0] == "Explain the observed KPI changes."
+    assert lines[1].index("UL_SNR decreased from 21.2 to 6.2") < lines[1].index("RSRP")  # largest change first
+    assert len(inputs["kpi_evidence_ids"]) == 4

@@ -30,6 +30,7 @@ remains outside its scope.
 - [Task 4.5 — Frozen retrieval and specification snapshots](#task-45--frozen-retrieval-and-specification-snapshots--2026-11-09)
 - [Task 4.6 — SLM candidate pool, manifest and gap report](#task-46--slm-candidate-pool-manifest-and-gap-report--2026-11-17)
 - [Task 4.7 — Base LLM pipeline for cited RCA](#task-47--base-llm-pipeline-for-cited-rca--2026-11-17)
+- [Task 4.8 — Evaluation of base RCA results](#task-48--evaluation-of-base-rca-results--2026-11-18)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -1988,6 +1989,70 @@ uv run python -m clauseguard.cli.run_rca --manifest artifacts/rca/retrieval-mani
 - The scored base model, whether `normal` is allowed, and the numeric failure policy are lead decisions.
 - Live generation, live snapshots and scored runs need the key, the index, approved evaluation cases
   and the evaluation policy. FastAPI, MCP, review tooling and evaluation metrics stay out of scope.
+
+## Task 4.8 — Evaluation of base RCA results — 2026-11-18
+
+**Focus:** [Issue #63](https://github.com/tanzim10/clauseguard-ran/issues/63) — score saved base LLM runs with automatic metrics and a separate judge for provisional citation faithfulness, without waiting for human review.
+
+**Status:** Evaluator, judge, CLI and tests complete. Real saved runs were scored (exploratory, provisional). Scored identification is blocked: no golden RCA case has an approved reference.
+
+**PR:** TBD
+
+### Delivered
+
+In simple words: the evaluator reads the run records saved by Task 4.7 and reports four things separately: whether the returned causes match an approved answer, whether every claim and cause links to real evidence, whether a second, separate model finds each claim supported by the evidence it cites, and how many runs answered, abstained or failed. Every ratio shows its counts; a ratio with nothing to divide by is "unavailable", never 0 or 1. Judge results are provisional and human review stays pending.
+
+- `eval/rca_runs.py`: reads `rca-run-v1` records into a small view; merges reruns.
+- `eval/rca_eval.py`: the versioned policy (`rca-eval-v1`), references, identification, link coverage, support metrics, status, resources, error tags and the report.
+- `eval/rca_judge.py`: the separate judge, structured judgments, resume support.
+- `cli/eval_rca.py`: `python -m clauseguard.cli.eval_rca`.
+
+### Technical implementation
+
+- **References stay outside generator inputs.** They are loaded only by the evaluator. A case is approved only when `expected_causes` is non-empty. An optional overlay adds alternative acceptable sets; an optional abstention file holds unanswerable fixtures apart from the golden cases.
+- **Identification** compares category sets after declared mappings (no text similarity). A prediction is exact when it equals any one acceptable set; sets are never merged. Precision, recall and F1 pool counts over eligible cases, using the best-overlap set. Failed runs and false abstentions predict the empty set. `normal` is an ordinary category; an empty set is never a valid reference. Scored and exploratory cases are separate sections; each reports `with_failures` and `successful_only`. Missing approved references return `blocked` with the reason and do not block the rest.
+- **Structure**: citation coverage (every claim cites at least one ID, no repeats, all IDs in the packet the generator saw) and cause-link coverage (a returned cause links to a diagnostic claim with valid links). Abstentions add nothing.
+- **Judge** (`rca-judge-v1`, default `nvidia/nemotron-3.5-super-vl-120b-a12b`, refused when it equals a generator model): one request per complete run, each claim next to only its own cited records, evidence inside delimited blocks the judge is told to treat as data. The prompt holds no generator name, detector prediction or expected diagnosis. Five decisions; only `fully_supported` counts as faithful. Malformed replies and judge failures are separate visible statuses. Judgments are reused on rerun only when `judged`, so failures are retried.
+- **Metrics**: provisional faithfulness (fully supported over cited claims with a completed decision), provisional supported coverage (only when judging is complete), judgment coverage.
+- **Resources**: pipeline timings by stage and generator kind (replay loading reported apart), client process memory with its scope, judge latency and tokens separate; hosted model memory and GPU memory are marked unavailable.
+- **Error tags** with the evidence behind each: retrieval miss (an annotated expected clause is absent from the packet), corpus gap (needs a declared gap), generation miss (approved reference, expected evidence supplied, no acceptable answer), citation mismatch (invalid links; judge-based ones are provisional), execution failure, undetermined.
+- **Spec-QA retrieval** is read from an existing `run_eval` directory (`--retrieval-eval`); Recall@k and MRR are not recomputed.
+- **Outputs** go to a new directory under `artifacts/rca_eval/` (ignored): `policy.json` (policy hashes), `judgments.jsonl`, `metrics.json` (deterministic), `summary.md`, `eval.json` (hardware, run IDs, command, time).
+
+### Reproduce
+
+```bash
+export DYLD_LIBRARY_PATH=$PWD/.venv/lib/python3.11/site-packages/sklearn/.dylibs
+.venv/bin/python -m pytest -q tests/test_rca_runs.py tests/test_rca_judge.py tests/test_rca_eval.py tests/test_rca_eval_cli.py
+# structure and identification only
+uv run python -m clauseguard.cli.eval_rca --runs <run_rca output dir> --output artifacts/rca_eval/<name> --no-judge
+# with the judge (needs NVIDIA_API_KEY), spec_qa retrieval and a rerun directory merged in
+uv run python -m clauseguard.cli.eval_rca --runs <dir> --runs <rerun dir> --output artifacts/rca_eval/<name> \
+  --retrieval-eval artifacts/eval/<retrieval run> [--reuse-judgments artifacts/rca_eval/<earlier>/judgments.jsonl]
+```
+
+### Results on saved development runs (exploratory, provisional)
+
+All 12 golden RCA cases, `rca-prompt-v2`, judge `nemotron-3.5-super-120b`. The 12 cases come from 4 recording families, so they are not independent.
+
+| Generator | Answered / abstained / failed | Judged claims | Fully supported | Provisional faithfulness |
+|---|---|---|---|---|
+| Kimi K3.1 Pro | 3 / 7 / 2 (timeouts) | 12 | 10 | 0.833 |
+| Nemotron 3 Ultra | 6 / 6 / 0 | 33 | 19 | 0.576 |
+| Gemma 4 31B | 12 / 0 / 0 | 41 | 21 | 0.512 |
+| Nemotron 3.5 Lightning | 7 / 0 / 5 (validation) | 27 | 16 | 0.593 |
+
+Citation and cause-link coverage are 1.000 for every generator (the pipeline checks already enforce valid links). Spec-QA retrieval (dev split, 22 answerable rows): MRR 0.523, clause recall@5 0.504, @10 0.606.
+
+### Limits and follow-ups
+
+- **Scored identification is blocked.** Every golden RCA case has an empty `expected_causes`, and all are exploratory. Until references (and alternative sets) are approved, cause-set accuracy, precision, recall and F1 are unavailable. A source-label agreement block is reported, labelled as a dataset claim and not an accuracy.
+- **Prior test exposure.** 7 of the 12 golden cases are in the test split and were run and read while Task 4.7's prompt and checks were developed. These results are development evidence, not a frozen test comparison.
+- **Retrieval miss on every case.** Expected annotated clauses are absent from the live packets for all 12 cases, which caps citation-based and generation-miss results.
+- **Judge limits.** One judge model, one pass; it shares biases with the Nemotron generators and scores by reading single-window aggregates strictly. It is a screen, not ground truth.
+- **Correct abstention is unavailable** until an abstention fixture file is approved.
+- Final four-configuration comparison, human review and SLM targets remain out of scope.
+
 
 ## Adding a New Phase
 

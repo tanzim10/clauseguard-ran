@@ -81,3 +81,4 @@ logs/
 src/ui/node_modules/
 src/ui/dist/
 .gstack/
+artifacts/rca_eval/*/

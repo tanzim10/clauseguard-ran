@@ -1,0 +1,59 @@
+{
+  "decisions_version": "rca-lead-decisions-v1",
+  "decisions": [
+    {
+      "decision_id": "lead-2026-11-24-telecomts-family-waiver",
+      "kind": "family_waiver",
+      "sources": [
+        "TelecomTS"
+      ],
+      "decided_by": "tanzim10",
+      "decided_on": "2026-11-24",
+      "scope": "SLM training release (Task 4.9), for now; golden and test reservations still apply",
+      "statement": "Unresolved TelecomTS recording families are waived for the training release for now. Families still group windows for splitting and duplicate checks.",
+      "remaining_blockers": {},
+      "identifiers": {}
+    },
+    {
+      "decision_id": "lead-2026-11-24-training-terms-academic",
+      "kind": "training_terms",
+      "sources": [
+        "BubbleRAN",
+        "TeleLogs",
+        "5G core faults"
+      ],
+      "decided_by": "tanzim10",
+      "decided_on": "2026-11-24",
+      "scope": "academic model training (Task 4.9 release and Task 4.10)",
+      "statement": "BubbleRAN, TeleLogs and the 5G core faults dataset may be used for training in this academic project. SpotLight is not covered and stays blocked. TeleLogs data stays local and is never redistributed or committed.",
+      "remaining_blockers": {
+        "TeleLogs": [
+          "gated access has not been accepted; source files are not available locally",
+          "the dataset card asks users not to share, re-upload or distribute the benchmark; keep it local",
+          "revision, fields, families and multi-cause rows are unverified",
+          "settings evidence has no rca-v1 contract type"
+        ],
+        "5G core faults": [
+          "790 of 1,323 inputs state the cause; outputs are remediation steps, not RCA",
+          "no rca-v1 adapter yet"
+        ]
+      },
+      "identifiers": {
+        "5G core faults": "https://huggingface.co/datasets/greenwich157/telco-5G-core-faults"
+      }
+    },
+    {
+      "decision_id": "lead-2026-11-24-bubbleran-family-waiver",
+      "kind": "family_waiver",
+      "sources": [
+        "BubbleRAN"
+      ],
+      "decided_by": "tanzim10",
+      "decided_on": "2026-11-24",
+      "scope": "SLM training release (Task 4.9), extending the TelecomTS family waiver; golden and test reservations still apply",
+      "statement": "The BubbleRAN recording family is waived for the training release. All BubbleRAN windows come from one session (one UE on one gNB), so they form one family and stay in one split.",
+      "remaining_blockers": {},
+      "identifiers": {}
+    }
+  ]
+}

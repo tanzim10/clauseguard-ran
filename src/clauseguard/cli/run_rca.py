@@ -7,6 +7,7 @@ exact prompt hash (``--replay``). Replayed runs are labelled ``generator_kind: r
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 
@@ -40,6 +41,32 @@ def load_cases(*, packets: Path, audits: Path, run_dir: Path, manifest: dict) ->
     return cases
 
 
+def teacher_labels(path: Path, case_ids: set[str]) -> dict[str, str]:
+    """Source label per case from candidate references: its single cause, or ``normal``."""
+    labels = {}
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            row = json.loads(line)
+            if row["candidate_id"] not in case_ids:
+                continue
+            if row["label_status"] == "labelled_normal":
+                labels[row["candidate_id"]] = "normal"
+            elif row["label_status"] == "labelled_fault" and len(row["causes"]) == 1:
+                labels[row["candidate_id"]] = row["causes"][0]
+    return labels
+
+
+def run_with_retries(rca, case, config, *, retries: int, wait_seconds: float, save, sleep=time.sleep):
+    """Run a case, retrying generation failures with the same fixed model; saves every record."""
+    for attempt in range(retries + 1):
+        record = rca.run_rca(case, config)
+        save(record)
+        if record.response.execution_stage != "generation" or attempt == retries:
+            return record
+        sleep(max(0.0, wait_seconds))
+    return record
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True, help="frozen Task 4.5 retrieval manifest")
@@ -58,18 +85,31 @@ def main(argv=None):
                              "part of it before the answer")
     parser.add_argument("--prompt-version", default=None, choices=("rca-prompt-v1", "rca-prompt-v2"),
                         help="prompt version (default: current)")
+    parser.add_argument("--top-p", type=float,
+                        help="nucleus sampling value (default 1.0); some models accept only their own, e.g. Kimi 0.95")
+    parser.add_argument("--revisions", type=int, default=0, choices=(0, 1),
+                        help="exploratory teacher drafts: revise once with fixed check feedback (Task 4.9)")
+    parser.add_argument("--teacher-labels", type=Path,
+                        help="Task 4.6 references.jsonl: give the teacher each case's source label as a private "
+                             "hint (label-guided drafts; the student prompt never contains it)")
     parser.add_argument("--numeric-policy", default="fail", choices=("fail", "record"))
+    parser.add_argument("--taxonomy", default="telecomts-v1",
+                        choices=("telecomts-v1", "telecomts-v1-jamming", "bubbleran-pi-v1"),
+                        help="category list given to the model and checked (default: telecomts-v1)")
     parser.add_argument("--disallow-normal", action="store_true", help="taxonomy without normal")
     parser.add_argument("--policy", type=Path, default=Path("data/golden/rca_policy.json"),
                         help="source of the minimal question for kpi_summary_rag")
     parser.add_argument("--replay", type=Path, help="directory of recorded raw outputs (fixtures)")
     parser.add_argument("--case", action="append", default=[], help="only these case IDs")
+    parser.add_argument("--retries", type=int, default=0,
+                        help="re-run a case that failed at generation up to N times with the same model; "
+                             "every attempt's run record is kept")
     args = parser.parse_args(argv)
     try:
         from clauseguard.config import get_settings
         from clauseguard.llm.clients import LLMRouter
         from clauseguard.rca import pipeline
-        from clauseguard.rca.checks import TELECOMTS_TAXONOMY
+        from clauseguard.rca.checks import RUN_TAXONOMIES
         from clauseguard.rca.retrieval import load_manifest_record
 
         settings = get_settings()
@@ -83,23 +123,31 @@ def main(argv=None):
             configuration=args.configuration, run_kind=args.run_kind,
             model_id=args.model or settings.rca_model_id, fallback_models=tuple(args.fallback),
             context_budget_chars=args.budget_chars or settings.rca_context_budget_chars,
-            numeric_policy=args.numeric_policy,
+            numeric_policy=args.numeric_policy, revisions=args.revisions,
+            label_guided=args.teacher_labels is not None,
             **({"prompt_version": args.prompt_version} if args.prompt_version else {}),
             generation=pipeline.GenerationSettings(
                 max_tokens=args.max_tokens or settings.rca_max_tokens,
-                timeout_seconds=settings.rca_timeout_seconds), minimal_question=minimal,
-            taxonomy=TELECOMTS_TAXONOMY.model_copy(update={"allows_normal": not args.disallow_normal}))
+                timeout_seconds=settings.rca_timeout_seconds,
+                **({"top_p": args.top_p} if args.top_p is not None else {})), minimal_question=minimal,
+            taxonomy=RUN_TAXONOMIES[args.taxonomy].model_copy(update={"allows_normal": not args.disallow_normal}))
         manifest = load_manifest_record(args.manifest)
         cases = load_cases(packets=args.packets, audits=args.audits, run_dir=args.run_dir, manifest=manifest)
         if args.case:
             cases = [case for case in cases if case.case_id in set(args.case)]
+        if args.teacher_labels:
+            labels = teacher_labels(args.teacher_labels, {case.case_id for case in cases})
+            cases = [case.model_copy(update={"teacher_label": labels.get(case.case_id)}) for case in cases]
         generator = (pipeline.ReplayGenerator.from_directory(args.replay) if args.replay
                      else LLMRouter(settings=settings))
         rca = pipeline.RcaPipeline(generator=generator)
         rows = []
+        if args.retries < 0:
+            raise ValueError("--retries must be zero or more")
         for case in cases:
-            record = rca.run_rca(case, config)
-            pipeline.save_run_record(record, args.output / "runs")
+            record = run_with_retries(rca, case, config, retries=args.retries,
+                                      wait_seconds=settings.nvidia_cooldown_seconds,
+                                      save=lambda r: pipeline.save_run_record(r, args.output / "runs"))
             response = record.response
             rows.append({
                 "case_id": case.case_id, "run_id": record.run_id, "result_sha256": record.result_sha256,

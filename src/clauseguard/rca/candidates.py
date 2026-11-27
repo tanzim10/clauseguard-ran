@@ -57,6 +57,44 @@ class SourceInventory(StrictModel):
         return self
 
 
+class LeadDecision(StrictModel):
+    """A recorded project-lead decision that changes admission; who, when and the exact scope."""
+
+    decision_id: NonEmptyStr
+    kind: Literal["family_waiver", "training_terms"]
+    sources: list[SourceName] = Field(min_length=1)
+    decided_by: NonEmptyStr
+    decided_on: NonEmptyStr
+    scope: NonEmptyStr
+    statement: NonEmptyStr
+    # training_terms only: blockers that remain after the terms are cleared (data fit, access).
+    remaining_blockers: dict[SourceName, list[NonEmptyStr]] = Field(default_factory=dict)
+    identifiers: dict[SourceName, NonEmptyStr] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _check(self) -> "LeadDecision":
+        if self.kind == "family_waiver" and (self.remaining_blockers or self.identifiers):
+            raise ValueError("a family waiver changes no terms, blockers or identifiers")
+        if set(self.remaining_blockers) - set(self.sources) or set(self.identifiers) - set(self.sources):
+            raise ValueError("decision details name a source outside its scope")
+        return self
+
+
+class LeadDecisions(StrictModel):
+    decisions_version: Literal["rca-lead-decisions-v1"] = "rca-lead-decisions-v1"
+    decisions: list[LeadDecision] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check(self) -> "LeadDecisions":
+        ids = [d.decision_id for d in self.decisions]
+        if len(ids) != len(set(ids)):
+            raise ValueError("decision IDs must be unique")
+        return self
+
+    def of_kind(self, kind: str, source: str) -> LeadDecision | None:
+        return next((d for d in self.decisions if d.kind == kind and source in d.sources), None)
+
+
 class CandidateIdentity(StrictModel):
     candidate_id: NonEmptyStr
     source_dataset: SourceName

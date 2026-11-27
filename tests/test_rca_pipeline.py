@@ -473,3 +473,94 @@ def test_search_and_spec_questions_delegate_to_the_shared_services():
     answer = rca.grounded_query("What lowers SNR?", top_k=2)
     assert answer["answer"] == "SNR falls." and answer["citations"][0]["chunk_id"] == "c1"
     assert searches == [("snr", 3), ("What lowers SNR?", 2)]
+
+
+def test_run_with_retries_reruns_generation_failures_and_keeps_every_record():
+    from types import SimpleNamespace
+
+    from clauseguard.cli.run_rca import run_with_retries
+
+    outcomes = iter(["generation", "generation", None])
+    saved, waits = [], []
+
+    class FakeRca:
+        def run_rca(self, case, config):
+            return SimpleNamespace(response=SimpleNamespace(execution_stage=next(outcomes)))
+
+    record = run_with_retries(FakeRca(), "case", "config", retries=2, wait_seconds=30,
+                              save=saved.append, sleep=waits.append)
+
+    assert record.response.execution_stage is None
+    assert len(saved) == 3
+    assert waits == [30, 30]
+
+
+def test_run_with_retries_does_not_retry_validation_failures_or_exceed_the_limit():
+    from types import SimpleNamespace
+
+    from clauseguard.cli.run_rca import run_with_retries
+
+    def fake(stages):
+        it = iter(stages)
+        return type("R", (), {"run_rca": lambda self, c, k: SimpleNamespace(
+            response=SimpleNamespace(execution_stage=next(it)))})()
+
+    saved = []
+    run_with_retries(fake(["validation"]), "c", "k", retries=3, wait_seconds=0, save=saved.append,
+                     sleep=lambda s: None)
+    assert len(saved) == 1
+    saved = []
+    record = run_with_retries(fake(["generation", "generation"]), "c", "k", retries=1, wait_seconds=0,
+                              save=saved.append, sleep=lambda s: None)
+    assert len(saved) == 2 and record.response.execution_stage == "generation"
+
+
+def test_one_revision_sends_fixed_feedback_keeps_the_draft_and_the_original_prompt(world):
+    claims = _answer()["claims"]
+    bad = _answer(claims=[{**claims[0], "text": "UL_SNR minimum is 6.4, a drop of 15.0."}, *claims[1:]])
+    config = _config(run_kind="exploratory", revisions=1)
+    record, generator = _run(world.case(), bad, _answer(), config=config)
+    assert record.response.execution_status == "complete"
+    assert len(generator.calls) == 2
+    first, second = generator.calls[0]["messages"], generator.calls[1]["messages"]
+    assert second[:len(first)] == first and second[-2]["role"] == "assistant" and second[-1]["role"] == "user"
+    assert "15.0" in second[-1]["content"] and "do not compute" in second[-1]["content"]
+    assert record.messages == first  # the training input stays the original prompt
+    assert record.revisions[0]["failed_checks"] == ["numeric.v2"]
+    assert record.revisions[0]["revised_failed_checks"] == []
+    assert json.loads(record.revisions[0]["raw_output"]) == bad
+
+
+def test_revision_is_used_once_and_never_in_scored_runs(world):
+    with pytest.raises(ValueError, match="never revise"):
+        _config(revisions=1)
+    bad = _answer(claims=[{**_answer()["claims"][0], "text": "UL_SNR minimum is 5.9."}, *_answer()["claims"][1:]])
+    record, generator = _run(world.case(), bad, bad, config=_config(run_kind="exploratory", revisions=1))
+    assert len(generator.calls) == 2 and record.response.execution_stage == "validation"
+    assert record.revisions[0]["revised_failed_checks"] == ["numeric.v2"]
+    assert _config().sha256() == _config(revisions=0).sha256()
+
+
+def test_label_guided_teacher_sees_a_private_hint_the_student_prompt_never_holds(world):
+    config = _config(run_kind="exploratory", label_guided=True)
+    record, generator = _run(world.case().model_copy(update={"teacher_label": SEVERE}), _answer(), config=config)
+    sent = generator.calls[0]["messages"]
+    assert SEVERE in sent[-1]["content"] and sent[-1]["role"] == "user"
+    assert record.messages == sent[:-1] and all(SEVERE not in m["content"] for m in record.messages if m["role"] == "system")
+    assert record.teacher_hint["version"] == pipeline.TEACHER_HINT_VERSION
+    with pytest.raises(ValueError, match="scored"):
+        _config(label_guided=True)
+    missing, _ = _run(world.case(), _answer(), config=config)
+    assert missing.response.execution_stage == "assembly"
+
+
+def test_teacher_labels_reads_single_causes_and_normal(tmp_path):
+    from clauseguard.cli.run_rca import teacher_labels
+
+    refs = tmp_path / "references.jsonl"
+    refs.write_text("\n".join(json.dumps(r) for r in (
+        {"candidate_id": "a", "label_status": "labelled_fault", "causes": ["Jamming"]},
+        {"candidate_id": "b", "label_status": "labelled_normal", "causes": []},
+        {"candidate_id": "c", "label_status": "labelled_fault", "causes": ["x", "y"]},
+        {"candidate_id": "z", "label_status": "labelled_fault", "causes": ["q"]})) + "\n")
+    assert teacher_labels(refs, {"a", "b", "c"}) == {"a": "Jamming", "b": "normal"}

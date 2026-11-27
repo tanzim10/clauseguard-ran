@@ -60,6 +60,18 @@ class Taxonomy(BaseModel):
 
 
 TELECOMTS_TAXONOMY = Taxonomy(taxonomy_id="telecomts-v1", labels=CATEGORY_LABELS, allows_normal=True)
+# Source taxonomies for training runs (Task 4.9). Labels are never mapped across sources
+# (data/candidates/source-fields.md), so each source is run with its own list. The TelecomTS
+# candidate taxonomy adds the real-capture Jamming cause to the 10 synthetic categories.
+RUN_TAXONOMIES: dict[str, Taxonomy] = {
+    "telecomts-v1": TELECOMTS_TAXONOMY,
+    "telecomts-v1-jamming": Taxonomy(taxonomy_id="telecomts-v1-jamming", labels=(*CATEGORY_LABELS, "Jamming"),
+                                     allows_normal=True),
+    "bubbleran-pi-v1": Taxonomy(taxonomy_id="bubbleran-pi-v1", labels=("persistent_interference",),
+                                allows_normal=True),
+}
+# Candidate taxonomy (Task 4.6 reference) -> run taxonomy used to draft its training target.
+CANDIDATE_RUN_TAXONOMY = {"telecomts-v1": "telecomts-v1-jamming", "bubbleran-pi-v1": "bubbleran-pi-v1"}
 
 
 class OutputParseError(ValueError):

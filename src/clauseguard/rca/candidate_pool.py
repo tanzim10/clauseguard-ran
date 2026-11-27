@@ -26,6 +26,7 @@ from clauseguard.rca.candidates import (
     CandidateVersions,
     EligibilityStatus,
     Grouping,
+    LeadDecisions,
     ModalityStates,
     Observations,
     PredictionRef,
@@ -217,8 +218,13 @@ def _local_hashes(directory: Path | None) -> dict[str, str]:
 
 
 def build_inventory(*, telecomts_acquisition: Path | None = None, bubbleran_dir: Path | None = None,
-                    spotlight_dir: Path | None = None) -> list[SourceInventory]:
-    """All five sources, available or not; TelecomTS hashes come from its acquisition record."""
+                    spotlight_dir: Path | None = None,
+                    decisions: LeadDecisions | None = None) -> list[SourceInventory]:
+    """All five sources, available or not; TelecomTS hashes come from its acquisition record.
+
+    A recorded ``training_terms`` decision clears training use for its sources; only the blockers it
+    lists as remaining (plus missing local files) stay, and the decision is named in ``verified_by``.
+    """
     local: dict[str, tuple[str | None, dict[str, str], str]] = {
         name: (None, {}, SOURCE_REVIEW_DATE) for name in SOURCE_TERMS}
     if telecomts_acquisition is not None and Path(telecomts_acquisition).is_file():
@@ -236,6 +242,12 @@ def build_inventory(*, telecomts_acquisition: Path | None = None, bubbleran_dir:
         revision, files, verified_on = local[name]
         verified_by = ("TelecomTS acquisition record (declared licence and file hashes)"
                        if name == "TelecomTS" and files else SOURCE_REVIEW)
+        terms = dict(terms)
+        decision = decisions.of_kind("training_terms", name) if decisions else None
+        if decision:
+            terms |= {"training_use": "cleared", "blockers": decision.remaining_blockers.get(name, [])}
+            terms["identifier"] = decision.identifiers.get(name, terms["identifier"])
+            verified_by = f"{verified_by}; training terms cleared by lead decision {decision.decision_id}"
         blockers = list(terms["blockers"])
         if not files and terms["adapter"] and "source files are not available locally" not in blockers:
             blockers.append("source files are not available locally")
@@ -448,6 +460,21 @@ def _table_candidate(packet: EvidencePacket, built: SourceEvidence, reference: C
         versions=CandidateVersions(adapter=ADAPTER_VERSION, calculation=CALCULATION_VERSION,
                                    question_template=config.question_template_version))
     return BuiltCandidate(candidate, reference)
+
+
+def rebuild_packet(candidate: CandidateRecord, *, dataset, cases: Mapping[str, CaseRecord],
+                   csv_paths: Mapping[str, Mapping[str, Path]],
+                   config: CandidateConfig) -> tuple[EvidencePacket, SourceEvidence]:
+    """Rebuild one candidate's packet and evidence from its source location."""
+    source, location = candidate.identity.source_dataset, candidate.identity.source_location
+    if source == "TelecomTS":
+        sid = candidate.identity.source_record_id
+        prediction = getattr(cases[sid], config.packet_head).prediction if sid in cases else None
+        return telecomts_packet(dataset.load_scenario(sid), dataset.splits["membership"][sid], prediction, config)
+    path = csv_paths[source][location["file"]]
+    if source == "SpotLight":
+        return spotlight_packet(path, location["start_time"], location["end_time"], config)
+    return bubbleran_packet(path, location["first_row"], location["last_row"], config)
 
 
 def bubbleran_packet(path: Path, start: int, end: int, config: CandidateConfig) -> tuple[EvidencePacket, SourceEvidence]:

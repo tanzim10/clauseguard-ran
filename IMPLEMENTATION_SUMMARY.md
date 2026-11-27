@@ -31,6 +31,7 @@ remains outside its scope.
 - [Task 4.6 — SLM candidate pool, manifest and gap report](#task-46--slm-candidate-pool-manifest-and-gap-report--2026-11-17)
 - [Task 4.7 — Base LLM pipeline for cited RCA](#task-47--base-llm-pipeline-for-cited-rca--2026-11-17)
 - [Task 4.8 — Evaluation of base RCA results](#task-48--evaluation-of-base-rca-results--2026-11-18)
+- [Task 4.9 — Cited SLM training examples](#task-49--cited-slm-training-examples--2026-11-25)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -2052,6 +2053,66 @@ Citation and cause-link coverage are 1.000 for every generator (the pipeline che
 - **Judge limits.** One judge model, one pass; it shares biases with the Nemotron generators and scores by reading single-window aggregates strictly. It is a screen, not ground truth.
 - **Correct abstention is unavailable** until an abstention fixture file is approved.
 - Final four-configuration comparison, human review and SLM targets remain out of scope.
+
+
+## Task 4.9 — Cited SLM training examples — 2026-11-25
+
+**Focus:** [Issue #75](https://github.com/tanzim10/clauseguard-ran/issues/75) — build checked, cited RCA training examples from the exact evidence the SLM will receive, and export versioned train and validation JSONL for Task 4.10.
+
+**Status:** Release `release-final` built: 50 rows (40 train, 10 validation), TelecomTS only, status `sample_approved`. Ten sampled rows were reviewed and approved on 2026-11-25. BubbleRAN, SpotLight, TeleLogs and 5G core faults are not in this version.
+
+**PR:** TBD
+
+### Delivered
+
+In simple words: a large teacher model reads the same prompt the small model will get and writes a cited answer. The teacher also sees the true cause as a hint that never enters the training messages. Code checks then confirm the cause, the citations and the numbers; a judge from another model family reads every claim next to the evidence it cites. Only answers that pass everything are exported. The training files hold only `system`, `user` and `assistant` messages; labels, reviews and provenance stay in separate files.
+
+The release directory stays outside the repository.
+
+| File | Content |
+|---|---|
+| `train.jsonl` / `validation.jsonl` | 40 / 10 rows, `messages` only (sha256 `8c4d19e0…` / `d18f6a36…`) |
+| `index.jsonl`, `canonical.jsonl` | row links; 65 full records with input, target, provenance, review, exclusion reasons |
+| `manifest.json` | versions, hashes, judge, acceptance rule, counts, 26 exclusions with reasons, `release_status` |
+| `qwen_check.json`, `human_review.json`, `sources.json` | template/length/mask check per row; the 10 reviewed rows; source coverage |
+
+New code: `rca/training_inputs.py`, `rca/training_baselines.py`, `rca/training_checks.py`, `rca/training_release.py`, `cli/build_training_inputs.py`, `cli/judge_training.py`, `cli/build_training_release.py`; extensions to `run_rca`, `eval/rca_judge.py`, the indexer and the NVIDIA client.
+
+### Technical implementation
+
+- **Decisions as data** (`data/candidates/decisions.json`): the TelecomTS and BubbleRAN family waivers and the academic-terms decision of 2026-11-24 are applied by `build_candidates --decisions`.
+- **Selection:** one window per eligible event; every fault event once, normal events at a 0.12 share, seed 42. Result: 76 events (TelecomTS 62 fault + 4 normal, BubbleRAN 5 + 5).
+- **Label-blind baselines:** TelecomTS uses a train-split normal window from the same zone and application; BubbleRAN uses the equal-length window just before. 70 of 76 windows have one. The rules read only window location, never labels.
+- **Retrieval:** re-indexed with `nvidia/nemotron-3.5-embed-1b` (the previous embedder returned HTTP 410) and chunker v2 (4 of 20 expected dev passages found, against 2 of 20 for v1); collection `oran_specs_nemotron35_2048_chunker_v2`, 6,892 points. `rca-query-v3` adds the six largest KPI changes to the query; snapshots frozen at top_k 16.
+- **Teacher:** `nvidia/nemotron-3-ultra-550b-a55b`, `rca-prompt-v2`, temperature 0.0, 90,000-character budget (largest measured prompt 84,819). A teacher-only hint (`rca-teacher-hint-v2`) names the source label and asks for an evidence-only cited explanation, abstaining if the KPIs contradict it. One label-free revision is allowed after a failed check (used by 26 of 66 runs).
+- **NVIDIA key fallback:** after a 429, 502–504, timeout or connection error the same model is retried on the next key; the model is never swapped.
+- **Checks before the judge:** the existing structural and numeric checks plus `label.v1` (category equals the source label) and `kpi_support.v1` (each diagnostic claim cites KPI evidence).
+- **Judge and acceptance:** `minimaxai/minimax-m3.1-flash` with `rca-judge-v2` (v1 unchanged). Rule `rca-acceptance-v2`: complete run, both checks pass, observation and mechanism claims fully supported, diagnostic claims at least partially supported, nothing unsupported or contradicted.
+- **Release builder:** chat-only files, no group in both splits, duplicate prompts excluded, a reason for every exclusion, deterministic bytes. Each row is rendered with the `Qwen/Qwen3.5-4B` template; over-length rows are rejected and the assistant mask must end at `<|im_end|>`.
+
+### Results
+
+| Stage | Count |
+|---|---|
+| Selected events | 76 (66 TelecomTS, 10 BubbleRAN) |
+| Complete TelecomTS runs | 65 |
+| Machine accepted / rejected | 50 / 15 |
+| Exported | 50 (40 train, 10 validation) |
+| Excluded | 26 = 15 rejected + 1 incomplete TelecomTS run + 10 BubbleRAN without a run |
+
+- 28 judge calls first failed with provider errors; a second pass with the same judge and rule accepted 23 and rejected 5.
+- Exported rows: 47 fault, 3 normal, all `answered`, covering all 11 TelecomTS causes. 9 groups (7 train, 2 validation), none in both.
+- Qwen check: 50 of 50 rows pass at 40,960 tokens; rows are 16,766–34,948 tokens.
+- Sources: TelecomTS included; BubbleRAN excluded (prompts about 202k characters against the 90k budget); SpotLight excluded (no licence); TeleLogs and 5G core faults deferred.
+
+### Limits and follow-ups
+
+- **One source, KPI-only, single cause, no abstentions.** All 50 targets are TelecomTS `answered` rows.
+- **Label-guided targets.** The teacher knew the label, so targets explain a known cause rather than show a diagnosis.
+- **The mechanism link is only partly proven.** The frozen corpus has no passage naming the mechanism of most TelecomTS categories, so rule v2 accepts partially supported diagnostic claims.
+- **Sampled review** covers 10 of 50 rows.
+- **Model.** Issue #75 names Qwen3-8B. This release is checked with the `Qwen/Qwen3.5-4B` tokenizer.
+- BubbleRAN needs smaller evidence and a new review; TeleLogs and 5G core faults need adapters. Training is Task 4.10.
 
 
 ## Adding a New Phase

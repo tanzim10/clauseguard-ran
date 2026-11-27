@@ -1,5 +1,7 @@
 """Application settings (scaffold). Values load from env / .env; no side effects."""
 
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -31,6 +33,9 @@ class Settings(BaseSettings):
     openai_chat_model: str = "gpt-4o-mini"
 
     nvidia_api_key: str = ""
+    # Comma-separated extra keys; generation retries the same model on the next key after a
+    # transient error (429, 502-504, timeout, connection error). Never logged or recorded.
+    nvidia_fallback_api_keys: str = ""
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
     nvidia_cooldown_seconds: int = Field(default=30, ge=0)
     nvidia_timeout_seconds: float = Field(default=30.0, gt=0)
@@ -49,12 +54,19 @@ class Settings(BaseSettings):
     rca_max_tokens: int = Field(default=16384, ge=1)
 
     chunk_size_tokens: int = 512
+    chunker_version: Literal["v1", "v2"] = "v2"
     retrieval_top_k: int = 8
     raw_corpus_dir: str = "./data/corpus/raw"
     parsed_corpus_dir: str = "./data/corpus/parsed"
 
     local_llm_base_model: str = "meta-llama/Llama-3.1-8B-Instruct"
     lora_adapter_path: str = "./models/lora-rca-v1"
+
+
+def nvidia_api_keys(settings: Settings) -> list[str]:
+    """Primary key first, then fallback keys; blanks and duplicates dropped."""
+    keys = [settings.nvidia_api_key, *settings.nvidia_fallback_api_keys.split(",")]
+    return list(dict.fromkeys(key.strip() for key in keys if key.strip()))
 
 
 def get_settings() -> Settings:

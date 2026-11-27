@@ -32,7 +32,11 @@ from clauseguard.rca.summarizer import (
 PREFIXES = {"kpi": "K", "text": "T", "specification": "S"}
 BASELINE_RULES = {
     "window_first_half": "samples 0..n//2-1 of the same source window, compared with samples n//2..n-1",
+    "preceding_window": "the window of equal length that ends immediately before the incident window in the same "
+                        "source file, regardless of its label",
 }
+# Earlier-interval rules whose baseline lies in a different window of the same source; order is by time.
+CROSS_WINDOW_RULES = frozenset({"preceding_window"})
 
 
 class EvidenceAudit(BaseModel):
@@ -196,7 +200,12 @@ class EvidenceRegistry:
         if verification.kind == "earlier_interval":
             if verification.interval_rule not in BASELINE_RULES:
                 raise EvidenceError("earlier-interval baselines need a fixed rule available at inference")
-            if (baseline.source_window_id != incident.source_window_id
+            if verification.interval_rule in CROSS_WINDOW_RULES:
+                if (baseline.time_end is None or incident.time_start is None
+                        or baseline.time_end >= incident.time_start
+                        or baseline.source_window_id.split(":")[0] != incident.source_window_id.split(":")[0]):
+                    raise EvidenceError("a preceding window must end before the incident in the same source")
+            elif (baseline.source_window_id != incident.source_window_id
                     or baseline.sample_end is None or incident.sample_start is None
                     or baseline.sample_end >= incident.sample_start):
                 raise EvidenceError("an earlier interval must end before the incident in the same window")

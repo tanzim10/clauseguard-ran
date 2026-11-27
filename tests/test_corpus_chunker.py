@@ -105,7 +105,8 @@ the numeric line as a section heading.
 
 
 def test_chunk_document_labels_text_before_the_first_heading_as_preamble():
-    text = """Scope and terminology for the specification.
+    # v2 drops a preamble under 200 words as a cover page, so this one is long enough to keep.
+    text = " ".join(["Scope and terminology for the specification."] * 40) + """
 
 1. Introduction
 The controller coordinates policy guidance.
@@ -166,3 +167,87 @@ def test_chunk_document_preserves_sentence_that_fits_without_heading():
         "1. Measurements overview",
         sentence,
     ]
+
+
+_TOC_AND_ANNEX = """Contents
+6.6 SINR related measurements ........................................ 94
+A.9 Monitoring of RF performance ..................................... 103
+.............. 104
+
+6.6 SINR related measurements
+The SINR measurement reports the uplink signal quality.
+
+Annex A (informative):
+A.9 Monitoring of RF performance
+Uplink interference disturbs the receiver and causes receive errors.
+"""
+
+
+def test_v2_drops_table_of_contents_lines_and_splits_annex_clauses():
+    chunks = chunk_document(_TOC_AND_ANNEX, spec_id="3GPP TS 32.425", source_file="ts.txt", version="v2")
+
+    sections = [chunk["metadata"]["section"] for chunk in chunks]
+    assert "A.9 Monitoring of RF performance" in sections
+    assert not any("....." in chunk["text"] for chunk in chunks)
+    annex = next(chunk for chunk in chunks if chunk["metadata"]["section"].startswith("A.9"))
+    assert "receive errors" in annex["text"]
+    sinr = next(chunk for chunk in chunks if chunk["metadata"]["section"].startswith("6.6"))
+    assert "receive errors" not in sinr["text"]
+
+
+def test_v1_keeps_its_original_behaviour_for_frozen_manifests():
+    chunks = chunk_document(_TOC_AND_ANNEX, spec_id="3GPP TS 32.425", source_file="ts.txt", version="v1")
+
+    sections = [chunk["metadata"]["section"] for chunk in chunks]
+    assert not any(section.startswith("A.9") for section in sections)
+    assert any("....." in chunk["text"] for chunk in chunks)
+
+
+def test_default_version_comes_from_settings(monkeypatch):
+    monkeypatch.setenv("CHUNKER_VERSION", "v1")
+    v1 = chunk_document(_TOC_AND_ANNEX, spec_id="s", source_file="f")
+    monkeypatch.setenv("CHUNKER_VERSION", "v2")
+    v2 = chunk_document(_TOC_AND_ANNEX, spec_id="s", source_file="f")
+
+    assert v1 == chunk_document(_TOC_AND_ANNEX, spec_id="s", source_file="f", version="v1")
+    assert v2 == chunk_document(_TOC_AND_ANNEX, spec_id="s", source_file="f", version="v2")
+    assert v1 != v2
+
+
+def test_unknown_chunker_version_is_rejected():
+    import pytest
+
+    with pytest.raises(ValueError, match="unknown chunker version"):
+        chunk_document("1 Scope\ntext", spec_id="s", source_file="f", version="v9")
+
+
+def test_v2_drops_a_cover_page_preamble_only():
+    cover = "ETSI TS 128 552 V18.7.0 5G; Management and orchestration\n\n1 Scope\nThe scope text."
+    assert [c["metadata"]["section"] for c in chunk_document(cover, spec_id="s", source_file="f",
+                                                              version="v2")] == ["1 Scope"]
+    assert "preamble" in [c["metadata"]["section"] for c in chunk_document(cover, spec_id="s", source_file="f",
+                                                                            version="v1")]
+
+
+def test_v2_drops_references_and_the_closing_change_history_but_keeps_the_preamble():
+    body = "\n".join(f"{n} Clause {n}\nThe clause {n} explains a measurement." for n in range(4, 12))
+    intro = " ".join(["Intro text before any numbered heading stays."] * 40)
+    text = f"""{intro}
+
+2 References
+[1] 3GPP TS 23.502: "Procedures for the 5G System".
+
+{body}
+
+Change history
+1 B Add new use case for extended 5QI 16.6.0
+2019-06 SA#84 SP-190371 0086 2 F Correction
+"""
+    chunks = chunk_document(text, spec_id="s", source_file="f", version="v2")
+
+    sections = [chunk["metadata"]["section"] for chunk in chunks]
+    joined = " ".join(chunk["text"] for chunk in chunks)
+    assert "preamble" in sections and "Intro text" in joined
+    assert "2 References" not in sections and "Procedures for the 5G System" not in joined
+    assert "SA#84" not in joined and not any(section.startswith("1 B") for section in sections)
+    assert "11 Clause 11" in sections

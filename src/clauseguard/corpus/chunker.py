@@ -8,29 +8,57 @@ from typing import Any
 
 from clauseguard.config import Settings
 
+CHUNKER_VERSIONS = ("v1", "v2")
 _HEADING_RE = re.compile(r"^\s*\d+(?:\.\d+)*(?:\.)?[ \t]+\S.*\s*$")
+# v2 also accepts annex clauses such as "A.9 Monitoring of RF performance".
+_HEADING_V2_RE = re.compile(r"^\s*(?:\d+|[A-Z](?=\.\d))(?:\.\d+)*(?:\.)?[ \t]+\S.*\s*$")
+# Table-of-contents entries end in a dot leader and an optional page number.
+_TOC_RE = re.compile(r"(?:\.\s?){5,}\s*\d*\s*$")
+# The change-history annex closes every 3GPP/O-RAN document; its table rows look like headings.
+_CHANGE_HISTORY_RE = re.compile(r"^\s*(?:Annex\s*[A-Z]?\s*\(informative\):\s*)?Change\s+history\b.*$", re.IGNORECASE)
+# Front matter matches almost any query and never explains a fault.
+_FRONT_MATTER_RE = re.compile(
+    r"^\s*(?:\d+(?:\.\d+)*\.?\s+)?(?:(?:Normative|Informative)\s+)?(?:References|Foreword|"
+    r"Intellectual Property Rights|Legal Notice|Modal verbs terminology)\s*$", re.IGNORECASE)
+# A preamble shorter than this is a cover page; longer preambles hold unnumbered content.
+_TITLE_PAGE_MAX_WORDS = 200
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 _PREAMBLE_SECTION = "preamble"
 _UNSECTIONED_SECTION = "unsectioned"
 
 
-def chunk_document(text: str, *, spec_id: str, source_file: str) -> list[dict[str, Any]]:
+def chunk_document(
+    text: str, *, spec_id: str, source_file: str, version: str | None = None
+) -> list[dict[str, Any]]:
     """Split specification text into deterministic, metadata-bearing chunks.
 
     Numbered lines are treated as section headings. If no such line exists, blank-line
     separated paragraphs provide the chunk boundaries. Sections and paragraphs are kept
     intact where possible; oversized content is progressively split at sentence and then
     word boundaries to honor the configured token budget.
+
+    ``v2`` (the default) drops table-of-contents lines, the closing change-history annex and
+    front-matter sections (References, Foreword, IPR and legal notices, a cover-page preamble),
+    and accepts lettered
+    annex clauses as headings. ``v1`` is kept so frozen retrieval manifests stay reproducible.
     """
-    budget = max(1, Settings().chunk_size_tokens)
+    settings = Settings()
+    version = version or settings.chunker_version
+    if version not in CHUNKER_VERSIONS:
+        raise ValueError(f"unknown chunker version {version!r}")
+    budget = max(1, settings.chunk_size_tokens)
     lines = text.splitlines()
-    heading_indexes = [index for index, line in enumerate(lines) if _is_heading(line)]
+    if version == "v2":
+        lines = _strip_change_history([line for line in lines if not _TOC_RE.search(line)])
+    pattern = _HEADING_V2_RE if version == "v2" else _HEADING_RE
+    heading_indexes = [index for index, line in enumerate(lines) if _is_heading(line, pattern)]
 
     section_chunks: list[tuple[str, str]] = []
     if heading_indexes:
         first_heading = heading_indexes[0]
         preamble = _paragraphs(lines[:first_heading])
-        section_chunks.extend(_chunk_content(_PREAMBLE_SECTION, preamble, budget))
+        if version == "v1" or _token_count(" ".join(preamble)) >= _TITLE_PAGE_MAX_WORDS:
+            section_chunks.extend(_chunk_content(_PREAMBLE_SECTION, preamble, budget))
 
         for position, heading_index in enumerate(heading_indexes):
             next_heading = (
@@ -39,6 +67,8 @@ def chunk_document(text: str, *, spec_id: str, source_file: str) -> list[dict[st
                 else len(lines)
             )
             section = lines[heading_index].strip()
+            if version == "v2" and _FRONT_MATTER_RE.match(section):
+                continue
             body = _paragraphs(lines[heading_index + 1 : next_heading])
             section_chunks.extend(_chunk_content(section, body, budget, heading=section))
     else:
@@ -64,9 +94,17 @@ def chunk_document(text: str, *, spec_id: str, source_file: str) -> list[dict[st
     return chunks
 
 
-def _is_heading(line: str) -> bool:
+def _strip_change_history(lines: list[str]) -> list[str]:
+    """Drop the closing change-history annex: the first standalone heading in the second half."""
+    for index in range(len(lines) // 2, len(lines)):
+        if _CHANGE_HISTORY_RE.match(lines[index]):
+            return lines[:index]
+    return lines
+
+
+def _is_heading(line: str, pattern: re.Pattern[str] = _HEADING_RE) -> bool:
     """Return whether a non-blank line has a numbered section/clause prefix."""
-    return bool(line.strip()) and bool(_HEADING_RE.fullmatch(line))
+    return bool(line.strip()) and bool(pattern.fullmatch(line))
 
 
 def _paragraphs(lines: Iterable[str]) -> list[str]:

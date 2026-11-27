@@ -33,6 +33,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     print(f"Indexed {summary.documents} documents into {summary.chunks} chunks.")
+    for chunk_id in summary.rejected_chunk_ids:
+        print(f"Skipped chunk rejected by provider content screening: {chunk_id}")
     return 0
 
 

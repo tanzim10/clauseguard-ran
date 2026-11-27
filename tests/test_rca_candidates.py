@@ -798,3 +798,77 @@ def test_batch_mixes_detector_corrections_and_agreements_by_configured_share(dat
     assert sum(map(detector_disagrees, picked)) == 2 and len({p.candidate.grouping.event_id for p in picked}) == 3
     same_event = [_with(item, event="shared") for item in pool]
     assert len(_pick_events(same_event, 4, 42, correction_share=0.5)) == 1
+
+
+# --- Recorded lead decisions -------------------------------------------------------------------
+
+def _decisions():
+    from clauseguard.rca.candidates import LeadDecisions
+
+    return LeadDecisions.model_validate({"decisions": [
+        {"decision_id": "waive", "kind": "family_waiver", "sources": ["TelecomTS"], "decided_by": "lead",
+         "decided_on": "2026-11-24", "scope": "training", "statement": "families waived"},
+        {"decision_id": "terms", "kind": "training_terms", "sources": ["BubbleRAN", "TeleLogs"],
+         "decided_by": "lead", "decided_on": "2026-11-24", "scope": "academic", "statement": "cleared",
+         "remaining_blockers": {"TeleLogs": ["gated access not accepted"]}},
+    ]})
+
+
+def test_lead_decisions_validate_scope_and_unique_ids():
+    from clauseguard.rca.candidates import LeadDecision, LeadDecisions
+
+    base = {"decision_id": "d", "kind": "family_waiver", "sources": ["TelecomTS"], "decided_by": "lead",
+            "decided_on": "2026-11-24", "scope": "training", "statement": "s"}
+    with pytest.raises(ValidationError, match="waiver"):
+        LeadDecision(**{**base, "identifiers": {"TelecomTS": "x"}})
+    with pytest.raises(ValidationError, match="outside its scope"):
+        LeadDecision(**{**base, "kind": "training_terms", "remaining_blockers": {"SpotLight": ["x"]}})
+    with pytest.raises(ValidationError, match="unique"):
+        LeadDecisions(decisions=[LeadDecision(**base), LeadDecision(**base)])
+
+
+def test_training_terms_decision_clears_named_sources_only():
+    inventory = {s.dataset: s for s in candidate_pool.build_inventory(decisions=_decisions())}
+    assert inventory["BubbleRAN"].training_use == "cleared"
+    assert inventory["TeleLogs"].training_use == "cleared"
+    assert inventory["TeleLogs"].blockers == ["gated access not accepted"]
+    assert "lead decision terms" in inventory["BubbleRAN"].verified_by
+    assert inventory["SpotLight"].training_use == "blocked"
+    assert inventory["5G core faults"].training_use == "blocked"
+
+
+def test_family_waiver_admits_unresolved_families_with_a_recorded_reason(dataset, predictions, golden_dir):
+    from clauseguard.rca.candidate_release import evaluate_eligibility
+
+    built, inventory, reservations, dedup, config = _pool(dataset, predictions, golden_dir)
+    unresolved = [b._replace(candidate=b.candidate.model_copy(update={
+        "grouping": b.candidate.grouping.model_copy(update={"group_status": "unresolved"})})) for b in built]
+    result = evaluate_eligibility(unresolved, inventory=inventory, reservations=reservations, dedup=dedup,
+                                  config=config, decisions=_decisions())
+    assert {r.candidate.eligibility.status for r in result} == {"eligible_pilot"}
+    check = next(c for c in result[0].candidate.eligibility.checks if c.check_id == "family_resolved")
+    assert check.status == "passed" and "waived by lead decision waive" in check.reasons[0]
+
+    family = built[0].candidate.grouping.group_id
+    reserved = reservations.model_copy(update={"families": [*reservations.families, family]})
+    result = evaluate_eligibility(unresolved, inventory=inventory, reservations=reserved, dedup=dedup,
+                                  config=config, decisions=_decisions())
+    assert result[0].candidate.eligibility.status == "ineligible"  # a waiver never admits reserved data
+
+
+def test_release_records_decisions_in_a_hashed_file(dataset, predictions, golden_dir, tmp_path,
+                                                                 capsys):
+    from clauseguard.cli import build_candidates as cli
+
+    decisions = tmp_path / "decisions.json"
+    decisions.write_text(_decisions().model_dump_json())
+    common = ["--release-dir", str(dataset.release_dir), "--golden-dir", str(golden_dir),
+              "--acquisition", str(tmp_path / "none.json"), "--bubbleran-dir", str(tmp_path / "nb"),
+              "--spotlight-dir", str(tmp_path / "ns"), "--predictions", str(predictions), "--created-on", "2026-11-24"]
+    out = tmp_path / "with-decisions"
+    assert cli.main(["build", *common, "--decisions", str(decisions), "--output-dir", str(out)]) == 0
+    capsys.readouterr()
+    assert json.loads((out / "decisions.json").read_text())["decisions"][0]["decision_id"] == "waive"
+    assert "decisions.json" in json.loads((out / "manifest.json").read_text())["files"]
+    assert cli.main(["verify", "--output-dir", str(out)]) == 0
+    capsys.readouterr()

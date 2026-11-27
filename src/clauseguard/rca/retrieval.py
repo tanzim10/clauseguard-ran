@@ -23,6 +23,8 @@ from clauseguard.rca.contracts import EvidencePacket, SpecificationEvidence
 from clauseguard.rca.evidence import EvidenceRegistry, _digest
 
 QUERY_TEMPLATE_VERSION = "rca-query-v1"
+QUERY_VERSIONS = ("rca-query-v1", "rca-query-v2", "rca-query-v3")
+QUERY_V3_CHANGES = 6  # channels with the largest relative change against their baseline
 MANIFEST_VERSION = "rca-retrieval-manifest-v1"
 SNAPSHOT_VERSION = "rca-retrieval-snapshot-v1"
 CONFIGURATIONS = ("base_llm_full", "adapted_slm_full", "text_rag", "kpi_summary_rag")
@@ -40,6 +42,22 @@ PROCESSING = {
     "duplicates": "a repeated chunk ID keeps its first rank; later copies are recorded as filtered",
     "excerpt": "the whole indexed chunk text is supplied; no shortening",
     "scores": "ranking values only, never diagnosis probabilities",
+}
+QUERY_RULES_V3 = {
+    "question": QUERY_RULES["question"],
+    "kpi": f"up to {QUERY_V3_CHANGES} mean records that have a baseline, largest relative change first: channel, "
+           "direction, baseline mean and incident mean rounded to 4 significant digits",
+    "text": QUERY_RULES["text"],
+    "detector": QUERY_RULES["detector"],
+    "excluded": QUERY_RULES["excluded"],
+}
+QUERY_RULES_V2 = {
+    "question": QUERY_RULES["question"],
+    "kpi": "omitted: whole-window statistics are numbers the embedding model cannot match to clause "
+           "text; the question already names the channels that changed",
+    "text": QUERY_RULES["text"],
+    "detector": QUERY_RULES["detector"],
+    "excluded": QUERY_RULES["excluded"],
 }
 SHARED_RETRIEVAL_NOTE = ("all four configurations reuse the same saved passages; because the query used "
                          "the full packet, the passages can retain information from modalities that a "
@@ -60,8 +78,28 @@ def _significant(value: float) -> str:
     return f"{value:.4g}"
 
 
-def build_query(packet: EvidencePacket) -> tuple[str, dict]:
+def _baseline_changes(packet: EvidencePacket) -> tuple[list[str], list[str]]:
+    """Mean records with a baseline, largest relative change first, as 'CH increased from a to b'."""
+    records = {item.evidence_id: item for item in packet.kpi_evidence}
+    rows = []
+    for item in packet.kpi_evidence:
+        base = records.get(item.baseline_evidence_id) if item.baseline_evidence_id else None
+        if item.statistic != "mean" or base is None or item.value == base.value:
+            continue
+        scale = max(abs(base.value), abs(item.value), 1e-9)
+        rows.append((abs(item.value - base.value) / scale, item.channel, base, item))
+    rows.sort(key=lambda row: (-row[0], row[1]))
+    picked = rows[:QUERY_V3_CHANGES]
+    ids = [eid for _, _, base, item in picked for eid in (item.evidence_id, base.evidence_id)]
+    text = [f"{channel} {'increased' if item.value > base.value else 'decreased'} from "
+            f"{_significant(base.value)} to {_significant(item.value)}" for _, channel, base, item in picked]
+    return ids, text
+
+
+def build_query(packet: EvidencePacket, version: str = QUERY_TEMPLATE_VERSION) -> tuple[str, dict]:
     """Deterministic query text plus the inputs that contributed to it."""
+    if version not in QUERY_VERSIONS:
+        raise SnapshotError(f"unknown query version {version!r}")
     stats: dict[str, dict[str, Any]] = {}
     for item in packet.kpi_evidence:
         if item.statistic in ("mean", "minimum", "maximum"):
@@ -76,7 +114,14 @@ def build_query(packet: EvidencePacket) -> tuple[str, dict]:
         parts += [f"{name} {_significant(group[name].value)}" for name in ("minimum", "maximum") if name in group]
         kpi_lines.append(f"{channel}: " + ", ".join(parts))
         kpi_ids += [group[name].evidence_id for name in ("mean", "minimum", "maximum") if name in group]
-    if kpi_lines:
+    if version == "rca-query-v3":
+        kpi_ids, changes = _baseline_changes(packet)
+        if changes:
+            lines.append("Which fault mechanism explains these KPI changes against the baseline: "
+                         + "; ".join(changes))
+    elif version == "rca-query-v2":
+        kpi_ids = []
+    elif kpi_lines:
         lines.append("Observed KPI statistics: " + "; ".join(kpi_lines))
     text_ids = [item.evidence_id for item in packet.text_evidence]
     lines += [item.text.strip() for item in packet.text_evidence]
@@ -86,7 +131,7 @@ def build_query(packet: EvidencePacket) -> tuple[str, dict]:
         lines.append(f"Detector prediction ({prediction.task}): {prediction.predicted_label}")
     query = "\n".join(line for line in lines if line)
     return query, {
-        "template_version": QUERY_TEMPLATE_VERSION, "kpi_evidence_ids": kpi_ids, "text_evidence_ids": text_ids,
+        "template_version": version, "kpi_evidence_ids": kpi_ids, "text_evidence_ids": text_ids,
         "kpi_state": packet.kpi_state, "text_state": packet.text_state,
         "detector_prediction": {"used": used,
                                 "status": prediction.status if prediction else "not_supplied",
@@ -106,11 +151,14 @@ def chunk_inventory(manifest_path: Path, parsed_dir: Path) -> list[dict]:
 
 
 def freeze_manifest(*, settings, manifest_path: Path, parsed_dir: Path, top_k: int, output: Path,
-                    frozen_on: str, index_status: Mapping[str, Any] | None = None) -> dict:
+                    frozen_on: str, index_status: Mapping[str, Any] | None = None,
+                    query_version: str = QUERY_TEMPLATE_VERSION) -> dict:
     """Seal corpus, chunk, index, embedding, query and search settings before any scored run."""
     output = Path(output)
     if output.exists():
         raise FileExistsError("retrieval manifest exists; a frozen manifest is never overwritten")
+    if query_version not in QUERY_VERSIONS:
+        raise SnapshotError(f"unknown query version {query_version!r}")
     if not 1 <= top_k <= 50:
         raise SnapshotError("top_k must be between 1 and 50")
     rows = [row for row in load_manifest(manifest_path) if row.get("acquired_at")]
@@ -129,6 +177,7 @@ def freeze_manifest(*, settings, manifest_path: Path, parsed_dir: Path, top_k: i
         "corpus": {"manifest_sha256": hashlib.sha256(Path(manifest_path).read_bytes()).hexdigest(),
                    "documents": documents},
         "chunks": {"chunker": "clauseguard.corpus.chunker.chunk_document",
+                   "chunker_version": settings.chunker_version,
                    "chunk_size_tokens": settings.chunk_size_tokens, "count": len(inventory),
                    "inventory_sha256": _digest(inventory), "chunk_sha256": inventory},
         "index": {"collection": settings.qdrant_collection, "distance": settings.qdrant_distance,
@@ -140,7 +189,9 @@ def freeze_manifest(*, settings, manifest_path: Path, parsed_dir: Path, top_k: i
                        "query_input_type": "query", "revision": None,
                        "revision_note": "the provider does not expose a model revision; recorded as a "
                                         "reproducibility limit"},
-        "query_builder": {"version": QUERY_TEMPLATE_VERSION, "rules": QUERY_RULES},
+        "query_builder": {"version": query_version,
+                          "rules": {"rca-query-v2": QUERY_RULES_V2, "rca-query-v3": QUERY_RULES_V3}.get(
+                              query_version, QUERY_RULES)},
         "search": {"top_k": top_k, "filters": None, "score_threshold": None,
                    "parameters": "Qdrant query_points defaults (approximate HNSW)"},
         "processing": PROCESSING,
@@ -220,7 +271,7 @@ def _resolve(hits, manifest: Mapping) -> tuple[list[RetrievedPassage], list[dict
 
 def snapshot_case(packet: EvidencePacket, manifest: Mapping, search_service, *, case_id: str) -> RetrievalSnapshot:
     """Run retrieval once for one packet and record exactly what happened."""
-    query, inputs = build_query(packet)
+    query, inputs = build_query(packet, manifest["query_builder"]["version"])
     case = {"case_id": case_id, "scenario_id": packet.source.case_id, "dataset": packet.source.dataset,
             "packet_sha256": _digest(packet.model_dump(mode="json"))}
     common = {"manifest_sha256": manifest["manifest_sha256"], "case": case, "query_inputs": inputs}

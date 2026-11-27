@@ -12,7 +12,7 @@ from typing import Any, Literal
 from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
 from pydantic import BaseModel, ConfigDict, Field
 
-from clauseguard.config import Settings, get_settings
+from clauseguard.config import Settings, get_settings, nvidia_api_keys
 
 GROUNDED_QUERY_MODELS = (
     "nvidia/nemotron-3.5-lightning-30b-a3b",
@@ -33,6 +33,7 @@ class GenerationAttempt(BaseModel):
     outcome: Literal["ok", "transient_error", "error", "cooling_down", "empty_output"]
     error_class: str | None = None
     seconds: float = Field(ge=0)
+    key_slot: int | None = Field(default=None, ge=0)
 
 
 class GenerationResult(BaseModel):
@@ -113,8 +114,8 @@ class LLMRouter:
         self.client_factory = client_factory
         self.models = models
         self.clock = clock
-        self._client: Any | None = None
-        self._cooldown_until: dict[str, float] = {}
+        self._clients: dict[int, Any] = {}
+        self._cooldown_until: dict[tuple[str, int], float] = {}
         self._lock = threading.Lock()
 
     def generate(self, prompt: str, *, task: str = "grounded_query") -> str:
@@ -164,65 +165,57 @@ class LLMRouter:
         if not settings.nvidia_api_key.strip() and self.client_factory is _build_nvidia_client:
             raise GenerationUnavailable("generation service is not configured")
 
-        if self._client is None:
-            try:
-                self._client = self.client_factory(settings)
-            except GenerationUnavailable:
-                raise
-            except Exception as exc:
-                raise GenerationUnavailable("generation service is not configured") from exc
-
+        slots = range(max(1, len(nvidia_api_keys(settings))))
         attempts: list[GenerationAttempt] = []
 
-        def record(model: str, outcome: str, started: float, error: Exception | None = None) -> None:
+        def record(model: str, slot: int, outcome: str, started: float, error: Exception | None = None) -> None:
             attempts.append(GenerationAttempt(
                 model=model, outcome=outcome, error_class=type(error).__name__ if error else None,
-                seconds=max(0.0, time.perf_counter() - started)))
+                seconds=max(0.0, time.perf_counter() - started), key_slot=slot))
 
         for model in models:
-            started = time.perf_counter()
-            if self._is_cooling_down(model):
-                record(model, "cooling_down", started)
+            completion = None
+            for slot in slots:
+                started = time.perf_counter()
+                if self._is_cooling_down(model, slot):
+                    record(model, slot, "cooling_down", started)
+                    continue
+                try:
+                    client = self._client_for(settings, slot)
+                    request = {"model": model, "messages": messages, **params}
+                    if model not in MODELS_WITHOUT_JSON_MODE:
+                        request["response_format"] = {"type": "json_object"}
+                    completion = client.chat.completions.create(**request)
+                    break
+                except GenerationUnavailable as exc:
+                    raise _tag(exc, attempts) from exc
+                except (APITimeoutError, APIConnectionError) as exc:
+                    record(model, slot, "transient_error", started, exc)
+                    self._cool_down(model, slot, settings.nvidia_cooldown_seconds)
+                except APIStatusError as exc:
+                    if exc.status_code not in {429, 502, 503, 504}:
+                        record(model, slot, "error", started, exc)
+                        raise _tag(GenerationUnavailable("generation service is unavailable"), attempts) from exc
+                    record(model, slot, "transient_error", started, exc)
+                    delay = _retry_after_seconds(exc)
+                    self._cool_down(model, slot, settings.nvidia_cooldown_seconds if delay is None else delay)
+                except Exception as exc:
+                    record(model, slot, "error", started, exc)
+                    raise _tag(GenerationUnavailable("generation service is unavailable"), attempts) from exc
+            if completion is None:
                 if not failover:
                     raise _tag(GenerationUnavailable("fixed generation model is unavailable"), attempts)
                 continue
-            try:
-                request = {"model": model, "messages": messages, **params}
-                if model not in MODELS_WITHOUT_JSON_MODE:
-                    request["response_format"] = {"type": "json_object"}
-                completion = self._client.chat.completions.create(**request)
-            except (APITimeoutError, APIConnectionError) as exc:
-                record(model, "transient_error", started, exc)
-                self._cool_down(model, settings.nvidia_cooldown_seconds)
-                if not failover:
-                    raise _tag(GenerationUnavailable("fixed generation model is unavailable"), attempts) from exc
-                continue
-            except APIStatusError as exc:
-                if exc.status_code not in {429, 502, 503, 504}:
-                    record(model, "error", started, exc)
-                    raise _tag(GenerationUnavailable("generation service is unavailable"), attempts) from exc
-                record(model, "transient_error", started, exc)
-                delay = _retry_after_seconds(exc)
-                self._cool_down(
-                    model,
-                    settings.nvidia_cooldown_seconds if delay is None else delay,
-                )
-                if not failover:
-                    raise _tag(GenerationUnavailable("fixed generation model is unavailable"), attempts) from exc
-                continue
-            except Exception as exc:
-                record(model, "error", started, exc)
-                raise _tag(GenerationUnavailable("generation service is unavailable"), attempts) from exc
 
             try:
                 content = completion.choices[0].message.content
             except (AttributeError, IndexError, TypeError) as exc:
-                record(model, "empty_output", started, exc)
+                record(model, slot, "empty_output", started, exc)
                 raise _tag(MalformedGenerationOutput(), attempts) from exc
             if not isinstance(content, str) or not content.strip():
-                record(model, "empty_output", started)
+                record(model, slot, "empty_output", started)
                 raise _tag(MalformedGenerationOutput(), attempts)
-            record(model, "ok", started)
+            record(model, slot, "ok", started)
             served = getattr(completion, "model", None)
             usage = getattr(completion, "usage", None)
             return GenerationResult(
@@ -233,10 +226,23 @@ class LLMRouter:
         # Both exhausted models and models still in cooldown are unavailable.
         raise _tag(GenerationUnavailable("all configured generation models are unavailable"), attempts)
 
-    def _is_cooling_down(self, model: str) -> bool:
+    def _client_for(self, settings: Settings, slot: int) -> Any:
         with self._lock:
-            return self._cooldown_until.get(model, 0.0) > self.clock()
+            if slot not in self._clients:
+                keys = nvidia_api_keys(settings)
+                scoped = settings.model_copy(update={"nvidia_api_key": keys[slot]}) if slot else settings
+                try:
+                    self._clients[slot] = self.client_factory(scoped)
+                except GenerationUnavailable:
+                    raise
+                except Exception as exc:
+                    raise GenerationUnavailable("generation service is not configured") from exc
+            return self._clients[slot]
 
-    def _cool_down(self, model: str, seconds: float) -> None:
+    def _is_cooling_down(self, model: str, slot: int = 0) -> bool:
         with self._lock:
-            self._cooldown_until[model] = self.clock() + seconds
+            return self._cooldown_until.get((model, slot), 0.0) > self.clock()
+
+    def _cool_down(self, model: str, slot: int, seconds: float) -> None:
+        with self._lock:
+            self._cooldown_until[(model, slot)] = self.clock() + seconds

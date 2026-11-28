@@ -13,7 +13,7 @@ import statistics
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, NamedTuple, Protocol
 
 from pydantic import Field
 
@@ -156,22 +156,39 @@ class RowCheck(StrictModel):
     problems: list[str] = Field(default_factory=list)
 
 
+class AssistantSpan(NamedTuple):
+    """Character offsets of the final assistant turn in rendered chat text."""
+
+    found: bool
+    start: int  # first character of the assistant content (after marker and empty think block)
+    end: int  # position of the closing <|im_end|>
+    mask_end: int  # end of the supervised text: content plus its <|im_end|>
+    think: bool
+    ends: bool
+
+
+def locate_assistant(text: str) -> AssistantSpan:
+    """Where the supervised assistant text sits in ``text``; shared by the row check and training masks."""
+    marker = text.rfind(ASSISTANT_MARKER)
+    ends = text.rstrip("\n").endswith(IM_END)
+    after = marker + len(ASSISTANT_MARKER) if marker >= 0 else 0
+    think = marker >= 0 and text.startswith(EMPTY_THINK, after)
+    start = after + len(EMPTY_THINK) if think else after
+    end = text.rfind(IM_END)
+    mask_end = end + len(IM_END) if ends and end >= start else start
+    return AssistantSpan(marker >= 0, start, end, mask_end, think, ends)
+
+
 def check_row(record_id: str, candidate_id: str, messages: Sequence[Message], tokenizer: ChatTokenizer,
               max_tokens: int) -> RowCheck:
     """Render one row and check template, assistant span, loss mask and length."""
     text = tokenizer.render([m.model_dump() for m in messages])
     spans = tokenizer.token_spans(text)
     problems: list[str] = []
-    marker = text.rfind(ASSISTANT_MARKER)
-    ends = text.rstrip("\n").endswith(IM_END)
-    if marker < 0:
+    found, start, end, mask_end, think, ends = locate_assistant(text)
+    if not found:
         problems.append("no assistant turn in rendered text")
-    after = marker + len(ASSISTANT_MARKER) if marker >= 0 else 0
-    think = marker >= 0 and text.startswith(EMPTY_THINK, after)
-    start = after + len(EMPTY_THINK) if think else after
-    end = text.rfind(IM_END)
-    content = text[start:end] if marker >= 0 and end >= start else ""
-    mask_end = end + len(IM_END) if ends and end >= start else start
+    content = text[start:end] if found and end >= start else ""
     parses = True
     try:
         RcaModelOutput.model_validate_json(content)

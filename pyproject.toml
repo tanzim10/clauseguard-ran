@@ -44,6 +44,17 @@ analysis = [
   "nbconvert>=7.16.0",
   "ipykernel>=6.29.0",
 ]
+# Task 4.10 QLoRA fine-tuning and local inference (lazy-imported; GPU libs are Linux-only).
+slm = [
+  "transformers>=5.0",
+  "peft>=0.17",
+  "trl>=1.0",
+  "accelerate>=1.0",
+  "jinja2>=3.1",
+  "bitsandbytes>=0.45; sys_platform == 'linux'",
+  "liger-kernel>=0.6; sys_platform == 'linux'",
+  "flash-linear-attention; sys_platform == 'linux'",
+]
 dev = [
   "pytest>=8.3.0",
   "pytest-asyncio>=0.24.0",

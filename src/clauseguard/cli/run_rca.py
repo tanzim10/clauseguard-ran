@@ -74,10 +74,15 @@ def main(argv=None):
     parser.add_argument("--audits", type=Path, required=True, help="Task 4.4 audits.jsonl")
     parser.add_argument("--run-dir", type=Path, required=True, help="Task 4.5 snapshot run directory")
     parser.add_argument("--output", type=Path, required=True, help="new directory for run records")
-    parser.add_argument("--configuration", default="base_llm_full",
+    parser.add_argument("--configuration", default=None,
                         choices=("base_llm_full", "adapted_slm_full", "text_rag", "kpi_summary_rag"))
     parser.add_argument("--run-kind", default="exploratory", choices=("exploratory", "scored"))
     parser.add_argument("--model", help="fixed generation model (default: RCA_MODEL_ID setting)")
+    parser.add_argument("--local-model", help="Hugging Face id of a local 4-bit model (Task 4.10); replaces the "
+                                              "NVIDIA router and fixes the scored model id to the model "
+                                              "(plus adapter hash)")
+    parser.add_argument("--adapter", type=Path, help="LoRA adapter directory for --local-model; "
+                                                     "configuration becomes adapted_slm_full")
     parser.add_argument("--fallback", action="append", default=[], help="exploratory fallback model")
     parser.add_argument("--budget-chars", type=int, help="context budget in characters")
     parser.add_argument("--max-tokens", type=int,
@@ -105,6 +110,16 @@ def main(argv=None):
                         help="re-run a case that failed at generation up to N times with the same model; "
                              "every attempt's run record is kept")
     args = parser.parse_args(argv)
+    if args.adapter and not args.local_model:
+        parser.error("--adapter needs --local-model")
+    if args.local_model and (args.model or args.fallback):
+        parser.error("--local-model fixes the model; do not combine it with --model or --fallback")
+    default_configuration = "adapted_slm_full" if args.adapter else "base_llm_full"
+    if args.configuration is None:
+        args.configuration = default_configuration
+    elif args.local_model and args.configuration != default_configuration and args.configuration in (
+            "base_llm_full", "adapted_slm_full"):
+        parser.error(f"{args.configuration} does not match the local model setup ({default_configuration})")
     try:
         from clauseguard.config import get_settings
         from clauseguard.llm.clients import LLMRouter
@@ -113,6 +128,11 @@ def main(argv=None):
         from clauseguard.rca.retrieval import load_manifest_record
 
         settings = get_settings()
+        local = None
+        if args.local_model:
+            from clauseguard.llm.local import LocalGenerator
+
+            local = LocalGenerator(args.local_model, args.adapter)
         if args.output.exists():
             raise FileExistsError("output directory exists; a new run goes to a new directory")
         args.output.mkdir(parents=True)
@@ -121,7 +141,7 @@ def main(argv=None):
             minimal = json.loads(args.policy.read_text(encoding="utf-8"))["minimal_question"]
         config = pipeline.ExperimentConfig(
             configuration=args.configuration, run_kind=args.run_kind,
-            model_id=args.model or settings.rca_model_id, fallback_models=tuple(args.fallback),
+            model_id=local.model_id if local else args.model or settings.rca_model_id, fallback_models=tuple(args.fallback),
             context_budget_chars=args.budget_chars or settings.rca_context_budget_chars,
             numeric_policy=args.numeric_policy, revisions=args.revisions,
             label_guided=args.teacher_labels is not None,
@@ -139,7 +159,7 @@ def main(argv=None):
             labels = teacher_labels(args.teacher_labels, {case.case_id for case in cases})
             cases = [case.model_copy(update={"teacher_label": labels.get(case.case_id)}) for case in cases]
         generator = (pipeline.ReplayGenerator.from_directory(args.replay) if args.replay
-                     else LLMRouter(settings=settings))
+                     else local or LLMRouter(settings=settings))
         rca = pipeline.RcaPipeline(generator=generator)
         rows = []
         if args.retries < 0:
@@ -164,7 +184,8 @@ def main(argv=None):
                 "factual_support": response.factual_support})
         (args.output / "index.json").write_text(json.dumps(
             {"config": config.model_dump(mode="json"), "config_sha256": config.sha256(),
-             "generator": "replay" if args.replay else "live", "runs": rows},
+             "generator": "replay" if args.replay else "live",
+             **({"local_model": local.model_id} if local and not args.replay else {}), "runs": rows},
             indent=2, sort_keys=True) + "\n", encoding="utf-8")
         result = {"runs": len(rows), "output": str(args.output),
                   "execution_status": {s: sum(r["execution_status"] == s for r in rows)

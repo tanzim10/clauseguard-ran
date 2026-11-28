@@ -32,6 +32,7 @@ remains outside its scope.
 - [Task 4.7 — Base LLM pipeline for cited RCA](#task-47--base-llm-pipeline-for-cited-rca--2026-11-17)
 - [Task 4.8 — Evaluation of base RCA results](#task-48--evaluation-of-base-rca-results--2026-11-18)
 - [Task 4.9 — Cited SLM training examples](#task-49--cited-slm-training-examples--2026-11-25)
+- [Task 4.10 — QLoRA adapter for the local SLM](#task-410--qlora-adapter-for-the-local-slm--2026-11-27)
 - [Adding a New Phase](#adding-a-new-phase)
 
 ## Phase 1 — Corpus Manifest Validation
@@ -2113,6 +2114,62 @@ New code: `rca/training_inputs.py`, `rca/training_baselines.py`, `rca/training_c
 - **Sampled review** covers 10 of 50 rows.
 - **Model.** Issue #75 names Qwen3-8B. This release is checked with the `Qwen/Qwen3.5-4B` tokenizer.
 - BubbleRAN needs smaller evidence and a new review; TeleLogs and 5G core faults need adapters. Training is Task 4.10.
+
+
+
+## Task 4.10 — QLoRA adapter for the local SLM — 2026-11-27
+
+**Focus:** [Issue #74](https://github.com/tanzim10/clauseguard-ran/issues/74) — train a QLoRA adapter on the Task 4.9 release and compare it with the untuned model on the same evidence, prompts, quantization and decoding.
+
+**Status:** The cluster run recorded here selected epoch 3. On the 12 golden cases the adapted model was fully correct on 6 and partial on 3, which is 9/12 (75%).
+
+**PR:** TBD
+
+### Delivered
+
+In simple words: Qwen3.5-4B is loaded in 4-bit form and a small LoRA adapter is trained on the 40 cited answers from Task 4.9. Only the answer tokens are learned. The 10 validation rows pick the epoch. The same model then answers the 12 golden cases with and without the adapter.
+
+- `llm/lora.py`: config, release check, assistant-only labels, tail loss, memory trial, training, epoch selection, and the run record.
+- `llm/local.py`: a local 4-bit generator with an optional adapter, using the same completion interface as the hosted client.
+- `cli/train_lora.py`: `check`, `memory-trial`, and `train`.
+- `cli/run_rca.py`: `--local-model` and `--adapter` (configuration `adapted_slm_full`).
+- `pyproject.toml`: an `slm` extra.
+
+### Technical implementation
+
+- **Model and schedule:** Qwen3.5-4B, NF4 4-bit, LoRA rank 16 and alpha 32, learning rate 2e-4, 3 epochs, batch 1, gradient accumulation 4.
+- **Loss:** mean cross-entropy on the assistant tokens and `<|im_end|>` only. The evidence prompt is not scored.
+- **Selection rule,** fixed before training: lowest validation loss at an epoch end. A tie at 4 decimal places keeps the earlier epoch.
+
+### Results
+
+Validation loss on the 10 rows used to pick the epoch: 0.312, 0.2884, **0.2873**. Epoch 3 is the lowest, so it is the selected checkpoint.
+
+Golden cases, 12 in total (5 development, 7 test):
+
+| | Adapted | Untuned |
+|---|---|---|
+| Answered / abstained / failed | 11 / 0 / 1 | 6 / 2 / 4 |
+| Fully correct | 6/12 | |
+| Partial | 3/12 | |
+| Incorrect | 3/12 | |
+| Correct, counting a partial as a success | 9/12 (75%) | |
+| Correct on the 7 test cases | | about 4/7 |
+
+The adapted model did better than the untuned one, and it was not exact on every case. Counting a partial match as a success, it was right on 9 of 12 golden cases, about 75%. Six of those were a full match and three were partial. The one failed adapted case is one of the three incorrect cases. The untuned model answered 6, abstained on 2, and failed on 4. On the 7 test cases it was right on about 4.
+
+### Verification
+
+- `uv run pytest tests/test_lora.py tests/test_local_generator.py tests/test_rca_cli.py tests/test_rca_training_release.py`: passed. Two smoke tests skip without a cached `Qwen/Qwen3.5-4B` tokenizer.
+- `make test`: 820 passed, 3 skipped, 1 failed. The failure is `test_tail_loss_equals_the_full_logits_loss_on_the_same_labels`, which builds a tiny model from the Qwen3.5-4B config and raises when that config is not in the local cache.
+
+### Limits and follow-ups
+
+- The adapted score on the 7 test cases alone, and the untuned score on all 12 cases, were not in this run report.
+- Train loss, latency, citation faithfulness, and peak GPU for this cluster run were not recorded in this section.
+- The training release has no abstention targets. The adapted model abstained on 0 of the 12 golden cases.
+- The 10 validation rows chose the epoch, so that loss is not a held-out exam.
+- The four-configuration comparison remains Task 4.11.
 
 
 ## Adding a New Phase

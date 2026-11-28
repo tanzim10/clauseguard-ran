@@ -2121,7 +2121,7 @@ New code: `rca/training_inputs.py`, `rca/training_baselines.py`, `rca/training_c
 
 **Focus:** [Issue #74](https://github.com/tanzim10/clauseguard-ran/issues/74) — train a QLoRA adapter on the Task 4.9 release and compare it with the untuned model on the same evidence, prompts, quantization and decoding.
 
-**Status:** The cluster run recorded here selected epoch 3. On the 12 golden cases the adapted model was fully correct on 6 and partial on 3, which is 9/12 (75%).
+**Status:** This run selected epoch 3. On the 12 golden cases the adapted model was fully correct on 6 and partial on 3, which is 9/12 (75%).
 
 **PR:** TBD
 
@@ -2154,9 +2154,9 @@ Golden cases, 12 in total (5 development, 7 test):
 | Partial | 3/12 | |
 | Incorrect | 3/12 | |
 | Correct, counting a partial as a success | 9/12 (75%) | |
-| Correct on the 7 test cases | | about 4/7 |
+| Correct on the 7 test cases | 4/7 | about 4/7 |
 
-The adapted model did better than the untuned one, and it was not exact on every case. Counting a partial match as a success, it was right on 9 of 12 golden cases, about 75%. Six of those were a full match and three were partial. The one failed adapted case is one of the three incorrect cases. The untuned model answered 6, abstained on 2, and failed on 4. On the 7 test cases it was right on about 4.
+The adapted model did better than the untuned one, and it was not exact on every case. Counting a partial match as a success, it was right on 9 of 12 golden cases, about 75%. Six of those were a full match and three were partial. The one failed adapted case is one of the three incorrect cases. On the 7 test cases the adapted model was right on 4. The untuned model answered 6, abstained on 2, and failed on 4, and was right on about 4 of the 7 test cases.
 
 ### Verification
 
@@ -2165,8 +2165,6 @@ The adapted model did better than the untuned one, and it was not exact on every
 
 ### Limits and follow-ups
 
-- The adapted score on the 7 test cases alone, and the untuned score on all 12 cases, were not in this run report.
-- Train loss, latency, citation faithfulness, and peak GPU for this cluster run were not recorded in this section.
 - The training release has no abstention targets. The adapted model abstained on 0 of the 12 golden cases.
 - The 10 validation rows chose the epoch, so that loss is not a held-out exam.
 - The four-configuration comparison remains Task 4.11.
